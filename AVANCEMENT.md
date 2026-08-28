@@ -65,7 +65,7 @@ fonctionnalités réellement construites, indépendamment du regroupement affich
 - **Tableau de bord** — KPIs (effectifs, moyenne générale, assiduité, absences/retards/sanctions
   du mois), effectif et moyenne par classe.
 
-### §4bis. Réorganisation de la sidebar principale (taxonomie à 8 modules)
+### §4bis. Réorganisation de la sidebar principale (taxonomie à 7 modules)
 
 L'utilisateur a partagé un « prompt maître » détaillé proposant une architecture cible pour
 ECOPRIM en tant qu'ERP pédagogique complet (10 modules, Laravel 12/PHP 8.3+, année scolaire
@@ -77,7 +77,14 @@ structure Sociétés/Établissements/Utilisateurs & Accès/Journal d'activité i
 
 Première application concrète : réorganisation de `Sidebar.jsx` (application principale
 uniquement — `AdminSidebar.jsx`/Console non touchée) selon 8 des 10 modules proposés
-(Administration et Traçabilité restent du ressort de la Console) :
+(Administration et Traçabilité restent du ressort de la Console).
+
+**Ajustement demandé juste après** : liste exacte des groupes resserrée à 7 (Paramètre /
+Traitement / Programme / Affectation / Évaluation & Résultats / Parents-Tuteurs /
+Communication) — le groupe « Rapports » séparé est retiré, son contenu (Résultats, Assiduité,
+Statistiques, Effectifs, Rapports PDF) fusionné dans **Évaluation & Résultats**, dont le nom
+correspond exactement au module 5 du document original (qui regroupait déjà évaluations,
+résultats/moyennes et bulletins sous un seul intitulé) :
 
 - **⚙️ Paramètre** — Années scolaires, Cycles/Niveaux, Classes, Matières (existants) +
   Calendrier scolaire, Compétences, Barèmes, Salles & créneaux (affichés en « Bientôt »).
@@ -88,14 +95,12 @@ uniquement — `AdminSidebar.jsx`/Console non touchée) selon 8 des 10 modules p
 - **🔗 Affectation** — nouveau groupe : Élève → Classe, Enseignant → Classe/Matière (renvoient
   vers `/classes`, où ces affectations sont réellement gérées aujourd'hui) + Classe → Salle
   (Bientôt).
-- **📊 Évaluation** — désormais **séparée du Programme** comme recommandé : Évaluations, Saisie
-  des notes, Moyennes, Classements, Bulletins, et Conseils de classe/Délibérations (déplacés
-  ici, cette réorganisation n'ayant pas de groupe dédié dans la nouvelle taxonomie).
-- **👨‍👩‍👧 Parents** — Parents/Tuteurs (existant) + Espace parent (Bientôt, portail dédié non
-  construit).
+- **📊 Évaluation & Résultats** — séparée du Programme comme recommandé, et absorbe l'ancien
+  groupe Rapports : Évaluations, Saisie des notes, Moyennes, Classements, Résultats, Bulletins,
+  Conseils de classe/Délibérations, Assiduité (existants) + Statistiques/Effectifs (Bientôt).
+- **👨‍👩‍👧 Parents / Tuteurs** — Parents/Tuteurs (existant) + Espace parent (Bientôt, portail
+  dédié non construit).
 - **🔔 Communication** — Annonces, Messages, Notifications (existants) + Réunions (Bientôt).
-- **📈 Rapports** — inchangé (Résultats, Assiduité, Rapports PDF existants ; Statistiques/
-  Effectifs toujours en attente).
 
 Aucun changement de schéma de base de données, de routes API, ni de la Console Administrative —
 uniquement le regroupement/libellé des entrées de la sidebar principale et l'ajout d'entrées

@@ -3,10 +3,10 @@ import { ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { ROLES } from '../../lib/constants'
 
-// Arborescence cible de l'application, réorganisée selon la taxonomie à 8 modules
-// (Paramètre / Traitement / Programme / Affectation / Évaluation / Parents /
-// Communication / Rapports) — Administration & Traçabilité restent dans la Console,
-// non affectées par ce regroupement. `to: null` = module pas encore construit
+// Arborescence cible de l'application, réorganisée selon la taxonomie à 7 modules
+// (Paramètre / Traitement / Programme / Affectation / Évaluation & Résultats /
+// Parents-Tuteurs / Communication) — Administration & Traçabilité restent dans la
+// Console, non affectées par ce regroupement. `to: null` = module pas encore construit
 // (affiché mais non cliquable, avec une étiquette "Bientôt").
 const GROUPS = [
   {
@@ -57,19 +57,23 @@ const GROUPS = [
     ],
   },
   {
-    label: '📊 Évaluation',
+    label: '📊 Évaluation & Résultats',
     items: [
       { to: '/evaluations', label: 'Évaluations' },
       { to: '/notes', label: 'Saisie des notes' },
       { to: '/moyennes', label: 'Moyennes' },
       { to: '/moyennes', label: 'Classements' },
+      { to: '/moyennes', label: 'Résultats' },
       { to: '/moyennes', label: 'Bulletins' },
       { to: '/conseils-classe', label: 'Conseils de classe' },
       { to: '/conseils-classe', label: 'Délibérations' },
+      { to: '/assiduite', label: 'Assiduité' },
+      { to: null, label: 'Statistiques' },
+      { to: null, label: 'Effectifs' },
     ],
   },
   {
-    label: '👨‍👩‍👧 Parents',
+    label: '👨‍👩‍👧 Parents / Tuteurs',
     items: [
       { to: '/parents', label: 'Parents / Tuteurs' },
       { to: null, label: 'Espace parent' },
@@ -82,16 +86,6 @@ const GROUPS = [
       { to: '/messages', label: 'Messages' },
       { to: '/annonces', label: 'Notifications' },
       { to: null, label: 'Réunions' },
-    ],
-  },
-  {
-    label: '📈 Rapports',
-    items: [
-      { to: '/moyennes', label: 'Résultats' },
-      { to: null, label: 'Statistiques' },
-      { to: null, label: 'Effectifs' },
-      { to: '/assiduite', label: 'Assiduité' },
-      { to: '/moyennes', label: 'Rapports PDF' },
     ],
   },
   {
