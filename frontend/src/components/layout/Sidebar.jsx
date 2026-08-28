@@ -3,98 +3,95 @@ import { ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { ROLES } from '../../lib/constants'
 
-// Arborescence cible de l'application. `to: null` = module pas encore construit
+// Arborescence cible de l'application, réorganisée selon la taxonomie à 8 modules
+// (Paramètre / Traitement / Programme / Affectation / Évaluation / Parents /
+// Communication / Rapports) — Administration & Traçabilité restent dans la Console,
+// non affectées par ce regroupement. `to: null` = module pas encore construit
 // (affiché mais non cliquable, avec une étiquette "Bientôt").
 const GROUPS = [
   {
-    label: '🎓 Pédagogie',
+    label: '⚙️ Paramètre',
     items: [
       { to: '/annees-scolaires', label: 'Années scolaires' },
+      { to: null, label: 'Calendrier scolaire' },
       { to: '/niveaux', label: 'Cycles / Niveaux' },
       { to: '/classes', label: 'Classes' },
       { to: '/matieres', label: 'Matières' },
-      { to: '/enseignants', label: 'Enseignants' },
-      { to: '/classes', label: 'Affectations' },
-      { to: null, label: 'Emplois du temps' },
-      { to: '/programmes', label: 'Programmes' },
+      { to: null, label: 'Compétences' },
+      { to: null, label: 'Barèmes' },
+      { to: null, label: 'Salles & créneaux horaires' },
     ],
   },
   {
-    label: '👨‍🎓 Scolarité',
+    label: '📝 Traitement',
     items: [
-      { to: '/eleves', label: 'Élèves' },
+      { to: null, label: 'Préinscriptions' },
       { to: '/inscriptions', label: 'Inscriptions' },
       { to: '/inscriptions', label: 'Réinscriptions' },
       { to: '/inscriptions', label: 'Transferts' },
-      { to: '/eleves', label: 'Dossiers scolaires' },
+      { to: '/eleves', label: 'Élèves' },
+      { to: '/enseignants', label: 'Enseignants' },
+      { to: '/absences', label: 'Absences' },
+      { to: '/retards', label: 'Retards' },
+      { to: '/sanctions', label: 'Discipline' },
+      { to: '/eleves', label: 'Documents élèves' },
+      { to: '/enseignants', label: 'Documents enseignants' },
+      { to: '/documents-etablissement', label: 'Documents établissement' },
     ],
   },
   {
-    label: '👨‍👩‍👧 Parents',
+    label: '📚 Programme',
     items: [
-      { to: '/parents', label: 'Parents / Tuteurs' },
-      { to: '/messages', label: 'Communication' },
-    ],
-  },
-  {
-    label: '📝 Évaluations',
-    items: [
-      { to: '/evaluations', label: 'Évaluations' },
-      { to: '/notes', label: 'Notes' },
-      { to: '/moyennes', label: 'Moyennes' },
-      { to: '/moyennes', label: 'Classements' },
-      { to: '/moyennes', label: 'Bulletins' },
-    ],
-  },
-  {
-    label: '📚 Enseignement',
-    items: [
+      { to: null, label: 'Emplois du temps' },
       { to: '/programmes', label: 'Cours' },
       { to: '/seances', label: 'Cahier de textes' },
       { to: '/ressources', label: 'Ressources pédagogiques' },
     ],
   },
   {
-    label: '🕐 Vie scolaire',
+    label: '🔗 Affectation',
     items: [
-      { to: '/absences', label: 'Absences' },
-      { to: '/retards', label: 'Retards' },
-      { to: '/sanctions', label: 'Discipline' },
+      { to: '/classes', label: 'Élève → Classe' },
+      { to: '/classes', label: 'Enseignant → Classe / Matière' },
+      { to: null, label: 'Classe → Salle' },
     ],
   },
   {
-    label: '🏛️ Conseil de classe',
+    label: '📊 Évaluation',
     items: [
-      { to: '/conseils-classe', label: 'Conseils' },
-      { to: '/conseils-classe', label: 'Appréciations' },
-      { to: '/conseils-classe', label: 'Décisions' },
+      { to: '/evaluations', label: 'Évaluations' },
+      { to: '/notes', label: 'Saisie des notes' },
+      { to: '/moyennes', label: 'Moyennes' },
+      { to: '/moyennes', label: 'Classements' },
+      { to: '/moyennes', label: 'Bulletins' },
+      { to: '/conseils-classe', label: 'Conseils de classe' },
       { to: '/conseils-classe', label: 'Délibérations' },
     ],
   },
   {
-    label: '📊 Rapports',
+    label: '👨‍👩‍👧 Parents',
+    items: [
+      { to: '/parents', label: 'Parents / Tuteurs' },
+      { to: null, label: 'Espace parent' },
+    ],
+  },
+  {
+    label: '🔔 Communication',
+    items: [
+      { to: '/annonces', label: 'Annonces' },
+      { to: '/messages', label: 'Messages' },
+      { to: '/annonces', label: 'Notifications' },
+      { to: null, label: 'Réunions' },
+    ],
+  },
+  {
+    label: '📈 Rapports',
     items: [
       { to: '/moyennes', label: 'Résultats' },
       { to: null, label: 'Statistiques' },
       { to: null, label: 'Effectifs' },
       { to: '/assiduite', label: 'Assiduité' },
       { to: '/moyennes', label: 'Rapports PDF' },
-    ],
-  },
-  {
-    label: '📢 Communication',
-    items: [
-      { to: '/annonces', label: 'Annonces' },
-      { to: '/annonces', label: 'Notifications' },
-      { to: '/messages', label: 'Messages' },
-    ],
-  },
-  {
-    label: '📁 Documents',
-    items: [
-      { to: '/eleves', label: 'Documents élèves' },
-      { to: '/enseignants', label: 'Documents enseignants' },
-      { to: '/documents-etablissement', label: "Documents établissement" },
     ],
   },
   {

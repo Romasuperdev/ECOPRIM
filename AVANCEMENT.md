@@ -37,9 +37,11 @@ contre `dbmasterbacou.RH_USER`, puis le compte est répliqué (synchronisé) dan
 
 ## 4. Modules pédagogiques et administratifs (application principale)
 
-Construits en suivant l'arborescence de menu fournie par l'utilisateur (11 sections), à
-l'exclusion explicite du groupe ⚙️ Administration (traité en Console Administrative séparée,
-voir §6) et des Emplois du temps (différé) :
+Construits initialement en suivant une arborescence de menu à 11 sections fournie par
+l'utilisateur, à l'exclusion explicite du groupe ⚙️ Administration (traité en Console
+Administrative séparée, voir §6) et des Emplois du temps (différé). **Réorganisée depuis** selon
+une nouvelle taxonomie à 8 modules (voir §4bis) — le contenu ci-dessous reste la liste des
+fonctionnalités réellement construites, indépendamment du regroupement affiché dans la sidebar :
 
 - **Années scolaires** — statuts brouillon/active/clôturée/archivée, période (trimestre / etc.).
 - **Cycles / Niveaux**.
@@ -62,6 +64,42 @@ voir §6) et des Emplois du temps (différé) :
 - **Bulletins PDF** (`barryvdh/laravel-dompdf`).
 - **Tableau de bord** — KPIs (effectifs, moyenne générale, assiduité, absences/retards/sanctions
   du mois), effectif et moyenne par classe.
+
+### §4bis. Réorganisation de la sidebar principale (taxonomie à 8 modules)
+
+L'utilisateur a partagé un « prompt maître » détaillé proposant une architecture cible pour
+ECOPRIM en tant qu'ERP pédagogique complet (10 modules, Laravel 12/PHP 8.3+, année scolaire
+comme pivot central, document de conception en 20 étapes). Décision explicite de l'utilisateur :
+**ne pas tout reprendre** — garder la stack et l'architecture actuelles (Laravel 11/PHP 8.2.29,
+schéma existant), et piocher les idées utiles progressivement. Il a ensuite précisé que ce
+document concerne **uniquement l'application** (pas la Console Administrative, qui garde sa
+structure Sociétés/Établissements/Utilisateurs & Accès/Journal d'activité inchangée).
+
+Première application concrète : réorganisation de `Sidebar.jsx` (application principale
+uniquement — `AdminSidebar.jsx`/Console non touchée) selon 8 des 10 modules proposés
+(Administration et Traçabilité restent du ressort de la Console) :
+
+- **⚙️ Paramètre** — Années scolaires, Cycles/Niveaux, Classes, Matières (existants) +
+  Calendrier scolaire, Compétences, Barèmes, Salles & créneaux (affichés en « Bientôt »).
+- **📝 Traitement** — Élèves, Enseignants, Inscriptions/Réinscriptions/Transferts, Absences,
+  Retards, Discipline, Documents (existants) + Préinscriptions (Bientôt).
+- **📚 Programme** — Cours, Cahier de textes, Ressources pédagogiques (existants) + Emplois du
+  temps (toujours différé).
+- **🔗 Affectation** — nouveau groupe : Élève → Classe, Enseignant → Classe/Matière (renvoient
+  vers `/classes`, où ces affectations sont réellement gérées aujourd'hui) + Classe → Salle
+  (Bientôt).
+- **📊 Évaluation** — désormais **séparée du Programme** comme recommandé : Évaluations, Saisie
+  des notes, Moyennes, Classements, Bulletins, et Conseils de classe/Délibérations (déplacés
+  ici, cette réorganisation n'ayant pas de groupe dédié dans la nouvelle taxonomie).
+- **👨‍👩‍👧 Parents** — Parents/Tuteurs (existant) + Espace parent (Bientôt, portail dédié non
+  construit).
+- **🔔 Communication** — Annonces, Messages, Notifications (existants) + Réunions (Bientôt).
+- **📈 Rapports** — inchangé (Résultats, Assiduité, Rapports PDF existants ; Statistiques/
+  Effectifs toujours en attente).
+
+Aucun changement de schéma de base de données, de routes API, ni de la Console Administrative —
+uniquement le regroupement/libellé des entrées de la sidebar principale et l'ajout d'entrées
+« Bientôt » reflétant les pièces manquantes de la vision cible.
 
 ### Règle transversale : année scolaire clôturée
 
