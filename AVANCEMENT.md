@@ -1,0 +1,281 @@
+# ECOPRIM — Journal d'avancement
+
+Suivi du travail réalisé sur le projet, du démarrage de l'environnement jusqu'à la Console
+Administrative. Sert de mémoire de référence — voir aussi `README.md` pour l'installation.
+
+## 1. Mise en place de l'environnement
+
+- Résolution du blocage `composer install` (avisos de sécurité), reconstitution du squelette
+  Laravel 11 manquant (`artisan`, `bootstrap/app.php`...).
+- Résolution des soucis `npm install` / build du frontend.
+- Connexion SQL Server (`sqlsrv` / `pdo_sqlsrv`), création de la base `ecoprim`, fiabilisation
+  des migrations.
+- Correction d'un désalignement entre la version PHP verrouillée par Composer et l'interpréteur
+  local PHP 8.2.29 (invocation explicite via `C:\wamp64\bin\php\php8.2.29\php.exe`).
+
+## 2. Décision d'architecture fondatrice
+
+Une roadmap initiale proposait de brancher ECOPRIM en direct sur deux bases externes
+(`dbmasterbacou` pour l'auth/rôles via `RH_USER` + Laratrust, `ECONOMAT` comme source de
+données `T_*`). Après investigation, il s'est avéré qu'un projet complet et concurrent
+(**ECONEW**) existait déjà sur ce schéma. Décision prise : **ECOPRIM reste un projet
+indépendant et plus simple**, avec sa propre base `ecoprim` et son propre schéma.
+
+Seule exception conservée : à la connexion, les identifiants sont vérifiés en lecture seule
+contre `dbmasterbacou.RH_USER`, puis le compte est répliqué (synchronisé) dans la table locale
+`ecoprim.users`. Aucune autre lecture/écriture live sur `dbmasterbacou`, `ECONOMAT` ou `ECONEW`.
+
+## 3. Authentification
+
+- Sanctum SPA (cookie de session), `statefulApi()`, CORS pour `:5173`/`:5174`.
+- Page de connexion à deux modes : **Établissement** / **Console Admin** (le mode Admin exige
+  le rôle `Super Admin`, sinon déconnexion immédiate côté client).
+- `AuthController::login` vérifie contre `RH_USER`, `syncLocalUser` crée/actualise l'utilisateur
+  local et lui attribue `Super Admin` à la création si `RH_USER.SuperAdmin` est vrai.
+- Rôles via `spatie/laravel-permission` : Super Admin, Admin Société, Admin Établissement,
+  Direction, Directeur Adjoint, Enseignant, Secretaire, Surveillant, Parent, Élève.
+
+## 4. Modules pédagogiques et administratifs (application principale)
+
+Construits en suivant l'arborescence de menu fournie par l'utilisateur (11 sections), à
+l'exclusion explicite du groupe ⚙️ Administration (traité en Console Administrative séparée,
+voir §6) et des Emplois du temps (différé) :
+
+- **Années scolaires** — statuts brouillon/active/clôturée/archivée, période (trimestre / etc.).
+- **Cycles / Niveaux**.
+- **Classes** — affectation enseignant principal, archivage si année clôturée.
+- **Matières** — coefficients par niveau.
+- **Enseignants** — fiche, désactivation, intervenants par classe.
+- **Élèves** — champs alignés sur la vraie table source `ECONOMAT.T_ETUDIANT` (uniquement les
+  champs pédagogiques/administratifs, hors finance/technique) ; formulaire de **création en
+  wizard 4 étapes** (Identité → Coordonnées → Scolarité → Père/Tuteur, chaque étape validée
+  avant de passer à la suivante), formulaire d'édition à plat ; saisie des parents/tuteurs
+  directement à la création (auto-création des `Parent` liés).
+- **Parents / Tuteurs**.
+- **Notes**, **Absences**, **Retards**, **Sanctions**.
+- **Cahier de textes (Séances)**, **Programmes**, **Ressources pédagogiques**.
+- **Documents** (upload réel, stockage polymorphe `documents`), **Documents établissement**.
+- **Inscriptions / Réinscriptions / Transferts**.
+- **Communication** — Messages, Annonces.
+- **Conseil de classe** — Conseils, Délibérations.
+- **Rapports** — Moyennes/Classements, Assiduité, Évaluations agrégées.
+- **Bulletins PDF** (`barryvdh/laravel-dompdf`).
+- **Tableau de bord** — KPIs (effectifs, moyenne générale, assiduité, absences/retards/sanctions
+  du mois), effectif et moyenne par classe.
+
+### Règle transversale : année scolaire clôturée
+
+Une année scolaire clôturée passe en lecture seule (notes, absences, retards, effectifs de
+classe). Implémenté via `App\Support\AnneeScolaireGuard::assertModifiable()`, appelé depuis les
+contrôleurs concernés ; seul un Super Admin peut forcer (`?force=1`), action tracée.
+
+## 5. Interface / Design
+
+Historique des itérations (login en carte scindée, sidebar sombre dégradée puis carte flottante
+puis sidebar violette pleine, formulaires restylés en « icônes + sections ») — toutes remplacées
+par la refonte ci-dessous.
+
+### Refonte finale : même design system que l'application sœur ECONEW
+
+Sur demande explicite (« on va utiliser le même design que ECONEW, ne change rien dans le style,
+la couleur »), le design entier a été aligné sur le vrai code d'ECONEW
+(`c:/ROMARIC/ECONEW/ECONEW/frontend`), lu directement plutôt que réinterprété depuis une
+maquette :
+
+- **Palette** — remplacement complet du bleu/violet par le **vert menthe** officiel d'ECONEW
+  (`#00CC8E` et sa gamme `#E5FFF7`→`#05543C`), réinjecté dans les tokens `--color-primary-*`/
+  `--color-secondary-*` existants d'ECOPRIM. Comme la quasi-totalité de l'app utilisait déjà ces
+  noms de tokens (badges, boutons, `FormSection`), la nouvelle couleur s'est propagée partout
+  sans avoir à toucher chaque fichier — seuls les quelques endroits avec des classes Tailwind
+  codées en dur (`violet-*`, `indigo-*`) ont été corrigés à la main.
+- **Système de thème par variables CSS** — port du système `:root { --bg, --surface, --sidebar,
+  --sidebar-2, --accent, --border, --muted, --heading, --text, --shadow... }` d'ECONEW dans
+  `index.css` (thème clair uniquement — pas de sélecteur de thème sombre/« sunny », non demandé),
+  avec les classes utilitaires `.card`/`.field`/`.text-muted`/`.text-heading` reprises à
+  l'identique (mêmes rayons, mêmes couleurs de focus, mêmes ombres).
+- **Composants partagés** (`Button`, `Input`, `Select`, `Textarea`) réécrits pour utiliser ces
+  classes/variables au lieu des utilitaires Tailwind bleus — `Button` reprend exactement les
+  variantes d'ECONEW (`primary` = vert sidebar foncé, `gold`/`secondary` = accent menthe vif,
+  `outline`/`ghost`, `danger`), tout en gardant les props ECOPRIM déjà utilisées partout
+  (`icon`, `rightElement`, `error`).
+- **Sidebar / Layout** — même recette qu'ECONEW : sidebar unie (`var(--sidebar)` pour
+  l'application, `var(--sidebar-2)` légèrement plus sombre pour la Console Administrative,
+  comme ECONEW distingue `DashboardLayout` de `SuperAdminLayout`), item actif en pastille
+  `var(--accent)`, en-tête `sticky` flouté (`backdrop-filter: blur`) plutôt qu'un bandeau plein,
+  contenu centré `max-w-6xl`.
+- **Page de connexion** — reprise du panneau coulissant à deux faces d'ECONEW : un volet coloré
+  glisse entre le formulaire « Établissement » (vert sidebar) et « Console Admin » (dégradé
+  accent), bascule mobile en onglets. Adapté à ce qu'ECOPRIM a réellement (pas de 2FA/OTP, pas de
+  sélecteur de thème comme ECONEW, pour ne pas ajouter d'éléments non fonctionnels) — même
+  mécanique visuelle et mêmes couleurs, pas de fonctionnalité inventée.
+- **Tableau de bord** (application + Console Administrative) — bandeau de bienvenue en dégradé
+  `var(--sidebar)`→`var(--sidebar-2)`, cartes de stats passées en classe `.card`.
+- Vérifié visuellement via Playwright sur la page de connexion (seule page accessible sans
+  authentification) : panneau coulissant, bascule Établissement/Console, version mobile.
+
+### Bug corrigé après coup : « L'email est requis » alors que les champs sont remplis
+
+Le panneau coulissant garde en permanence les deux faces (Établissement/Console) montées dans
+le DOM (desktop et mobile compris) pour l'animation — au départ géré avec React Hook Form, qui
+ne suit qu'**une seule ref par nom de champ** : deux `<input>` montés en même temps avec le même
+`register('email')` se marchent dessus, donc taper dans le champ visible ne remontait pas
+forcément dans le champ que RHF lisait à la validation → « requis » même rempli. Remplacé par
+des champs **contrôlés** (`useState` partagé par face, comme le fait réellement ECONEW pour son
+propre login — il n'utilise pas RHF non plus sur cette page), ce qui n'a pas ce problème :
+plusieurs copies montées simultanément peuvent partager la même valeur sans conflit. Revérifié
+via Playwright (valeur qui persiste jusqu'à la soumission, vraie requête `POST /login` envoyée,
+message serveur correct sur identifiants invalides).
+
+## 6. Console Administrative
+
+Nouvelle couche de gouvernance plateforme, distincte de la gestion pédagogique d'un
+établissement, construite à partir d'un cahier des charges détaillé fourni par l'utilisateur.
+**Décision de portée** : schéma indépendant dans la base `ecoprim`, inspiré de la structure
+réelle de `dbmasterbacou` (`US_SOCIETE`, `T_ETABLISSEMENT`, `roles`, `permissions`,
+`societe_utilisateur`...) mais sans connexion live — aucune lecture/écriture sur
+`dbmasterbacou` en dehors de l'exception login déjà en place.
+
+### Construit
+
+- **Sociétés** — CRUD complet, champs alignés sur la vraie table `dbmasterbacou.US_SOCIETE`
+  (identité, coordonnées, informations légales, représentant), désactivation logique
+  uniquement (suppression bloquée si établissements actifs rattachés). Activation/désactivation
+  via des actions dédiées (`POST /societes/{id}/activer|desactiver`), journalisées séparément
+  d'une simple modification. Réservé au Super Admin (gouvernance plateforme).
+- **Établissements** — CRUD, rattachement obligatoire à une société, champs étendus alignés sur
+  la vraie table `dbmasterbacou.T_ETABLISSEMENT` (bloc responsable pédagogique distinct du
+  compte Admin Établissement : nom/prénom/fonction/contact ; rattachement administratif ivoirien
+  DREN/IEP pour les rapports officiels). Activation via action dédiée (`POST .../activer`),
+  bloquée sans Directeur/Admin Établissement affecté (la condition « année scolaire configurée »
+  reste non vérifiable, voir §7).
+- **Utilisateurs & Accès** — liste en lecture seule (les comptes se créent uniquement via la
+  synchronisation RH_USER à la connexion, pas de formulaire de création manuelle), fiche
+  utilisateur avec gestion des **affectations** (société + établissement + rôle, avec dates).
+  Terminer une affectation ne supprime jamais la ligne (historique conservé), seulement
+  `actif = false` + `date_fin`.
+- **Rôles** — catalogue étendu (Super Admin, Admin Société, Admin Établissement, Direction,
+  Directeur Adjoint, Enseignant, Secretaire, Surveillant, Parent, Élève).
+- **Journal d'activité** — append-only, aucune route de modification/suppression exposée même
+  pour le Super Admin ; alimenté automatiquement via `App\Support\ActivityLogger` (user_id,
+  action, module, objet, avant/après, IP, user-agent) sur chaque création/modification/
+  suppression/activation sensible.
+- Sidebar propre à la console (`AdminLayout` / `AdminSidebar`, identité violette), accessible
+  depuis la sidebar principale (groupe ⚙️ Administration, visible uniquement pour Super Admin).
+
+### Périmètre (Admin Société / Admin Établissement) — inspiré d'ECONEW
+
+Après exploration du projet sibling **ECONEW** (multi-société/multi-établissement en
+production) pour s'en inspirer, mise en place d'un vrai contrôle d'accès par périmètre, plus
+riche que le blocage "tout au Super Admin" initial :
+
+- `User::allowedSocieteIds()` / `allowedEtablissementIds()` — résolus depuis les affectations
+  **actives et non expirées** de l'utilisateur, en excluant explicitement toute société/
+  établissement lui-même désactivé (suspendre une société/un établissement coupe l'accès de ses
+  affectés, pas seulement l'affichage).
+- Trait `App\Models\Concerns\BelongsToPerimetre` (scope global Eloquent) appliqué à
+  `Etablissement` et `Affectation` : un Super Admin voit tout, les autres rôles ne voient que
+  leur périmètre. **Fail closed** — zéro affectation résolue = zéro ligne visible, jamais un
+  repli "si vide, tout montrer" (piège identifié dans la doc `MULTITENANT.md` d'ECONEW).
+  Échappatoire explicite et traçable : `withoutPerimetre()`.
+- Routes de la Console repensées en 3 paliers de rôle (`role:Super Admin` seul pour la
+  gouvernance pure — sociétés, suppression d'établissement, journal global ; `role:Super
+  Admin|Admin Société` pour la création/activation d'établissement et la gestion des
+  affectations ; `role:Super Admin|Admin Société|Admin Établissement` pour la consultation/mise
+  à jour scopée), au lieu du précédent `role:Super Admin` unique sur tout.
+- `StoreEtablissementRequest`/`UpdateEtablissementRequest`/`StoreAffectationRequest::authorize()`
+  bloquent en plus les tentatives de créer/transférer une ressource vers une société hors
+  périmètre (au-delà de ce que le scope global empêche déjà pour la ressource elle-même).
+- Point de vigilance corrigé pendant l'implémentation : `User::affectationsActives()` doit
+  explicitement retirer le scope `perimetre` d'`Affectation` (`withoutGlobalScope('perimetre')`),
+  sans quoi le calcul du périmètre d'un utilisateur rebouclerait indéfiniment sur lui-même
+  (le scope appelle `allowedSocieteIds()`/`allowedEtablissementIds()`, qui interrogent
+  `Affectation`, qui redéclenche le scope...). Vérifié par test direct (pas de dépassement de
+  pile, scoping correct pour Admin Société/Établissement, bypass Super Admin, fail-closed sans
+  affectation) puis données de test nettoyées.
+
+### Bug corrigé après coup : middleware `role:` planté en production
+
+Le séparateur utilisé pour lister plusieurs rôles dans `role:...` est `|` (pipe), pas `,` —
+Laravel découpe les paramètres de middleware sur la virgule, donc `role:Super Admin,Admin
+Société` était compris comme *rôle = "Super Admin"*, *guard = "Admin Société"* (2ᵉ paramètre du
+`RoleMiddleware` de spatie), et plantait dès qu'un utilisateur connecté touchait une route
+scopée (`Auth guard [Admin Société] is not defined`). Repéré via les logs Laravel après un
+signalement de connexion impossible à la console ; les trois groupes de routes corrigés en
+`role:Super Admin|Admin Société|Admin Établissement`, revérifié via tinker (résolution du guard,
+parsing des rôles) et cache de routes vidé.
+
+### Règles de gestion confirmées/renforcées (société → établissements → utilisateur → rôles)
+
+Rappel explicite de l'utilisateur, vérifié par test direct puis renforcé côté formulaire :
+
+- Une société peut avoir plusieurs établissements (déjà modélisé — `Societe::etablissements()`).
+- Un utilisateur peut être affecté à **plusieurs établissements** (plusieurs lignes
+  `affectations`, une par établissement) — déjà supporté nativement, confirmé par test
+  (utilisateur affecté à 2 établissements de la même société simultanément).
+- Un utilisateur peut cumuler **plusieurs rôles** (chaque affectation attribue son propre rôle
+  via `assignRole`, additif chez spatie) — confirmé par test (Direction + Enseignant cumulés sur
+  le même compte).
+- Renforcement ajouté : le formulaire « Nouvelle affectation » (fiche utilisateur) filtre
+  désormais la liste des établissements selon la société choisie, et auto-remplit la société
+  quand un établissement est sélectionné directement — pour rendre visible la hiérarchie
+  société → établissements plutôt que deux menus déroulants indépendants pouvant se contredire.
+  Côté backend, `StoreAffectationRequest` rejette maintenant explicitement toute incohérence
+  (établissement fourni qui n'appartient pas à la société fournie), vérifié par test.
+
+### Import ponctuel des vraies sociétés depuis dbmasterbacou
+
+L'utilisateur a demandé à ce que les sociétés déjà réelles dans
+`dbmasterbacou.dbo.US_SOCIETE` apparaissent sur la page Sociétés d'ECOPRIM. Plutôt qu'une
+connexion live (exclue par la décision d'architecture), import ponctuel :
+
+- Modèle `App\Models\UsSociete` (connexion `master`, lecture seule, même schéma que `RhUser`)
+  pointant sur `US_SOCIETE`, clé primaire `CODESOCIETE`.
+- Commande artisan `societes:importer-dbmasterbacou` : upsert par `code` dans `ecoprim.societes`
+  (idempotente — ré-exécutable sans dupliquer, testé deux fois de suite : 3 créées puis 3 mises
+  à jour). Mappe les colonnes déjà alignées lors du travail précédent (`US_SOCIETE` → schéma
+  `societes`), avec repli sur les variantes redondantes de la table source (`AD1SOCIETE`/
+  `ADRESSE`, `NOMPRENOMREPRESENTANT`/`REPRESENTANT`, `FONCTIONREPRESENTANT`/
+  `FONCTIONREPESENTANT` — coquille présente dans le schéma legacy).
+- Exécutée une fois : 3 sociétés réelles importées (ABN, AURIAK, SOC63859), visibles sur
+  `/admin/societes`. Aucune connexion permanente ouverte — un nouvel export/import manuel serait
+  nécessaire si la table source change (pas de synchronisation automatique).
+
+### Explicitement hors scope pour l'instant
+
+- Rôles & Permissions comme catalogue éditable (actuellement fixe, seedé) — ECONEW a un système
+  de modules/permissions par établissement (`utilisateur_module_permissions`) qui serait la
+  suite logique si on veut aller au-delà d'un rôle en tout-ou-rien.
+- Rattachement des années scolaires à un établissement — donc contrôle complet de la règle
+  d'activation d'établissement, et scoping établissement des données pédagogiques existantes
+  (élèves, classes, notes...) qui restent aujourd'hui mono-établissement.
+- Modules Référentiels pédagogiques (au niveau plateforme), Documents (modèles), Communication
+  (modèles de notification), Rapports administratifs, Configuration (paramètres
+  plateforme/établissement), abonnements/quotas (ECONEW a un vrai modèle `subscriptions`/
+  `subscription_plans`, jugé prématuré tant qu'il n'y a pas de besoin commercial/facturation).
+- Emplois du temps (toute l'application).
+
+## 7. Points de vigilance identifiés (non résolus)
+
+- La règle « un établissement ne peut être activé sans année scolaire configurée » ne peut pas
+  encore être vérifiée : les années scolaires ne sont pas rattachées à un établissement dans le
+  schéma actuel.
+- Le blocage d'accès pour société/établissement désactivé ne couvre que le périmètre de la
+  Console Administrative elle-même (Établissements/Affectations/Utilisateurs) ; il ne s'étend
+  pas encore aux données pédagogiques (élèves, classes, notes...), qui ne sont pas
+  établissement-scopées — cf. point précédent.
+- Le Journal d'activité reste réservé au Super Admin sans filtre par société/établissement (pas
+  de colonne dédiée) ; ECONEW filtre son équivalent par action/recherche texte, à reproduire si
+  le volume devient difficile à parcourir.
+
+## 8. Vérification et tests
+
+Le login exige de vraies informations d'identification `RH_USER` (connues uniquement de
+l'utilisateur) : les flux authentifiés n'ont pas pu être testés de bout en bout par l'assistant.
+Vérifications systématiquement effectuées à la place :
+- `npm run build` (frontend) après chaque changement UI.
+- `php artisan migrate` sur la base `ecoprim` pour chaque nouvelle migration.
+- Tests ponctuels via `php artisan tinker` (création/lecture/suppression de données de test
+  dans `ecoprim`, toujours nettoyées après coup — jamais dans `dbmasterbacou`).
+- La page de connexion (seule page ne nécessitant pas d'authentification préalable) a pu être
+  vérifiée visuellement via Playwright.
+  

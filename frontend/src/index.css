@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ==== Design System ECOPRIM ====
+   Palette terre/sauge fournie par l'utilisateur (brun taupe, kaki pâle, vert sauge,
+   ocre caramel, pêche clair) — même structure/mêmes classes qu'auparavant, seules les
+   valeurs de couleur changent. */
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  /* Échelle construite à partir du vert sauge de la palette (#5C7A56) */
+  --color-primary-50: #eef2ec;
+  --color-primary-100: #dce7d8;
+  --color-primary-200: #bbd0b3;
+  --color-primary-300: #96b78c;
+  --color-primary-400: #78a06c;
+  --color-primary-500: #5c7a56;
+  --color-primary-600: #4d6849;
+  --color-primary-700: #3f5539;
+  --color-primary-800: #33452f;
+  --color-primary-900: #283725;
+
+  /* Accent ocre/caramel de la palette */
+  --color-secondary-400: #d3a468;
+  --color-secondary-500: #c08a45;
+
+  --color-ink: #7a6a5c;
+}
+
+:root {
+  --bg: #fbf3e2;
+  --bg-grad-1: rgba(192, 138, 69, 0.1);
+  --bg-grad-2: rgba(92, 122, 86, 0.06);
+  --surface: #ffffff;
+  --surface-2: #f7efdd;
+  --text: #3a2f28;
+  --heading: #2a211c;
+  --muted: #8a7a6c;
+  --border: #e5d9c3;
+  --sidebar: #5a4c43;
+  --sidebar-2: #443a33;
+  --sidebar-text: #e8dcc8;
+  --accent: #c08a45;
+  --accent-ink: #2a211c;
+  --teal: #5c7a56;
+  --shadow: 0 1px 3px rgba(58, 47, 40, 0.08), 0 1px 2px rgba(58, 47, 40, 0.05);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background:
+    radial-gradient(1200px 520px at 100% -10%, var(--bg-grad-1), transparent),
+    radial-gradient(900px 520px at -10% 110%, var(--bg-grad-2), transparent),
+    var(--bg);
+  min-height: 100vh;
+  @apply antialiased;
+}
+
+.card {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.surface-2 {
+  background: var(--surface-2);
+}
+.text-muted {
+  color: var(--muted);
+}
+.text-heading {
+  color: var(--heading);
+}
+
+.field {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  outline: none;
+}
+.field::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+.field:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.field:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.field:disabled,
+.field[readonly] {
+  background: color-mix(in srgb, var(--muted) 12%, var(--surface));
+  color: var(--muted);
+}
+
+main table {
+  border-collapse: collapse;
+}
+main table td,
+main table th {
+  padding: 0.6rem 0.85rem;
+  vertical-align: middle;
+  border-color: var(--border);
+}
+main table th {
+  white-space: nowrap;
+}
+main table thead {
+  background: var(--surface-2);
+}
+main table thead th {
+  color: var(--muted);
+}
+main table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  border-radius: 8px;
+}
+
+button, a, input, select {
+  transition: all 0.15s ease;
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
