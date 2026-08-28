@@ -14,7 +14,7 @@ const A_VENIR = ['Rôles & permissions', 'Référentiels pédagogiques', 'Docume
 export default function AdminSidebar() {
   return (
     <aside
-      className="flex h-full w-72 shrink-0 flex-col overflow-y-auto p-4"
+      className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
       style={{ background: 'var(--sidebar-2)', color: 'var(--sidebar-text)' }}
     >
       <div className="mb-1 flex items-center gap-2 px-2 text-base font-extrabold tracking-tight text-white">
