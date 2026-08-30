@@ -35,3 +35,6 @@ yarn-error.log
 
 # Archive temporaire de build (tests exécutés dans un conteneur) — supprimable
 /_src_for_tests.tgz
+
+# Sauvegardes locales de .env (contiennent des secrets)
+.env.bak-*
