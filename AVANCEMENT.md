@@ -410,3 +410,11 @@ quatre types (`InscriptionController::store`) ; seule l'interface globale a ét�
 Retrait des entrées séparées « Réinscriptions » et « Transferts » du menu 📝 Traitement (elles
 pointaient déjà sur `/inscriptions`). On y accède désormais via le « Filtrer par type » de la page
 unique « Inscriptions, réinscriptions & transferts ».
+
+### Page « Documents élèves » distincte de « Élèves »
+
+Dans la sidebar, « Documents élèves » pointait sur la même route `/eleves` que « Élèves ». Création
+dune page autonome `DocumentsElevesPage` (route `/documents-eleves`) : sélecteur d\047élève puis
+gestion de ses documents (liste, upload, téléchargement, suppression) via `DocumentsPanel`
+(`documentable_type=eleve`). La sidebar pointe désormais « Documents élèves » sur cette page.
+NB : « Documents enseignants » pointe encore sur `/eleves` (même défaut, hors périmètre de cette demande).

@@ -33,6 +33,7 @@ import EvaluationListPage from './features/rapports/EvaluationListPage'
 import ProgrammeListPage from './features/programmes/ProgrammeListPage'
 import ProgrammeFormPage from './features/programmes/ProgrammeFormPage'
 import RessourceListPage from './features/ressources/RessourceListPage'
+import DocumentsElevesPage from './features/documents/DocumentsElevesPage'
 import DocumentsEtablissementPage from './features/documents/DocumentsEtablissementPage'
 import InscriptionListPage from './features/inscriptions/InscriptionListPage'
 import MessagesPage from './features/communication/MessagesPage'
@@ -152,6 +153,7 @@ export default function App() {
 
             <Route path="/ressources" element={<RessourceListPage />} />
 
+            <Route path="/documents-eleves" element={<DocumentsElevesPage />} />
             <Route path="/documents-etablissement" element={<DocumentsEtablissementPage />} />
 
             <Route path="/inscriptions" element={<InscriptionListPage />} />
