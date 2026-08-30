@@ -418,3 +418,10 @@ dune page autonome `DocumentsElevesPage` (route `/documents-eleves`) : sélecteu
 gestion de ses documents (liste, upload, téléchargement, suppression) via `DocumentsPanel`
 (`documentable_type=eleve`). La sidebar pointe désormais « Documents élèves » sur cette page.
 NB : « Documents enseignants » pointe encore sur `/eleves` (même défaut, hors périmètre de cette demande).
+
+### Page « Documents enseignants » distincte de « Enseignants »
+
+Même traitement que pour les élèves : page autonome `DocumentsEnseignantsPage` (route
+`/documents-enseignants`, `documentable_type=enseignant`) avec sélecteur denseignant puis gestion
+de ses documents via `DocumentsPanel`. La sidebar pointe « Documents enseignants » sur cette page
+(au lieu de `/enseignants`).

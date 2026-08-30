@@ -33,7 +33,7 @@ const GROUPS = [
       { to: '/retards', label: 'Retards' },
       { to: '/sanctions', label: 'Discipline' },
       { to: '/documents-eleves', label: 'Documents élèves' },
-      { to: '/enseignants', label: 'Documents enseignants' },
+      { to: '/documents-enseignants', label: 'Documents enseignants' },
       { to: '/documents-etablissement', label: 'Documents établissement' },
     ],
   },
