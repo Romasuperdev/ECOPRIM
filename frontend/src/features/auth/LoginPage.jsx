@@ -20,8 +20,7 @@ function useCredentials() {
 
   const validate = () => {
     const next = {}
-    if (!email.trim()) next.email = "L'email est requis"
-    else if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Email invalide'
+    if (!email.trim()) next.email = "L'identifiant est requis"
     if (!password) next.password = 'Le mot de passe est requis'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -67,7 +66,7 @@ export default function LoginPage() {
       navigate(kind === 'admin' ? '/admin' : '/', { replace: true })
     } catch (error) {
       if (error.response?.status === 422 || error.response?.status === 401) {
-        setServerError('Email ou mot de passe incorrect.')
+        setServerError('Identifiant ou mot de passe incorrect.')
       } else {
         setServerError('Une erreur est survenue. Veuillez réessayer.')
       }
@@ -97,8 +96,8 @@ export default function LoginPage() {
 
         <Input
           id={fieldId('email')}
-          type="email"
-          label="Email"
+          type="text"
+          label="Identifiant ou email"
           icon={Mail}
           autoComplete="username"
           error={creds.errors.email}

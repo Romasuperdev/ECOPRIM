@@ -447,3 +447,13 @@ Compilation réelle de l'application dans un environnement jetable : backend `ph
 (propre). Cohérence vérifiée : toutes les routes sidebar ont une page, tous les appels API du
 front correspondent à une route backend (aucun 404 de câblage). Aucun problème de compilation,
 de test ou de câblage. Audit du reste à faire livré dans `AUDIT_RESTE_A_FAIRE.md`.
+
+## 12. Connexion RH_USER : identifiant multiple, comptes supprimés, CodeApp
+
+À partir de la vraie structure de `dbmasterbacou.RH_USER` : la connexion accepte désormais
+comme identifiant l'`Email`, le `Login` **ou** le `Matricule` (formulaire assoupli côté front :
+`type=text`, libellé « Identifiant ou email », validation email stricte retirée). Un compte marqué
+`Supprimer` est refusé même avec le bon mot de passe. Restriction optionnelle par `CodeApp`
+(RH_USER héberge plusieurs applications) via `config/ecoprim.php` + `ECOPRIM_CODE_APP`, désactivée
+tant que la variable est vide. Tests étendus (25 tests, 50 assertions verts) : connexion par Login,
+par Matricule, refus compte supprimé, restriction CodeApp.

@@ -34,8 +34,10 @@ class RhUserSyncTest extends TestCase
             'Nom' => 'Dupont',
             'Prenom' => 'Jean',
             'Email' => 'jean.dupont@ecole.ci',
+            'Matricule' => 'MAT001',
             'MotDePasse' => Hash::make('secret'),
             'SuperAdmin' => false,
+            'Supprimer' => false,
         ], $attrs);
 
         DB::connection('master')->table('RH_USER')->insert($attrs);
@@ -98,5 +100,51 @@ class RhUserSyncTest extends TestCase
         $this->withHeaders($this->spa)->postJson('/api/v1/login', ['email' => 'admin@ecole.ci', 'password' => 'secret'])->assertOk();
 
         $this->assertSame(1, User::where('email', 'admin@ecole.ci')->count());
+    }
+    public function test_connexion_par_login_fonctionne(): void
+    {
+        $this->creerRhUser(['Login' => 'prof99', 'Email' => 'prof99@ecole.ci']);
+
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/login', ['email' => 'prof99', 'password' => 'secret'])
+            ->assertOk()
+            ->assertJsonPath('email', 'prof99@ecole.ci');
+    }
+
+    public function test_connexion_par_matricule_fonctionne(): void
+    {
+        $this->creerRhUser(['Matricule' => 'MAT777', 'Email' => 'mat777@ecole.ci']);
+
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/login', ['email' => 'MAT777', 'password' => 'secret'])
+            ->assertOk()
+            ->assertJsonPath('email', 'mat777@ecole.ci');
+    }
+
+    public function test_compte_supprime_est_refuse(): void
+    {
+        $this->creerRhUser(['Email' => 'vire@ecole.ci', 'Supprimer' => true]);
+
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/login', ['email' => 'vire@ecole.ci', 'password' => 'secret'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+
+        $this->assertDatabaseMissing('users', ['email' => 'vire@ecole.ci']);
+    }
+
+    public function test_restriction_code_app(): void
+    {
+        config(['ecoprim.code_app' => 'ECOPRIM']);
+        $this->creerRhUser(['Email' => 'autre@ecole.ci', 'CodeApp' => 'AUTRE']);
+
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/login', ['email' => 'autre@ecole.ci', 'password' => 'secret'])
+            ->assertStatus(422);
+
+        $this->creerRhUser(['Login' => 'ok', 'Email' => 'ok@ecole.ci', 'CodeApp' => 'ECOPRIM']);
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/login', ['email' => 'ok@ecole.ci', 'password' => 'secret'])
+            ->assertOk();
     }
 }

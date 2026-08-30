@@ -49,7 +49,10 @@ abstract class TestCase extends BaseTestCase
             $table->string('Prenom')->nullable();
             $table->string('Email')->nullable();
             $table->string('MotDePasse')->nullable();
+            $table->string('Matricule')->nullable();
             $table->boolean('SuperAdmin')->default(false);
+            $table->boolean('Supprimer')->default(false);
+            $table->string('CodeApp')->nullable();
         });
     }
 }
