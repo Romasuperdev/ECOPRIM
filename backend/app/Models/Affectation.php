@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToPerimetre;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Models\Role;
 
 class Affectation extends Model
 {
-    use BelongsToPerimetre;
+    use HasFactory, BelongsToPerimetre;
 
     protected $fillable = [
         'user_id', 'societe_id', 'etablissement_id', 'role_id', 'date_debut', 'date_fin', 'actif',

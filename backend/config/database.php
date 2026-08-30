@@ -34,6 +34,17 @@ return [
             'prefix_indexes' => true,
         ],
 
+        // Connexion utilisée uniquement par la suite de tests automatisés
+        // (phpunit force DB_CONNECTION=sqlite / DB_DATABASE=:memory:). Aucune
+        // incidence en production, qui reste sur SQL Server (sqlsrv) par défaut.
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => env('DB_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
     ],
 
     'migrations' => [

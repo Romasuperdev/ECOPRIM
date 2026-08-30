@@ -322,3 +322,51 @@ Vérifications systématiquement effectuées à la place :
 - La page de connexion (seule page ne nécessitant pas d'authentification préalable) a pu être
   vérifiée visuellement via Playwright.
   
+## 9. Suite de tests automatisés (première couverture)
+
+Comblement du principal manque identifié par l'audit : le projet n'avait **aucun test**. Mise
+en place d'une suite PHPUnit ciblant en priorité la logique la plus sensible — le contrôle
+d'accès par périmètre, l'authentification RH_USER et le verrou d'année clôturée.
+
+### Environnement de test
+
+- Les tests s'exécutent sur **SQLite en mémoire** (`RefreshDatabase`), indépendamment de SQL
+  Server : `phpunit.xml` force `DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`,
+  `DB_FOREIGN_KEYS=false`. Une connexion `sqlite` a été ajoutée à `config/database.php` (aucune
+  incidence en production, qui reste sur `sqlsrv` par défaut). Le jeu complet des 36 migrations
+  s'applique sans erreur sous SQLite.
+- Prérequis local : l'extension PHP `pdo_sqlite` doit être active (standard sous WAMP).
+- `tests/TestCase.php` fournit deux utilitaires : `seedRoles()` (réplique le RoleSeeder sans
+  dépendre de SQL Server) et `fakeMasterRhUser()` (rebranche la connexion `master` sur une
+  base SQLite en mémoire et y crée une table `RH_USER` minimale reproduisant les colonnes
+  réellement lues à la connexion).
+- Ajout de factories (`Societe`, `Etablissement`, `Affectation`, `AnneeScolaire`) et du trait
+  `HasFactory` sur ces modèles.
+
+### Couverture (21 tests, 40 assertions — tous verts)
+
+- **`PerimetreScopeTest`** (Console) — bypass Super Admin (voit tout), isolation Admin Société
+  (ne voit que ses établissements), isolation Admin Établissement (ne voit que le sien),
+  **fail-closed** (aucune affectation = zéro ligne), société désactivée qui retire le périmètre,
+  établissement désactivé idem, affectation inactive/expirée ignorée, `withoutPerimetre()` qui
+  contourne le scope, isolation du scope sur `Affectation`, et non-régression du **garde
+  anti-récursion** de `User::allowedSocieteIds()`/`allowedEtablissementIds()`.
+- **`RhUserSyncTest`** (Auth) — login valide qui crée le compte local et attribue `Super Admin`
+  quand `RH_USER.SuperAdmin` est vrai, utilisateur non-superadmin sans rôle, mot de passe
+  incorrect rejeté (422), email inconnu rejeté (422), login répété qui ne duplique pas le compte
+  local (`updateOrCreate` idempotent). Requêtes émises avec l'en-tête `Origin` du frontend Vite
+  (`localhost:5173`) pour passer par le mode SPA « stateful » de Sanctum.
+- **`AnneeScolaireGuardTest`** (Pédagogie) — `id` nul non bloquant, année ouverte modifiable,
+  année clôturée qui bloque un utilisateur standard (HTTP 423), Super Admin sans `force` toujours
+  bloqué, Super Admin avec `?force=1` autorisé, non-Super Admin avec `force` toujours bloqué.
+
+### Exécution
+
+```bash
+cd backend
+php artisan test            # ou : php vendor/bin/phpunit --testdox
+```
+
+Vérifié : `php vendor/bin/phpunit` → `OK (21 tests, 40 assertions)`. La suite ne touche jamais
+SQL Server ni `dbmasterbacou` (tout est en mémoire), elle est donc rejouable sans risque pour
+les données réelles.

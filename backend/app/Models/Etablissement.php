@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToPerimetre;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Etablissement extends Model
 {
-    use SoftDeletes, BelongsToPerimetre;
+    use HasFactory, SoftDeletes, BelongsToPerimetre;
 
     protected $fillable = [
         'societe_id', 'code', 'nom', 'type', 'logo', 'couleur_primaire', 'couleur_secondaire',
