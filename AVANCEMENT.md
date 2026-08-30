@@ -425,3 +425,9 @@ Même traitement que pour les élèves : page autonome `DocumentsEnseignantsPage
 `/documents-enseignants`, `documentable_type=enseignant`) avec sélecteur denseignant puis gestion
 de ses documents via `DocumentsPanel`. La sidebar pointe « Documents enseignants » sur cette page
 (au lieu de `/enseignants`).
+
+### Sidebar : Moyennes/Classements/Résultats/Bulletins fusionnés en une entrée
+
+Ces quatre entrées du menu 📊 Évaluation & Résultats pointaient déjà toutes sur la même page
+`/moyennes` (qui affiche moyenne de classe, classement, résultats par élève et téléchargement des
+bulletins). Fusion en une seule entrée « Résultats & bulletins » ; titre de la page aligné.

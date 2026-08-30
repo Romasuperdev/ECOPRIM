@@ -59,10 +59,7 @@ const GROUPS = [
     items: [
       { to: '/evaluations', label: 'Évaluations' },
       { to: '/notes', label: 'Saisie des notes' },
-      { to: '/moyennes', label: 'Moyennes' },
-      { to: '/moyennes', label: 'Classements' },
-      { to: '/moyennes', label: 'Résultats' },
-      { to: '/moyennes', label: 'Bulletins' },
+      { to: '/moyennes', label: 'Résultats & bulletins' },
       { to: '/conseils-classe', label: 'Conseils de classe' },
       { to: '/conseils-classe', label: 'Délibérations' },
       { to: '/assiduite', label: 'Assiduité' },

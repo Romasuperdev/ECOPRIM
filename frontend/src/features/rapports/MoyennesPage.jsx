@@ -20,7 +20,7 @@ export default function MoyennesPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-slate-800">Moyennes & Classements</h1>
+      <h1 className="mb-6 text-2xl font-bold text-slate-800">Résultats & bulletins</h1>
 
       <div className="mb-6 grid max-w-lg grid-cols-2 gap-4">
         <Select label="Classe" value={classeId} onChange={(e) => setClasseId(e.target.value)}>
