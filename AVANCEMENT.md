@@ -431,3 +431,11 @@ de ses documents via `DocumentsPanel`. La sidebar pointe « Documents enseignant
 Ces quatre entrées du menu 📊 Évaluation & Résultats pointaient déjà toutes sur la même page
 `/moyennes` (qui affiche moyenne de classe, classement, résultats par élève et téléchargement des
 bulletins). Fusion en une seule entrée « Résultats & bulletins » ; titre de la page aligné.
+
+### Sidebar : suppression des doublons de navigation
+
+Entrées multiples pointant sur la même route fusionnées : « Conseils de classe » + « Délibérations »
+→ « Conseils & délibérations » (`/conseils-classe`) ; « Annonces » + « Notifications » → « Annonces &
+notifications » (`/annonces`) ; « Élève → Classe » + « Enseignant → Classe / Matière » → « Élève /
+Enseignant → Classe » (`/classes`). Reste volontairement « Classes » (Paramètre) et le raccourci
+Affectation vers `/classes` : deux intentions distinctes vers la même page (affectations gérées là).

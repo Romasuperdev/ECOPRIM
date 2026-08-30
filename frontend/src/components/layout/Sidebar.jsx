@@ -49,8 +49,7 @@ const GROUPS = [
   {
     label: '🔗 Affectation',
     items: [
-      { to: '/classes', label: 'Élève → Classe' },
-      { to: '/classes', label: 'Enseignant → Classe / Matière' },
+      { to: '/classes', label: 'Élève / Enseignant → Classe' },
       { to: null, label: 'Classe → Salle' },
     ],
   },
@@ -60,8 +59,7 @@ const GROUPS = [
       { to: '/evaluations', label: 'Évaluations' },
       { to: '/notes', label: 'Saisie des notes' },
       { to: '/moyennes', label: 'Résultats & bulletins' },
-      { to: '/conseils-classe', label: 'Conseils de classe' },
-      { to: '/conseils-classe', label: 'Délibérations' },
+      { to: '/conseils-classe', label: 'Conseils & délibérations' },
       { to: '/assiduite', label: 'Assiduité' },
       { to: null, label: 'Statistiques' },
       { to: null, label: 'Effectifs' },
@@ -77,9 +75,8 @@ const GROUPS = [
   {
     label: '🔔 Communication',
     items: [
-      { to: '/annonces', label: 'Annonces' },
+      { to: '/annonces', label: 'Annonces & notifications' },
       { to: '/messages', label: 'Messages' },
-      { to: '/annonces', label: 'Notifications' },
       { to: null, label: 'Réunions' },
     ],
   },
