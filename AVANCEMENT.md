@@ -457,3 +457,10 @@ comme identifiant l'`Email`, le `Login` **ou** le `Matricule` (formulaire assoup
 (RH_USER héberge plusieurs applications) via `config/ecoprim.php` + `ECOPRIM_CODE_APP`, désactivée
 tant que la variable est vide. Tests étendus (25 tests, 50 assertions verts) : connexion par Login,
 par Matricule, refus compte supprimé, restriction CodeApp.
+
+### Couverture de tests étendue (périmètre HTTP + CRUD)
+
+Ajout de `ConsolePerimetreHttpTest` (autorisation HTTP : un Admin Société ne peut créer un
+établissement ni une affectation hors de sa société → 403 ; Super Admin partout ; rôle sans
+gouvernance refusé) et de `NiveauCrudTest` (création, validation, unicité, mise à jour, suppression
+douce — patron de test HTTP authentifié via Sanctum::actingAs). Total : 36 tests, 76 assertions verts.
