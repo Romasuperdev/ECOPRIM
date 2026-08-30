@@ -439,3 +439,11 @@ Entrées multiples pointant sur la même route fusionnées : « Conseils de clas
 notifications » (`/annonces`) ; « Élève → Classe » + « Enseignant → Classe / Matière » → « Élève /
 Enseignant → Classe » (`/classes`). Reste volontairement « Classes » (Paramètre) et le raccourci
 Affectation vers `/classes` : deux intentions distinctes vers la même page (affectations gérées là).
+
+## 11. Contrôle de santé global (build + tests) et audit du reste à faire
+
+Compilation réelle de l'application dans un environnement jetable : backend `php -l` (0 erreur)
++ `phpunit` (21 tests, 40 assertions verts) ; frontend `vite build` (2084 modules, OK) + `oxlint`
+(propre). Cohérence vérifiée : toutes les routes sidebar ont une page, tous les appels API du
+front correspondent à une route backend (aucun 404 de câblage). Aucun problème de compilation,
+de test ou de câblage. Audit du reste à faire livré dans `AUDIT_RESTE_A_FAIRE.md`.
