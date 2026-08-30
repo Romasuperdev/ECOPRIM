@@ -370,3 +370,37 @@ php artisan test            # ou : php vendor/bin/phpunit --testdox
 Vérifié : `php vendor/bin/phpunit` → `OK (21 tests, 40 assertions)`. La suite ne touche jamais
 SQL Server ni `dbmasterbacou` (tout est en mémoire), elle est donc rejouable sans risque pour
 les données réelles.
+
+## 10. Intégration ECONOMAT (préparation) et correctifs
+
+### Décision d'architecture révisée
+
+Sur demande de l'utilisateur, changement de cap par rapport au §2 : l'**application principale**
+sera branchée en **lecture seule live** sur la vraie base pédagogique **ECONOMAT** (tables `T_*`),
+et la **Console** sur **dbmasterbacou**. Mise en place des fondations :
+
+- Connexion `economat` (sqlsrv, lecture seule) ajoutée à `config/database.php` ; variables
+  `DB_ECONOMAT_DATABASE/USERNAME/PASSWORD` documentées dans `.env.example`.
+- Commande `php artisan schema:introspect` : exporte tables/colonnes/clés réelles d'ECONOMAT et
+  dbmasterbacou vers `storage/app/schema/*.json` + `.md`, pour câbler ensuite les modèles Eloquent
+  sur le schéma réel (les colonnes exactes ne sont pas extractibles d'un `.bak` sans moteur SQL).
+- Tables ECONOMAT repérées : `T_ETUDIANT`, `T_CLASSE`, `T_NIVEAU`, `T_CYCLE`, `T_MATIERE`,
+  `T_PROFESSEUR`, `T_NOTEENTETE`/`T_NOTEDETAILS`, `T_MOYENNES`/`T_MOYENNECLASSE`/`T_MOYENNEGEN`,
+  `T_CORPROFCLASSE`, `T_CORMATNIVEAUCOEFF`, `T_CAHIER_JOURNAL`, `T_EMPLOIDUTEMPS`, `V_INSCRIPTION`…
+
+### Correctif login : « Une erreur est survenue »
+
+La connexion à la Console échouait (`Invalid object name 'roles'`, connexion sqlsrv). Cause :
+`DB_DATABASE` avait été positionné à `ECONOMAT` dans `.env`, faisant pointer la connexion par
+défaut de l'app sur ECONOMAT au lieu de `ecoprim` (où vivent `users`/`roles`/permissions). Corrigé :
+`DB_DATABASE=ecoprim` (la base propre reste la connexion par défaut ; ECONOMAT ne se lit que via la
+connexion dédiée `economat`).
+
+### Page « Inscriptions, réinscriptions & transferts » — saisie complète
+
+La page globale était en lecture seule (liste + filtre). Ajout d'un formulaire de **saisie des
+quatre mouvements** (inscription, réinscription, transfert entrant, transfert sortant) directement
+sur la page : sélection de l'élève, type, date, année scolaire, classe (masquée pour un transfert
+sortant), et champ établissement d'origine (transfert entrant) / destination (transfert sortant)
+affiché selon le type, plus observation. Suppression par ligne ajoutée. Le backend gérait déjà les
+quatre types (`InscriptionController::store`) ; seule l'interface globale a été complétée.
