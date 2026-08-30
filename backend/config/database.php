@@ -34,6 +34,21 @@ return [
             'prefix_indexes' => true,
         ],
 
+        // Base pédagogique ECONOMAT — LECTURE SEULE. L'application principale lit ses
+        // données réelles (élèves, classes, notes, matières...) directement dans les
+        // tables T_* d'ECONOMAT. Aucune écriture : ECONOMAT reste géré par son propre logiciel.
+        'economat' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => env('DB_ECONOMAT_DATABASE', 'ECONOMAT'),
+            'username' => env('DB_ECONOMAT_USERNAME', env('DB_USERNAME', 'sa')),
+            'password' => env('DB_ECONOMAT_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
         // Connexion utilisée uniquement par la suite de tests automatisés
         // (phpunit force DB_CONNECTION=sqlite / DB_DATABASE=:memory:). Aucune
         // incidence en production, qui reste sur SQL Server (sqlsrv) par défaut.
