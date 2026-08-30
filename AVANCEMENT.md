@@ -464,3 +464,10 @@ Ajout de `ConsolePerimetreHttpTest` (autorisation HTTP : un Admin Société ne p
 établissement ni une affectation hors de sa société → 403 ; Super Admin partout ; rôle sans
 gouvernance refusé) et de `NiveauCrudTest` (création, validation, unicité, mise à jour, suppression
 douce — patron de test HTTP authentifié via Sanctum::actingAs). Total : 36 tests, 76 assertions verts.
+
+### Optimisation du bundle : code-splitting par route (React.lazy)
+
+Toutes les pages sont désormais chargées à la demande via `React.lazy` + `Suspense` dans `App.jsx`
+(les layouts restent eager). Vérifié par un build Vite complet : le chunk principal passe de ~622 kB
+(gzip 165 kB) à ~272 kB (gzip 85 kB), chaque page devient un chunk séparé, et l'avertissement Vite
+« chunk > 500 kB » a disparu.
