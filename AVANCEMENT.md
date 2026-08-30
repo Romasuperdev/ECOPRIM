@@ -404,3 +404,9 @@ sur la page : sélection de l'élève, type, date, année scolaire, classe (masq
 sortant), et champ établissement d'origine (transfert entrant) / destination (transfert sortant)
 affiché selon le type, plus observation. Suppression par ligne ajoutée. Le backend gérait déjà les
 quatre types (`InscriptionController::store`) ; seule l'interface globale a été complétée.
+
+### Sidebar : une seule entrée « Inscriptions »
+
+Retrait des entrées séparées « Réinscriptions » et « Transferts » du menu 📝 Traitement (elles
+pointaient déjà sur `/inscriptions`). On y accède désormais via le « Filtrer par type » de la page
+unique « Inscriptions, réinscriptions & transferts ».

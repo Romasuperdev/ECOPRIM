@@ -27,8 +27,6 @@ const GROUPS = [
     items: [
       { to: null, label: 'Préinscriptions' },
       { to: '/inscriptions', label: 'Inscriptions' },
-      { to: '/inscriptions', label: 'Réinscriptions' },
-      { to: '/inscriptions', label: 'Transferts' },
       { to: '/eleves', label: 'Élèves' },
       { to: '/enseignants', label: 'Enseignants' },
       { to: '/absences', label: 'Absences' },
