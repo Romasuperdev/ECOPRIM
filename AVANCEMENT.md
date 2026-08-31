@@ -562,3 +562,24 @@ leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté f
 - Toutes les actions d'écriture (CRUD, activer/désactiver, affectations) retirées ; routes GET seules
   sous role:Super Admin. Pages front en consultation. Test ConsoleReadTest. Suite : 23 tests, 112
   assertions verts ; build Vite OK.
+
+## 15. Console modifiable : fondation (base propre ECOPRIM)
+
+Nouvelle exigence : la Console redevient PLEINEMENT modifiable (CRUD sociétés/établissements +
+affectations utilisateur↔établissement↔rôles), avec la hiérarchie Société→Établissement→Utilisateur→Rôle.
+Décision (validée) : NE PAS écrire dans les tables partagées (US_SOCIETE, ECONOMAT.BEtablissements,
+RH_USER restent en lecture) ; ECOPRIM gère ces données dans sa PROPRE base `ecoprim` (écrivable),
+via migrations + modèles. Les utilisateurs restent lus depuis RH_USER (pas de création de compte de
+login) ; ECOPRIM gère leur identité + leurs affectations.
+
+Fondation posée :
+- Connexion `ecoprim` (écrivable) dans config/database.php (+ DB_ECOPRIM_DATABASE).
+- Migrations isolées `database/migrations/console/` : `societes`, `etablissements` (societe_code,
+  rattachement obligatoire à une seule société), `roles` (catalogue), `affectations`
+  (rh_user_id + etablissement_code + role_id ; un utilisateur peut avoir plusieurs rôles et plusieurs
+  établissements). À appliquer : `php artisan migrate --path=database/migrations/console --database=ecoprim`.
+- Modèles `App\Models\Console\{Societe, Etablissement, Role, Affectation}` avec relations.
+- Test `ConsoleFoundationTest` (hiérarchie + multi-rôle). Suite : 25 tests, 118 assertions verts.
+
+À suivre : contrôleurs CRUD + règles (établissement→1 société, affectations dans la société de
+l'utilisateur), commande d'import depuis US_SOCIETE/BEtablissements, écrans front, branchement des routes.

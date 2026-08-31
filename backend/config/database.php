@@ -49,6 +49,21 @@ return [
             'prefix_indexes' => true,
         ],
 
+        // Base propre ECOPRIM (écrivable) : gouvernance Console (sociétés, établissements,
+        // rôles, affectations utilisateur↔établissement↔rôle). Aucune écriture dans les bases
+        // partagées ECONOMAT / dbmasterbacou.
+        'ecoprim' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => env('DB_ECOPRIM_DATABASE', 'ecoprim'),
+            'username' => env('DB_ECOPRIM_USERNAME', env('DB_USERNAME', 'sa')),
+            'password' => env('DB_ECOPRIM_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
         // Connexion utilisée uniquement par la suite de tests automatisés
         // (phpunit force DB_CONNECTION=sqlite / DB_DATABASE=:memory:). Aucune
         // incidence en production, qui reste sur SQL Server (sqlsrv) par défaut.
