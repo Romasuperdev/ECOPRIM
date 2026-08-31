@@ -483,3 +483,20 @@ session cookie, plus de tables users/roles/permissions locales) comme préalable
 de création/édition/suppression deviennent des consultations ; (3) les modules purement « écriture
 ECOPRIM » sans équivalent ECONOMAT sont à retirer. Correspondance page→table dans `MAPPING_ECONOMAT.md`.
 Déblocage : `php artisan schema:introspect` pour le schéma exact des deux bases.
+
+## 14. Auth 100% lecture seule (slice 1 de la bascule ECONOMAT)
+
+Refonte de lauthentification sans aucune écriture, préalable à la bascule visionneuse :
+- `RhUser` (dbmasterbacou.RH_USER) devient lutilisateur **authentifiable** (provider auth pointé
+  dessus dans `config/auth.php`) ; identité, rôles et périmètre lus dans dbmasterbacou.
+- Rôles dérivés : bit `SuperAdmin` → « Super Admin » + jointure `role_user`→`roles` via `RH_USER.user_id`.
+  Périmètre sociétés via `societe_utilisateur`.
+- `AuthController` : login contre RH_USER (Email/Login/Matricule), refus des comptes `Supprimer`,
+  restriction `CodeApp` optionnelle ; **plus de `syncLocalUser`**, aucune table users/roles locale.
+- Middleware `role:` remplacé par `RhRoleMiddleware` (lecture des rôles RhUser).
+- Connexion par défaut = `economat`, session en **cookie** (aucune écriture DB).
+- Tests ecoprim/spatie obsolètes déplacés dans `tests/_legacy_ecoprim/` ; nouveau `RhUserAuthTest`
+  (8 tests, 23 assertions verts) : login, rôles bit + role_user, Login/Matricule, mot de passe,
+  compte supprimé, CodeApp, /me.
+
+À suivre : rebrancher les pages une à une sur les vraies tables (Années → T_ANNEEACADEMIQUE, etc.).

@@ -5,33 +5,15 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Crée les rôles applicatifs (guard web) utilisés par la Console Administrative
-     * et l'application. Réplique le RoleSeeder sans dépendre de la connexion SQL Server.
+     * Rebranche la connexion `master` sur une base SQLite en mémoire reproduisant les
+     * tables de dbmasterbacou nécessaires à l'authentification lecture seule :
+     * RH_USER + users + roles + role_user + societe_utilisateur.
      */
-    protected function seedRoles(): void
-    {
-        foreach ([
-            'Super Admin', 'Admin Société', 'Admin Établissement', 'Direction',
-            'Directeur Adjoint', 'Enseignant', 'Secretaire', 'Surveillant', 'Parent', 'Élève',
-        ] as $role) {
-            Role::findOrCreate($role, 'web');
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    /**
-     * Rebranche la connexion `master` (RH_USER) sur une base SQLite en mémoire pour
-     * les tests d'authentification, et y crée une table RH_USER minimale reproduisant
-     * les colonnes réellement lues par AuthController::login / syncLocalUser.
-     */
-    protected function fakeMasterRhUser(): void
+    protected function setUpMasterDb(): void
     {
         config(['database.connections.master' => [
             'driver' => 'sqlite',
@@ -39,20 +21,49 @@ abstract class TestCase extends BaseTestCase
             'prefix' => '',
             'foreign_key_constraints' => false,
         ]]);
-
         DB::purge('master');
 
-        Schema::connection('master')->create('RH_USER', function ($table) {
-            $table->increments('Id');
-            $table->string('Login')->nullable();
-            $table->string('Nom')->nullable();
-            $table->string('Prenom')->nullable();
-            $table->string('Email')->nullable();
-            $table->string('MotDePasse')->nullable();
-            $table->string('Matricule')->nullable();
-            $table->boolean('SuperAdmin')->default(false);
-            $table->boolean('Supprimer')->default(false);
-            $table->string('CodeApp')->nullable();
+        $s = Schema::connection('master');
+
+        $s->create('RH_USER', function ($t) {
+            $t->integer('Id');
+            $t->string('Login')->nullable();
+            $t->string('Nom')->nullable();
+            $t->string('Prenom')->nullable();
+            $t->string('Email')->nullable();
+            $t->string('MotDePasse')->nullable();
+            $t->string('Matricule')->nullable();
+            $t->boolean('SuperAdmin')->default(false);
+            $t->boolean('Supprimer')->default(false);
+            $t->string('CodeApp')->nullable();
+            $t->string('Profil')->nullable();
+            $t->integer('user_id')->nullable();
+        });
+
+        $s->create('users', function ($t) {
+            $t->integer('id');
+            $t->string('name')->nullable();
+            $t->string('email')->nullable();
+            $t->string('password')->nullable();
+        });
+
+        $s->create('roles', function ($t) {
+            $t->integer('id');
+            $t->string('code')->nullable();
+            $t->string('name');
+            $t->string('codesociete')->nullable();
+        });
+
+        $s->create('role_user', function ($t) {
+            $t->integer('id');
+            $t->integer('user_id');
+            $t->integer('role_id');
+        });
+
+        $s->create('societe_utilisateur', function ($t) {
+            $t->integer('id');
+            $t->integer('user_id');
+            $t->string('societe_id');
         });
     }
 }
