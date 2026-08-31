@@ -18,7 +18,6 @@ const EnseignantListPage = lazy(() => import('./features/enseignants/EnseignantL
 const MatiereListPage = lazy(() => import('./features/matieres/MatiereListPage'))
 const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage'))
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
-const NoteFormPage = lazy(() => import('./features/notes/NoteFormPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
 const AbsenceFormPage = lazy(() => import('./features/absences/AbsenceFormPage'))
 const SanctionListPage = lazy(() => import('./features/sanctions/SanctionListPage'))
@@ -120,8 +119,6 @@ export default function App() {
               <Route path="/matieres/:id/modifier" element={<MatiereFormPage />} />
 
               <Route path="/notes" element={<NoteListPage />} />
-              <Route path="/notes/nouvelle" element={<NoteFormPage />} />
-              <Route path="/notes/:id/modifier" element={<NoteFormPage />} />
 
               <Route path="/absences" element={<AbsenceListPage />} />
               <Route path="/absences/nouvelle" element={<AbsenceFormPage />} />

@@ -1,137 +1,84 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
-import Button from '../../components/ui/Button'
-import { fetchNotes, deleteNote } from './notesApi'
+import { useQuery } from '@tanstack/react-query'
+import Select from '../../components/ui/Select'
+import apiClient from '../../api/client'
+import { fetchAllClasses, fetchMatieres } from '../reference/referenceApi'
 
-const TYPE_LABELS = {
-  devoir: 'Devoir',
-  composition: 'Composition',
-  interrogation: 'Interrogation',
+async function fetchNotesConsultation({ classe_code, matiere_code }) {
+  const { data } = await apiClient.get('/notes', { params: { classe_code, matiere_code } })
+  return data
 }
 
+// Lecture seule : notes issues d'ECONOMAT (V_NOTECLASSE).
 export default function NoteListPage() {
-  const [page, setPage] = useState(1)
-  const queryClient = useQueryClient()
+  const [classeCode, setClasseCode] = useState('')
+  const [matiereCode, setMatiereCode] = useState('')
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['notes', page],
-    queryFn: () => fetchNotes(page),
+  const { data: classes } = useQuery({ queryKey: ['classes', 'all'], queryFn: fetchAllClasses })
+  const { data: matieres } = useQuery({ queryKey: ['matieres', 'all'], queryFn: fetchMatieres })
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['notes', classeCode, matiereCode],
+    queryFn: () => fetchNotesConsultation({ classe_code: classeCode, matiere_code: matiereCode || undefined }),
+    enabled: Boolean(classeCode),
   })
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  })
-
-  const handleDelete = (note) => {
-    if (confirm(`Supprimer cette note de ${note.eleve?.prenom} ${note.eleve?.nom} ?`)) {
-      deleteMutation.mutate(note.id)
-    }
-  }
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Notes</h1>
-        <Link to="/notes/nouvelle">
-          <Button>
-            <span className="flex items-center gap-2">
-              <Plus size={16} /> Ajouter une note
-            </span>
-          </Button>
-        </Link>
+        <p className="mt-1 text-sm text-slate-500">Consultation (source : ECONOMAT).</p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Élève</th>
-              <th className="px-4 py-3 font-medium">Matière</th>
-              <th className="px-4 py-3 font-medium">Note</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                  Chargement…
-                </td>
-              </tr>
-            )}
-            {isError && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-red-500">
-                  Erreur lors du chargement des notes.
-                </td>
-              </tr>
-            )}
-            {!isLoading && data?.data.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                  Aucune note enregistrée.
-                </td>
-              </tr>
-            )}
-            {data?.data.map((note) => (
-              <tr key={note.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-800">
-                  {note.eleve?.prenom} {note.eleve?.nom}
-                </td>
-                <td className="px-4 py-3 text-slate-600">{note.matiere?.libelle}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      Number(note.valeur) >= 10
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-red-50 text-red-700'
-                    }`}
-                  >
-                    {note.valeur}/20
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{TYPE_LABELS[note.type_evaluation] ?? note.type_evaluation}</td>
-                <td className="px-4 py-3 text-slate-600">{note.date_evaluation}</td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <Link
-                      to={`/notes/${note.id}/modifier`}
-                      className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary-700"
-                    >
-                      <Pencil size={16} />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(note)}
-                      className="rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mb-6 grid max-w-lg grid-cols-2 gap-4">
+        <Select label="Classe" value={classeCode} onChange={(e) => setClasseCode(e.target.value)}>
+          <option value="">— Sélectionner —</option>
+          {classes?.map((classe) => (
+            <option key={classe.id} value={classe.code}>{classe.nom}</option>
+          ))}
+        </Select>
+        <Select label="Matière (optionnel)" value={matiereCode} onChange={(e) => setMatiereCode(e.target.value)}>
+          <option value="">Toutes</option>
+          {matieres?.map((m) => (
+            <option key={m.id} value={m.code}>{m.libelle}</option>
+          ))}
+        </Select>
       </div>
 
-      {data && data.last_page > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-          <span>
-            Page {data.current_page} sur {data.last_page} ({data.total} notes)
-          </span>
-          <div className="flex gap-2">
-            <Button variant="outline" disabled={!data.prev_page_url} onClick={() => setPage((p) => p - 1)}>
-              <ChevronLeft size={16} />
-            </Button>
-            <Button variant="outline" disabled={!data.next_page_url} onClick={() => setPage((p) => p + 1)}>
-              <ChevronRight size={16} />
-            </Button>
-          </div>
+      {!classeCode && <p className="text-slate-400">Sélectionne une classe pour voir les notes.</p>}
+
+      {classeCode && (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Matricule</th>
+                <th className="px-4 py-3 font-medium">Nom</th>
+                <th className="px-4 py-3 font-medium">Prénom</th>
+                <th className="px-4 py-3 font-medium">Matière</th>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium">Note</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isLoading && (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              )}
+              {!isLoading && data?.data?.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune note.</td></tr>
+              )}
+              {data?.data?.map((n) => (
+                <tr key={n.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-600">{n.matricule}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{n.nom}</td>
+                  <td className="px-4 py-3 text-slate-600">{n.prenom}</td>
+                  <td className="px-4 py-3 text-slate-600">{n.matiere_libelle ?? n.matiere_code ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-600">{n.type_note ?? '—'}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{n.note ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

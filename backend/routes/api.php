@@ -51,7 +51,7 @@ Route::prefix('v1')->group(function () {
         Route::get('eleves/{eleve}', [EleveController::class, 'show']);
         Route::get('classes', [ClasseController::class, 'index']);
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
-        Route::apiResource('notes', NoteController::class);
+        Route::get('notes', [NoteController::class, 'index']);
         Route::get('enseignants', [EnseignantController::class, 'index']);
         Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);
         Route::get('matieres', [MatiereController::class, 'index']);

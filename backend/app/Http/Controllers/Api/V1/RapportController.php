@@ -15,11 +15,28 @@ class RapportController extends Controller
      */
     public function moyennesClasse(Request $request, Classe $classe)
     {
-        $rapport = $this->calculerMoyennes($classe, $request->input('periode_id'));
+        $lignes = \App\Models\MoyenneClasseVue::query()
+            ->where('CodeClasse', $classe->code)
+            ->when($request->filled('session'), fn ($q) => $q->where('CodeSession', $request->input('session')))
+            ->orderByDesc('Moyenne')
+            ->get();
+
+        $classement = $lignes->values()->map(fn ($l, $i) => [
+            'rang' => $l->Rang ?: ($i + 1),
+            'eleve_id' => $l->CodeEleve,
+            'matricule' => $l->Matricule,
+            'nom' => $l->Nom,
+            'prenom' => $l->Prenom,
+            'moyenne' => $l->Moyenne !== null ? round((float) $l->Moyenne, 2) : null,
+        ]);
+
+        $moyennes = $lignes->pluck('Moyenne')->filter(fn ($m) => $m !== null);
 
         return [
             'classe' => $classe->nom,
-            ...$rapport,
+            'moyenne_classe' => $moyennes->isNotEmpty() ? round($moyennes->avg(), 2) : null,
+            'classement' => $classement,
+            'sans_note' => [],
         ];
     }
 

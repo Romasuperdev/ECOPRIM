@@ -177,5 +177,30 @@ abstract class TestCase extends BaseTestCase
             $t->string('EmailMere')->nullable();
             $t->integer('Scolarite')->nullable();
         });
+
+        Schema::connection('economat')->create('V_NOTECLASSE', function ($t) {
+            $t->integer('Code');
+            $t->string('Matricule')->nullable();
+            $t->string('Nom')->nullable();
+            $t->string('Prenom')->nullable();
+            $t->float('Note')->nullable();
+            $t->string('CodeMatiere')->nullable();
+            $t->string('LibelleMatiere')->nullable();
+            $t->string('TypeNote')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeSession')->nullable();
+        });
+
+        Schema::connection('economat')->create('V_MOYENNE_ELEVE_CLASSE', function ($t) {
+            $t->integer('Code');
+            $t->string('Nom')->nullable();
+            $t->string('Prenom')->nullable();
+            $t->float('Moyenne')->nullable();
+            $t->string('Rang')->nullable();
+            $t->integer('CodeEleve')->nullable();
+            $t->string('Matricule')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeSession')->nullable();
+        });
     }
 }

@@ -529,3 +529,14 @@ leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté f
   desactiver, création/édition) retirées. Front : listes en consultation + `EleveDetailPage`, routeur
   adapté (`/eleves/:id` → fiche). Test `PedagogieReadTest` (mapping + exclusion financière). Suite :
   16 tests, 76 assertions verts ; build Vite OK.
+
+### Slice 5 : Notes & Résultats → vues ECONOMAT (read-only)
+
+- **Notes** (« Saisie des notes » → consultation) : modèle `NoteVue` sur la vue `V_NOTECLASSE`,
+  contrôleur index filtré par classe/matière/session, route GET seule. Page front en consultation
+  (sélection classe + matière). Formulaires de saisie retirés.
+- **Résultats & bulletins** : `RapportController::moyennesClasse` lit désormais la vue
+  `V_MOYENNE_ELEVE_CLASSE` (modèle `MoyenneClasseVue`) au lieu de calculer depuis ecoprim ;
+  classement par moyenne, filtre par classe (code réel). Page front simplifiée (plus de période).
+  Bulletins PDF différés (BulletinController encore sur ecoprim).
+- Test `NotesResultatsReadTest`. Suite : 18 tests, 86 assertions verts ; build Vite OK.
