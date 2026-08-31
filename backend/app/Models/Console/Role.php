@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Role extends Model
 {
     protected $connection = 'ecoprim';
-    protected $table = 'roles';
+    protected $table = 'console_roles';
 
     protected $fillable = ['code', 'nom'];
 }

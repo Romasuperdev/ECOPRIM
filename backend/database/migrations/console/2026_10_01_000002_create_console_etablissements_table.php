@@ -10,7 +10,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        Schema::connection('ecoprim')->create('etablissements', function (Blueprint $table) {
+        Schema::connection('ecoprim')->create('console_etablissements', function (Blueprint $table) {
             $table->id();
             $table->string('code', 30)->unique();
             $table->string('intitule', 150);
@@ -32,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('ecoprim')->dropIfExists('etablissements');
+        Schema::connection('ecoprim')->dropIfExists('console_etablissements');
     }
 };

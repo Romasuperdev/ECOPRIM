@@ -13,12 +13,12 @@ return new class extends Migration
         // Affectation = rôle d'un utilisateur (RH_USER, par Id) DANS un établissement.
         // Un utilisateur peut avoir plusieurs lignes (plusieurs rôles / plusieurs établissements).
         // La société est celle de l'établissement (règle : cohérence société vérifiée côté appli).
-        Schema::connection('ecoprim')->create('affectations', function (Blueprint $table) {
+        Schema::connection('ecoprim')->create('console_affectations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('rh_user_id'); // dbmasterbacou.RH_USER.Id (lecture seule)
             $table->string('societe_code', 30);
             $table->string('etablissement_code', 30);
-            $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+            $table->foreignId('role_id')->constrained('console_roles')->cascadeOnDelete();
             $table->boolean('actif')->default(true);
             $table->date('date_debut')->nullable();
             $table->date('date_fin')->nullable();
@@ -32,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('ecoprim')->dropIfExists('affectations');
+        Schema::connection('ecoprim')->dropIfExists('console_affectations');
     }
 };

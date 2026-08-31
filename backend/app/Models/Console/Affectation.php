@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Affectation extends Model
 {
     protected $connection = 'ecoprim';
-    protected $table = 'affectations';
+    protected $table = 'console_affectations';
 
     protected $fillable = ['rh_user_id', 'societe_code', 'etablissement_code', 'role_id', 'actif', 'date_debut', 'date_fin'];
 

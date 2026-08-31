@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Etablissement extends Model
 {
     protected $connection = 'ecoprim';
-    protected $table = 'etablissements';
+    protected $table = 'console_etablissements';
 
     protected $fillable = ['code', 'intitule', 'type', 'adresse', 'ville', 'pays', 'telephone', 'email', 'site_web', 'societe_code', 'actif'];
 
