@@ -66,4 +66,30 @@ abstract class TestCase extends BaseTestCase
             $t->string('societe_id');
         });
     }
+    /**
+     * Rebranche la connexion `economat` sur SQLite en mémoire avec T_ANNEEACADEMIQUE,
+     * pour tester les écrans pédagogiques en lecture seule sans SQL Server.
+     */
+    protected function setUpEconomatDb(): void
+    {
+        config(['database.connections.economat' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+        ]]);
+        DB::purge('economat');
+
+        Schema::connection('economat')->create('T_ANNEEACADEMIQUE', function ($t) {
+            $t->integer('CODE');
+            $t->string('CodeAnnee')->nullable();
+            $t->string('LibelleAnnee')->nullable();
+            $t->boolean('Activer')->nullable();
+            $t->boolean('CloturePartielle')->nullable();
+            $t->boolean('ClotureDefinitive')->nullable();
+            $t->date('DEBUT')->nullable();
+            $t->date('FIN')->nullable();
+            $t->string('CODESOCIETE')->nullable();
+        });
+    }
 }

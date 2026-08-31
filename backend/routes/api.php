@@ -63,9 +63,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('classes/{classe}/intervenants/{intervenant}', [ClasseIntervenantController::class, 'destroy']);
         Route::apiResource('niveaux', NiveauController::class);
         Route::apiResource('cycles', CycleController::class)->except('show');
-        Route::apiResource('annees-scolaires', AnneeScolaireController::class)
-            ->parameters(['annees-scolaires' => 'anneeScolaire']);
-        Route::post('annees-scolaires/{anneeScolaire}/proposer-reinscriptions', [AnneeScolaireController::class, 'proposerReinscriptions']);
+        // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
+        Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
+        Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);
         Route::post('classes/{classe}/archiver', [ClasseController::class, 'archiver']);
         Route::post('enseignants/{enseignant}/desactiver', [EnseignantController::class, 'desactiver']);
         Route::get('coefficients', [CoefficientController::class, 'index']);

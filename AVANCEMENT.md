@@ -500,3 +500,13 @@ Refonte de lauthentification sans aucune écriture, préalable à la bascule vis
   compte supprimé, CodeApp, /me.
 
 À suivre : rebrancher les pages une à une sur les vraies tables (Années → T_ANNEEACADEMIQUE, etc.).
+
+### Slice 2 : Années scolaires → ECONOMAT.T_ANNEEACADEMIQUE (read-only, pilote)
+
+Premier écran rebranché sur sa vraie table. Modèle `AnneeScolaire` en lecture seule sur
+`economat.T_ANNEEACADEMIQUE` (PK réelle `CODE`), avec attributs mappés (id←CODE, libelle←LibelleAnnee,
+date_debut←DEBUT, date_fin←FIN, active←Activer, cloturee←ClotureDefinitive, cloture_partielle,
+code_annee←CodeAnnee, societe_code←CODESOCIETE) pour garder lAPI stable. Contrôleur réduit à
+index/show ; routes passées en GET seul (suppression du POST proposer-reinscriptions). Page front
+refaite en consultation (formulaire/édition/suppression retirés, colonne Code + « clôture partielle »).
+Test `AnneeScolaireReadTest` (mapping + tri). Suite : 10 tests, 35 assertions verts.

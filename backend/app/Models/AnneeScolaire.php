@@ -2,31 +2,80 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Année académique — LECTURE SEULE sur ECONOMAT.dbo.T_ANNEEACADEMIQUE.
+ * Clé primaire réelle : CODE (int). On expose des attributs mappés (id, libelle,
+ * date_debut, date_fin, active, cloturee, cloture_partielle, code_annee, societe_code)
+ * pour garder l'API stable côté front. Toutes les valeurs sont lues en brut (aucune écriture).
+ */
 class AnneeScolaire extends Model
 {
-    use HasFactory;
+    protected $connection = 'economat';
 
-    protected $table = 'annees_scolaires';
+    protected $table = 'T_ANNEEACADEMIQUE';
 
-    protected $fillable = ['libelle', 'date_debut', 'date_fin', 'active', 'cloturee'];
+    protected $primaryKey = 'CODE';
 
-    protected $casts = [
-        'date_debut' => 'date',
-        'date_fin' => 'date',
-        'active' => 'boolean',
-        'cloturee' => 'boolean',
+    protected $keyType = 'int';
+
+    public $incrementing = false;
+
+    public $timestamps = false;
+
+    protected $appends = [
+        'id', 'code_annee', 'libelle', 'date_debut', 'date_fin',
+        'active', 'cloturee', 'cloture_partielle', 'societe_code',
     ];
 
-    public function classes()
+    protected $hidden = [
+        'CODE', 'CodeAnnee', 'LibelleAnnee', 'Activer', 'ClotureDefinitive',
+        'CloturePartielle', 'DEBUT', 'FIN', 'CODESOCIETE',
+    ];
+
+    public function getIdAttribute()
     {
-        return $this->hasMany(Classe::class);
+        return $this->attributes['CODE'] ?? null;
     }
 
-    public function periodes()
+    public function getCodeAnneeAttribute()
     {
-        return $this->hasMany(Periode::class);
+        return $this->attributes['CodeAnnee'] ?? null;
+    }
+
+    public function getLibelleAttribute()
+    {
+        return $this->attributes['LibelleAnnee'] ?? null;
+    }
+
+    public function getDateDebutAttribute()
+    {
+        return $this->attributes['DEBUT'] ?? null;
+    }
+
+    public function getDateFinAttribute()
+    {
+        return $this->attributes['FIN'] ?? null;
+    }
+
+    public function getActiveAttribute(): bool
+    {
+        return (bool) ($this->attributes['Activer'] ?? false);
+    }
+
+    public function getClotureeAttribute(): bool
+    {
+        return (bool) ($this->attributes['ClotureDefinitive'] ?? false);
+    }
+
+    public function getCloturePartielleAttribute(): bool
+    {
+        return (bool) ($this->attributes['CloturePartielle'] ?? false);
+    }
+
+    public function getSocieteCodeAttribute()
+    {
+        return $this->attributes['CODESOCIETE'] ?? null;
     }
 }
