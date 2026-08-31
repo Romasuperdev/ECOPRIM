@@ -30,8 +30,6 @@ const GROUPS = [
       { to: '/eleves', label: 'Élèves' },
       { to: '/enseignants', label: 'Enseignants' },
       { to: '/absences', label: 'Absences' },
-      { to: '/retards', label: 'Retards' },
-      { to: '/sanctions', label: 'Discipline' },
       { to: '/documents-eleves', label: 'Documents élèves' },
       { to: '/documents-enseignants', label: 'Documents enseignants' },
       { to: '/documents-etablissement', label: 'Documents établissement' },

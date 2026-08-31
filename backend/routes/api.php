@@ -56,7 +56,8 @@ Route::prefix('v1')->group(function () {
         Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);
         Route::get('matieres', [MatiereController::class, 'index']);
         Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
-        Route::apiResource('absences', AbsenceController::class);
+        Route::get('absences', [AbsenceController::class, 'index']);
+        Route::get('absences/{absence}', [AbsenceController::class, 'show']);
         Route::apiResource('sanctions', SanctionController::class);
         Route::apiResource('parents', ParentController::class);
         Route::post('parents/{parent}/eleves', [ParentController::class, 'attachEleve']);

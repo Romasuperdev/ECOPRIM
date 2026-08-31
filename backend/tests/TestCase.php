@@ -191,6 +191,18 @@ abstract class TestCase extends BaseTestCase
             $t->string('CodeSession')->nullable();
         });
 
+        Schema::connection('economat')->create('T_ABSENCEELEVE', function ($t) {
+            $t->integer('Code');
+            $t->string('Matricule')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('Heure')->nullable();
+            $t->date('Date')->nullable();
+            $t->string('Cause')->nullable();
+            $t->string('AnneeCour')->nullable();
+            $t->integer('CodeEleve')->nullable();
+            $t->boolean('Justifier')->nullable();
+        });
+
         Schema::connection('economat')->create('V_MOYENNE_ELEVE_CLASSE', function ($t) {
             $t->integer('Code');
             $t->string('Nom')->nullable();

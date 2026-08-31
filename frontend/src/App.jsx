@@ -19,17 +19,12 @@ const MatiereListPage = lazy(() => import('./features/matieres/MatiereListPage')
 const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage'))
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
-const AbsenceFormPage = lazy(() => import('./features/absences/AbsenceFormPage'))
-const SanctionListPage = lazy(() => import('./features/sanctions/SanctionListPage'))
-const SanctionFormPage = lazy(() => import('./features/sanctions/SanctionFormPage'))
 const ParentListPage = lazy(() => import('./features/parents/ParentListPage'))
 const ParentFormPage = lazy(() => import('./features/parents/ParentFormPage'))
 const SeanceListPage = lazy(() => import('./features/seances/SeanceListPage'))
 const SeanceFormPage = lazy(() => import('./features/seances/SeanceFormPage'))
 const NiveauListPage = lazy(() => import('./features/niveaux/NiveauListPage'))
 const AnneeScolaireListPage = lazy(() => import('./features/annees-scolaires/AnneeScolaireListPage'))
-const RetardListPage = lazy(() => import('./features/retards/RetardListPage'))
-const RetardFormPage = lazy(() => import('./features/retards/RetardFormPage'))
 const MoyennesPage = lazy(() => import('./features/rapports/MoyennesPage'))
 const AssiduitePage = lazy(() => import('./features/rapports/AssiduitePage'))
 const EvaluationListPage = lazy(() => import('./features/rapports/EvaluationListPage'))
@@ -121,16 +116,8 @@ export default function App() {
               <Route path="/notes" element={<NoteListPage />} />
 
               <Route path="/absences" element={<AbsenceListPage />} />
-              <Route path="/absences/nouvelle" element={<AbsenceFormPage />} />
-              <Route path="/absences/:id/modifier" element={<AbsenceFormPage />} />
 
-              <Route path="/sanctions" element={<SanctionListPage />} />
-              <Route path="/sanctions/nouvelle" element={<SanctionFormPage />} />
-              <Route path="/sanctions/:id/modifier" element={<SanctionFormPage />} />
 
-              <Route path="/retards" element={<RetardListPage />} />
-              <Route path="/retards/nouveau" element={<RetardFormPage />} />
-              <Route path="/retards/:id/modifier" element={<RetardFormPage />} />
 
               <Route path="/moyennes" element={<MoyennesPage />} />
 

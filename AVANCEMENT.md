@@ -540,3 +540,12 @@ leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté f
   classement par moyenne, filtre par classe (code réel). Page front simplifiée (plus de période).
   Bulletins PDF différés (BulletinController encore sur ecoprim).
 - Test `NotesResultatsReadTest`. Suite : 18 tests, 86 assertions verts ; build Vite OK.
+
+### Slice 6 : Absences → ECONOMAT ; Retards/Discipline retirés
+
+- **Absences** → `T_ABSENCEELEVE` (lecture seule) : modèle mappé (matricule, classe, date, motif←Cause,
+  justifiee←Justifier, relation élève via CodeEleve), contrôleur index/show paginé filtrable par classe,
+  routes GET. Page front en consultation (filtre classe).
+- **Retards** et **Discipline/Sanctions** : aucune table ECONOMAT → retirés de la sidebar et du routeur
+  (règle « pas de source = pas de page » du mode lecture seule). Test `AbsenceReadTest`. Suite : 19 tests,
+  92 assertions verts ; build Vite OK.
