@@ -4,33 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/** Enseignant — LECTURE SEULE sur ECONOMAT.T_PROFESSEUR (financier exclu). */
 class Enseignant extends Model
 {
-    protected $table = 'enseignants';
+    protected $connection = 'economat';
+    protected $table = 'T_PROFESSEUR';
+    protected $primaryKey = 'Code';
+    protected $keyType = 'int';
+    public $incrementing = false;
+    public $timestamps = false;
 
-    protected $fillable = ['matricule', 'nom', 'prenom', 'email', 'telephone', 'user_id', 'statut', 'actif'];
+    // Liste blanche : on n'expose que le pédagogique/état civil, jamais le salaire ni le mot de passe.
+    protected $visible = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche'];
+    protected $appends = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche'];
 
-    protected $casts = [
-        'actif' => 'boolean',
-    ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function classesPrincipales()
-    {
-        return $this->hasMany(Classe::class, 'enseignant_principal_id');
-    }
-
-    public function intervenants()
-    {
-        return $this->hasMany(ClasseMatiereEnseignant::class);
-    }
-
-    public function documents()
-    {
-        return $this->morphMany(Document::class, 'documentable');
-    }
+    public function getIdAttribute() { return $this->attributes['Code'] ?? null; }
+    public function getMatriculeAttribute() { return $this->attributes['MatriculeProfesseur'] ?? null; }
+    public function getNomAttribute() { return $this->attributes['NomProfesseur'] ?? null; }
+    public function getPrenomAttribute() { return $this->attributes['PrenomProfesseur'] ?? null; }
+    public function getNomCompletAttribute() { return $this->attributes['NomComplet'] ?? null; }
+    public function getSexeAttribute() { return $this->attributes['Sexe'] ?? null; }
+    public function getEmailAttribute() { return $this->attributes['EmailProfesseur'] ?? null; }
+    public function getTelephoneAttribute() { return $this->attributes['ContactProfesseur'] ?? ($this->attributes['Cellulaire'] ?? null); }
+    public function getStatutAttribute() { return $this->attributes['TypeProfesseur'] ?? null; }
+    public function getGradeAttribute() { return $this->attributes['GradeProfesseur'] ?? null; }
+    public function getMatiereAttribute() { return $this->attributes['Matiere'] ?? null; }
+    public function getDateEmbaucheAttribute() { return $this->attributes['DateEmbauche'] ?? null; }
 }

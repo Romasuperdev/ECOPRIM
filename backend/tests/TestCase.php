@@ -121,5 +121,61 @@ abstract class TestCase extends BaseTestCase
             $t->boolean('Composition')->nullable();
             $t->string('CodeCycle')->nullable();
         });
+
+        Schema::connection('economat')->create('T_CLASSE', function ($t) {
+            $t->integer('num');
+            $t->string('CodeClasse');
+            $t->string('LibelleClasse')->nullable();
+            $t->string('CodN')->nullable();
+            $t->string('CodeF')->nullable();
+            $t->string('ANNEE')->nullable();
+            $t->string('CodeSerie')->nullable();
+            $t->string('CODESOCIETE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_PROFESSEUR', function ($t) {
+            $t->integer('Code');
+            $t->string('MatriculeProfesseur')->nullable();
+            $t->string('NomProfesseur')->nullable();
+            $t->string('PrenomProfesseur')->nullable();
+            $t->string('NomComplet')->nullable();
+            $t->string('Sexe')->nullable();
+            $t->string('EmailProfesseur')->nullable();
+            $t->string('ContactProfesseur')->nullable();
+            $t->string('Cellulaire')->nullable();
+            $t->string('TypeProfesseur')->nullable();
+            $t->string('GradeProfesseur')->nullable();
+            $t->string('Matiere')->nullable();
+            $t->string('DateEmbauche')->nullable();
+            $t->integer('SalaireMensuel')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_ETUDIANT', function ($t) {
+            $t->integer('Code');
+            $t->string('Matricule')->nullable();
+            $t->string('Nom')->nullable();
+            $t->string('Prenom')->nullable();
+            $t->string('Sexe')->nullable();
+            $t->date('DateNaiss')->nullable();
+            $t->string('LieuNaiss')->nullable();
+            $t->string('Nationalite')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeNiveau')->nullable();
+            $t->string('CodeCycle')->nullable();
+            $t->string('AnneeAcad')->nullable();
+            $t->integer('Etat')->nullable();
+            $t->string('Redoublant')->nullable();
+            $t->string('NomPereTuteur')->nullable();
+            $t->string('PrenomPereTuteur')->nullable();
+            $t->string('ProfessionPereTuteur')->nullable();
+            $t->string('TelephonePereTuteur')->nullable();
+            $t->string('EmailPereTuteur')->nullable();
+            $t->string('NomMere')->nullable();
+            $t->string('PrenomMere')->nullable();
+            $t->string('ProfessionMere')->nullable();
+            $t->string('TelephoneMere')->nullable();
+            $t->string('EmailMere')->nullable();
+            $t->integer('Scolarite')->nullable();
+        });
     }
 }

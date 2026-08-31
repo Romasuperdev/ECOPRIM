@@ -517,3 +517,15 @@ Niveaux → `T_NIVEAU`, Matières → `T_MATIERE`, Cycles → `T_CYCLE`, sur le 
 mappés, contrôleurs index/show, routes GET seules, pages front en consultation). Niveaux exposent
 leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté front ; colonne Matières
 « coefficient » remplacée par « type ». Test `ReferenceReadTest`. Suite : 13 tests, 55 assertions verts.
+
+### Slice 4 : Classes, Enseignants, Élèves → ECONOMAT (read-only)
+
+- **Classes** → `T_CLASSE` (relation niveau via `CodN`) ; « enseignant principal » et « capacité »
+  retirés (absents de T_CLASSE, gérés via T_CORPROFCLASSE).
+- **Enseignants** → `T_PROFESSEUR`, liste blanche stricte : jamais `SalaireMensuel` ni `Mdp`.
+- **Élèves** → `T_ETUDIANT` : liste paginée + **fiche détail** (identité, scolarité, père/tuteur & mère
+  depuis T_ETUDIANT) ; **financier exclu** (`Scolarite`, `TotalPaye`, `Rb_*`, `Remise`) et technique (`MDP`).
+- Contrôleurs index/show paginés avec relations ; routes GET seules ; actions d\047écriture (archiver,
+  desactiver, création/édition) retirées. Front : listes en consultation + `EleveDetailPage`, routeur
+  adapté (`/eleves/:id` → fiche). Test `PedagogieReadTest` (mapping + exclusion financière). Suite :
+  16 tests, 76 assertions verts ; build Vite OK.

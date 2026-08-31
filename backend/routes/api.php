@@ -47,10 +47,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
 
-        Route::apiResource('eleves', EleveController::class);
-        Route::apiResource('classes', ClasseController::class);
+        Route::get('eleves', [EleveController::class, 'index']);
+        Route::get('eleves/{eleve}', [EleveController::class, 'show']);
+        Route::get('classes', [ClasseController::class, 'index']);
+        Route::get('classes/{classe}', [ClasseController::class, 'show']);
         Route::apiResource('notes', NoteController::class);
-        Route::apiResource('enseignants', EnseignantController::class);
+        Route::get('enseignants', [EnseignantController::class, 'index']);
+        Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);
         Route::get('matieres', [MatiereController::class, 'index']);
         Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
         Route::apiResource('absences', AbsenceController::class);
@@ -68,8 +71,6 @@ Route::prefix('v1')->group(function () {
         // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
         Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
         Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);
-        Route::post('classes/{classe}/archiver', [ClasseController::class, 'archiver']);
-        Route::post('enseignants/{enseignant}/desactiver', [EnseignantController::class, 'desactiver']);
         Route::get('coefficients', [CoefficientController::class, 'index']);
         Route::post('coefficients', [CoefficientController::class, 'store']);
         Route::delete('coefficients/{coefficient}', [CoefficientController::class, 'destroy']);

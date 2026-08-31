@@ -12,11 +12,9 @@ import { fetchMe } from './features/auth/authApi'
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
 const EleveListPage = lazy(() => import('./features/eleves/EleveListPage'))
-const EleveFormPage = lazy(() => import('./features/eleves/EleveFormPage'))
+const EleveDetailPage = lazy(() => import('./features/eleves/EleveDetailPage'))
 const ClasseListPage = lazy(() => import('./features/classes/ClasseListPage'))
-const ClasseFormPage = lazy(() => import('./features/classes/ClasseFormPage'))
 const EnseignantListPage = lazy(() => import('./features/enseignants/EnseignantListPage'))
-const EnseignantFormPage = lazy(() => import('./features/enseignants/EnseignantFormPage'))
 const MatiereListPage = lazy(() => import('./features/matieres/MatiereListPage'))
 const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage'))
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
@@ -111,16 +109,11 @@ export default function App() {
               <Route path="/annees-scolaires" element={<AnneeScolaireListPage />} />
 
               <Route path="/eleves" element={<EleveListPage />} />
-              <Route path="/eleves/nouveau" element={<EleveFormPage />} />
-              <Route path="/eleves/:id/modifier" element={<EleveFormPage />} />
+              <Route path="/eleves/:id" element={<EleveDetailPage />} />
 
               <Route path="/classes" element={<ClasseListPage />} />
-              <Route path="/classes/nouvelle" element={<ClasseFormPage />} />
-              <Route path="/classes/:id/modifier" element={<ClasseFormPage />} />
 
               <Route path="/enseignants" element={<EnseignantListPage />} />
-              <Route path="/enseignants/nouveau" element={<EnseignantFormPage />} />
-              <Route path="/enseignants/:id/modifier" element={<EnseignantFormPage />} />
 
               <Route path="/matieres" element={<MatiereListPage />} />
               <Route path="/matieres/nouvelle" element={<MatiereFormPage />} />
