@@ -549,3 +549,16 @@ leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté f
 - **Retards** et **Discipline/Sanctions** : aucune table ECONOMAT → retirés de la sidebar et du routeur
   (règle « pas de source = pas de page » du mode lecture seule). Test `AbsenceReadTest`. Suite : 19 tests,
   92 assertions verts ; build Vite OK.
+
+### Slice 7 : Console → dbmasterbacou (lecture seule)
+
+- Sociétés → US_SOCIETE ; statut dérivé de ECO_SOCIETE_SUSPENSION (SUSPENDU → inactif). Compteur
+  d'établissements retiré (pas de lien société↔établissement dans dbmasterbacou : chaque société a
+  sa propre base ECONOMAT).
+- Établissements → T_ETABLISSEMENT (statut réel STATUT, DREN/IEP).
+- Utilisateurs & Accès → RH_USER (liste) + fiche avec rôles (role_user/roles) et sociétés
+  (societe_utilisateur). Mot de passe masqué à la sérialisation (RhUser hidden). Journal d'activité
+  retiré (aucune source). Rôles lus dans dbmasterbacou.roles.
+- Toutes les actions d'écriture (CRUD, activer/désactiver, affectations) retirées ; routes GET seules
+  sous role:Super Admin. Pages front en consultation. Test ConsoleReadTest. Suite : 23 tests, 112
+  assertions verts ; build Vite OK.

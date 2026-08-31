@@ -3,69 +3,50 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\RhUser;
 use Illuminate\Http\Request;
 
-/**
- * Les comptes utilisateurs sont créés implicitement à la connexion (synchronisation
- * depuis RH_USER, voir AuthController::syncLocalUser) : ce contrôleur ne fait que
- * lister/consulter les comptes déjà connus localement, pas d'endpoint de création.
- */
+/** Utilisateurs & accès — lecture seule (dbmasterbacou.RH_USER + rôles). */
 class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('roles')->withCount('affectations');
+        $users = RhUser::query()
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $q = $request->input('q');
+                $query->where(fn ($w) => $w->where('Nom', 'like', "%{$q}%")
+                    ->orWhere('Prenom', 'like', "%{$q}%")
+                    ->orWhere('Login', 'like', "%{$q}%")
+                    ->orWhere('Email', 'like', "%{$q}%"));
+            })
+            ->orderBy('Nom')
+            ->paginate(min($request->integer('per_page', 20), 200));
 
-        $this->applyPerimetre($query, $request);
+        $users->getCollection()->transform(fn (RhUser $u) => $this->ligne($u));
 
-        if ($request->filled('q')) {
-            $terme = $request->string('q');
-            $query->where(fn ($q) => $q->where('name', 'like', "%{$terme}%")->orWhere('email', 'like', "%{$terme}%"));
-        }
-
-        return $query->orderBy('name')->paginate(min($request->integer('per_page', 20), 200));
+        return $users;
     }
 
-    public function show(Request $request, User $user)
+    public function show(string $user)
     {
-        $query = User::whereKey($user->id);
-        $this->applyPerimetre($query, $request);
+        $rh = RhUser::findOrFail($user);
 
-        return $query->firstOrFail()->load('roles', 'affectations.societe', 'affectations.etablissement', 'affectations.role');
+        return array_merge($this->ligne($rh), [
+            'roles' => $rh->getRoleNames(),
+            'societes' => $rh->allowedSocieteIds(),
+        ]);
     }
 
-    /**
-     * Un utilisateur n'a pas de société/établissement propre : sa visibilité pour un
-     * Admin Société/Établissement dépend de ses affectations, jamais de tout le référentiel.
-     */
-    private function applyPerimetre($query, Request $request): void
+    private function ligne(RhUser $u): array
     {
-        $viewer = $request->user();
-
-        if ($viewer->isSuperAdmin()) {
-            return;
-        }
-
-        $societeIds = $viewer->allowedSocieteIds();
-        $etablissementIds = $viewer->allowedEtablissementIds();
-
-        if (! $societeIds && ! $etablissementIds) {
-            $query->whereRaw('1 = 0');
-
-            return;
-        }
-
-        $query->whereHas('affectations', function ($q) use ($societeIds, $etablissementIds) {
-            $q->where(function ($qq) use ($societeIds, $etablissementIds) {
-                if ($societeIds) {
-                    $qq->orWhereIn('societe_id', $societeIds)
-                        ->orWhereHas('etablissement', fn ($eq) => $eq->whereIn('societe_id', $societeIds));
-                }
-                if ($etablissementIds) {
-                    $qq->orWhereIn('etablissement_id', $etablissementIds);
-                }
-            });
-        });
+        return [
+            'id' => $u->Id,
+            'name' => trim("{$u->Prenom} {$u->Nom}") ?: $u->Login,
+            'login' => $u->Login,
+            'matricule' => $u->Matricule,
+            'email' => $u->Email,
+            'etab' => $u->Etab,
+            'actif' => ! $u->estSupprime(),
+        ];
     }
 }

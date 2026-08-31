@@ -1,73 +1,59 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
-import Input from '../../components/ui/Input'
-import { fetchUtilisateurs } from './adminApi'
+import Button from '../../components/ui/Button'
+import apiClient from '../../api/client'
+
+const fetchUsers = async (page) => (await apiClient.get('/utilisateurs', { params: { page } })).data
 
 export default function UtilisateurListPage() {
-  const [q, setQ] = useState('')
-  const { data, isLoading } = useQuery({ queryKey: ['admin', 'utilisateurs', 1, q], queryFn: () => fetchUtilisateurs(1, q) })
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = useQuery({ queryKey: ['utilisateurs', page], queryFn: () => fetchUsers(page) })
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Utilisateurs & Accès</h1>
-        <div className="w-64">
-          <Input icon={Search} placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Utilisateurs &amp; Accès</h1>
+        <p className="mt-1 text-sm text-slate-500">Consultation (source : dbmasterbacou.RH_USER).</p>
       </div>
-
-      <p className="mb-4 text-sm text-slate-500">
-        Les comptes sont créés automatiquement à la première connexion. Ouvrez une fiche pour gérer ses affectations
-        (société, établissement, rôle).
-      </p>
-
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
+              <th className="px-4 py-3 font-medium">Login</th>
               <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Rôles</th>
-              <th className="px-4 py-3 font-medium">Affectations</th>
+              <th className="px-4 py-3 font-medium">Établissement</th>
+              <th className="px-4 py-3 font-medium">Actif</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
-                  Chargement…
-                </td>
-              </tr>
-            )}
-            {data?.data?.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50">
+            {isLoading && <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucun utilisateur.</td></tr>}
+            {data?.data?.map((u) => (
+              <tr key={u.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
-                  <Link to={`/admin/utilisateurs/${user.id}`} className="font-medium text-primary-700 hover:underline">
-                    {user.name}
-                  </Link>
+                  <Link to={`/admin/utilisateurs/${u.id}`} className="font-medium text-primary-700 hover:underline">{u.name}</Link>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{user.email}</td>
+                <td className="px-4 py-3 text-slate-600">{u.login ?? '—'}</td>
+                <td className="px-4 py-3 text-slate-600">{u.email ?? '—'}</td>
+                <td className="px-4 py-3 text-slate-600">{u.etab ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {user.roles?.length ? (
-                      user.roles.map((role) => (
-                        <span key={role.id} className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">
-                          {role.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-300">—</span>
-                    )}
-                  </div>
+                  {u.actif
+                    ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Oui</span>
+                    : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Non</span>}
                 </td>
-                <td className="px-4 py-3 text-slate-600">{user.affectations_count}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {data && (
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" disabled={!data.prev_page_url} onClick={() => setPage((p) => p - 1)}>Précédent</Button>
+          <Button variant="outline" disabled={!data.next_page_url} onClick={() => setPage((p) => p + 1)}>Suivant</Button>
+        </div>
+      )}
     </div>
   )
 }

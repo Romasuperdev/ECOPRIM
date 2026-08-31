@@ -116,31 +116,12 @@ Route::prefix('v1')->group(function () {
         Route::post('conseils-classe/{conseil}/deliberations', [DeliberationController::class, 'store']);
         Route::delete('conseils-classe/{conseil}/deliberations/{deliberation}', [DeliberationController::class, 'destroy']);
 
-        // Console Administrative. Gouvernance plateforme (sociétés, suppression
-        // d'établissement, journal global) réservée au Super Admin. Les autres routes sont
-        // ouvertes à Admin Société / Admin Établissement mais restreintes à leur périmètre
-        // via le scope global BelongsToPerimetre (Etablissement, Affectation) + les
-        // FormRequest::authorize() (Store/UpdateEtablissementRequest).
+        // Console Administrative — LECTURE SEULE (dbmasterbacou). Réservée au Super Admin.
         Route::middleware('role:Super Admin')->group(function () {
-            Route::apiResource('societes', SocieteController::class);
-            Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
-            Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
-            Route::delete('etablissements/{etablissement}', [EtablissementController::class, 'destroy']);
-            Route::get('journal-activite', [JournalActiviteController::class, 'index']);
-        });
-
-        Route::middleware('role:Super Admin|Admin Société')->group(function () {
-            Route::post('etablissements', [EtablissementController::class, 'store']);
-            Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
-            Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);
-            Route::apiResource('affectations', AffectationController::class)->only(['store', 'destroy']);
-        });
-
-        Route::middleware('role:Super Admin|Admin Société|Admin Établissement')->group(function () {
+            Route::get('societes', [SocieteController::class, 'index']);
+            Route::get('societes/{societe}', [SocieteController::class, 'show']);
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::get('etablissements/{etablissement}', [EtablissementController::class, 'show']);
-            Route::put('etablissements/{etablissement}', [EtablissementController::class, 'update']);
-            Route::get('affectations', [AffectationController::class, 'index']);
             Route::get('utilisateurs', [UserController::class, 'index']);
             Route::get('utilisateurs/{user}', [UserController::class, 'show']);
             Route::get('roles', [RoleController::class, 'index']);

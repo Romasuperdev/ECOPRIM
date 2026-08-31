@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
 
+/** Rôles — lecture seule (dbmasterbacou.roles). */
 class RoleController extends Controller
 {
     public function index()
     {
-        return Role::orderBy('name')->get(['id', 'name']);
+        return DB::connection('master')->table('roles')->orderBy('name')->get(['id', 'name', 'code', 'codesociete']);
     }
 }

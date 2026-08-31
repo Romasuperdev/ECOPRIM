@@ -6,7 +6,6 @@ const ITEMS = [
   { to: '/admin/societes', icon: Building2, label: 'Sociétés' },
   { to: '/admin/etablissements', icon: School, label: 'Établissements' },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
-  { to: '/admin/journal-activite', icon: ScrollText, label: "Journal d'activité" },
 ]
 
 const A_VENIR = ['Rôles & permissions', 'Référentiels pédagogiques', 'Documents', 'Communication', 'Rapports', 'Configuration']

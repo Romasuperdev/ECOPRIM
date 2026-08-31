@@ -65,6 +65,36 @@ abstract class TestCase extends BaseTestCase
             $t->integer('user_id');
             $t->string('societe_id');
         });
+
+        $s->create('US_SOCIETE', function ($t) {
+            $t->string('CODESOCIETE');
+            $t->string('NOMSOCIETE')->nullable();
+            $t->string('VILLESOCIETE')->nullable();
+            $t->string('AD1SOCIETE')->nullable();
+            $t->string('TELSOCIETE')->nullable();
+            $t->string('EMAILSOCIETE')->nullable();
+            $t->string('NOMPRENOMREPRESENTANT')->nullable();
+        });
+
+        $s->create('ECO_SOCIETE_SUSPENSION', function ($t) {
+            $t->string('CODESOCIETE');
+            $t->boolean('SUSPENDU');
+        });
+
+        $s->create('T_ETABLISSEMENT', function ($t) {
+            $t->integer('Num');
+            $t->string('CODE');
+            $t->string('RAISONSOCIALE')->nullable();
+            $t->string('TYPE')->nullable();
+            $t->string('ADRESSE')->nullable();
+            $t->string('TELEPHONE')->nullable();
+            $t->string('EMAIL')->nullable();
+            $t->string('STATUT')->nullable();
+            $t->string('NOMRESP')->nullable();
+            $t->string('PRENOMRESP')->nullable();
+            $t->string('INTITULEDREN')->nullable();
+            $t->string('INTITULEIEP')->nullable();
+        });
     }
     /**
      * Rebranche la connexion `economat` sur SQLite en mémoire avec T_ANNEEACADEMIQUE,

@@ -44,7 +44,6 @@ const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
 const UtilisateurDetailPage = lazy(() => import('./features/admin/UtilisateurDetailPage'))
-const JournalActivitePage = lazy(() => import('./features/admin/JournalActivitePage'))
 
 const queryClient = new QueryClient()
 
@@ -87,8 +86,7 @@ export default function App() {
               <Route path="/admin/etablissements" element={<EtablissementListPage />} />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
-              <Route path="/admin/journal-activite" element={<JournalActivitePage />} />
-            </Route>
+              </Route>
 
             <Route
               element={

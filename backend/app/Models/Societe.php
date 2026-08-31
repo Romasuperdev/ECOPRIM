@@ -2,34 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
+/** Société — LECTURE SEULE sur dbmasterbacou.US_SOCIETE (statut via ECO_SOCIETE_SUSPENSION). */
 class Societe extends Model
 {
-    use HasFactory, SoftDeletes;
+    protected $connection = 'master';
+    protected $table = 'US_SOCIETE';
+    protected $primaryKey = 'CODESOCIETE';
+    protected $keyType = 'string';
+    public $incrementing = false;
+    public $timestamps = false;
 
-    protected $fillable = [
-        'code', 'nom', 'sigle', 'logo',
-        'adresse', 'adresse_ligne2', 'code_postal', 'ville', 'pays',
-        'telephone', 'fax', 'email', 'site_web',
-        'activite_principale', 'activite_secondaire', 'forme_juridique', 'regime_fiscal', 'capital',
-        'representant_civilite', 'representant_nom', 'representant_fonction', 'representant_telephone', 'representant_mobile',
-        'statut',
-    ];
+    protected $visible = ['id', 'code', 'nom', 'ville', 'adresse', 'telephone', 'email', 'representant', 'statut'];
+    protected $appends = ['id', 'code', 'nom', 'ville', 'adresse', 'telephone', 'email', 'representant', 'statut'];
 
-    protected $casts = [
-        'capital' => 'decimal:2',
-    ];
+    public function getIdAttribute() { return $this->attributes['CODESOCIETE'] ?? null; }
+    public function getCodeAttribute() { return $this->attributes['CODESOCIETE'] ?? null; }
+    public function getNomAttribute() { return $this->attributes['NOMSOCIETE'] ?? null; }
+    public function getVilleAttribute() { return $this->attributes['VILLESOCIETE'] ?? null; }
+    public function getAdresseAttribute() { return $this->attributes['AD1SOCIETE'] ?? ($this->attributes['ADRESSE'] ?? null); }
+    public function getTelephoneAttribute() { return $this->attributes['TELSOCIETE'] ?? null; }
+    public function getEmailAttribute() { return $this->attributes['EMAILSOCIETE'] ?? null; }
+    public function getRepresentantAttribute() { return $this->attributes['NOMPRENOMREPRESENTANT'] ?? ($this->attributes['REPRESENTANT'] ?? null); }
 
-    public function etablissements()
+    public function getStatutAttribute(): string
     {
-        return $this->hasMany(Etablissement::class);
-    }
+        $suspendu = DB::connection('master')->table('ECO_SOCIETE_SUSPENSION')
+            ->where('CODESOCIETE', $this->attributes['CODESOCIETE'] ?? null)
+            ->value('SUSPENDU');
 
-    public function affectations()
-    {
-        return $this->hasMany(Affectation::class);
+        return $suspendu ? 'inactif' : 'actif';
     }
 }
