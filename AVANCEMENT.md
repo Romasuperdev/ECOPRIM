@@ -471,3 +471,15 @@ Toutes les pages sont désormais chargées à la demande via `React.lazy` + `Sus
 (les layouts restent eager). Vérifié par un build Vite complet : le chunk principal passe de ~622 kB
 (gzip 165 kB) à ~272 kB (gzip 85 kB), chaque page devient un chunk séparé, et l'avertissement Vite
 « chunk > 500 kB » a disparu.
+
+## 13. Décision d'architecture majeure : ECOPRIM = visionneuse 100% lecture
+
+Révision de la décision fondatrice : la base `ecoprim` n'existe pas et ne doit être liée à aucune
+table. ECOPRIM devient une **visionneuse/reporting en lecture seule** — Application → `ECONOMAT`,
+Console → `dbmasterbacou`, aucune écriture. Confirmé : Années scolaires = `ECONOMAT.dbo.T_ANNEEACADEMIQUE`
+(CodeAnnee/LibelleAnnee/Activer/CloturePartielle/ClotureDefinitive/DEBUT/FIN/CODESOCIETE).
+Conséquences : (1) refonte de l'auth en lecture seule (login RH_USER, rôles dérivés de RH_USER,
+session cookie, plus de tables users/roles/permissions locales) comme préalable ; (2) tous les écrans
+de création/édition/suppression deviennent des consultations ; (3) les modules purement « écriture
+ECOPRIM » sans équivalent ECONOMAT sont à retirer. Correspondance page→table dans `MAPPING_ECONOMAT.md`.
+Déblocage : `php artisan schema:introspect` pour le schéma exact des deux bases.
