@@ -510,3 +510,10 @@ code_annee←CodeAnnee, societe_code←CODESOCIETE) pour garder lAPI stable. Con
 index/show ; routes passées en GET seul (suppression du POST proposer-reinscriptions). Page front
 refaite en consultation (formulaire/édition/suppression retirés, colonne Code + « clôture partielle »).
 Test `AnneeScolaireReadTest` (mapping + tri). Suite : 10 tests, 35 assertions verts.
+
+### Slice 3 : tables de référence → ECONOMAT (read-only)
+
+Niveaux → `T_NIVEAU`, Matières → `T_MATIERE`, Cycles → `T_CYCLE`, sur le même patron (modèles
+mappés, contrôleurs index/show, routes GET seules, pages front en consultation). Niveaux exposent
+leur cycle (relation sur `CodeCycle`). Formulaires/CyclesPanel retirés côté front ; colonne Matières
+« coefficient » remplacée par « type ». Test `ReferenceReadTest`. Suite : 13 tests, 55 assertions verts.

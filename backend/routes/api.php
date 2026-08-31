@@ -51,7 +51,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('classes', ClasseController::class);
         Route::apiResource('notes', NoteController::class);
         Route::apiResource('enseignants', EnseignantController::class);
-        Route::apiResource('matieres', MatiereController::class);
+        Route::get('matieres', [MatiereController::class, 'index']);
+        Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
         Route::apiResource('absences', AbsenceController::class);
         Route::apiResource('sanctions', SanctionController::class);
         Route::apiResource('parents', ParentController::class);
@@ -61,8 +62,9 @@ Route::prefix('v1')->group(function () {
         Route::get('classes/{classe}/intervenants', [ClasseIntervenantController::class, 'index']);
         Route::post('classes/{classe}/intervenants', [ClasseIntervenantController::class, 'store']);
         Route::delete('classes/{classe}/intervenants/{intervenant}', [ClasseIntervenantController::class, 'destroy']);
-        Route::apiResource('niveaux', NiveauController::class);
-        Route::apiResource('cycles', CycleController::class)->except('show');
+        Route::get('niveaux', [NiveauController::class, 'index']);
+        Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
+        Route::get('cycles', [CycleController::class, 'index']);
         // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
         Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
         Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);

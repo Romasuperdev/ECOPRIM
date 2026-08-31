@@ -91,5 +91,35 @@ abstract class TestCase extends BaseTestCase
             $t->date('FIN')->nullable();
             $t->string('CODESOCIETE')->nullable();
         });
+
+        Schema::connection('economat')->create('T_CYCLE', function ($t) {
+            $t->integer('Num');
+            $t->string('CodeCycle');
+            $t->string('LibelleCycle')->nullable();
+            $t->string('CodeEtab')->nullable();
+            $t->boolean('Primaire')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_NIVEAU', function ($t) {
+            $t->integer('Num');
+            $t->string('CodeNiveau');
+            $t->string('LibelleNiveau')->nullable();
+            $t->string('CodeCycle')->nullable();
+            $t->string('CodeFiliere')->nullable();
+            $t->boolean('NiveauExamen')->nullable();
+            $t->string('ANNEE')->nullable();
+            $t->integer('Ordre')->nullable();
+            $t->string('CODEETABLISSEMENT')->nullable();
+            $t->string('CODESOCIETE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_MATIERE', function ($t) {
+            $t->integer('Code');
+            $t->string('CodeMatiere')->nullable();
+            $t->string('LibelleMatiere')->nullable();
+            $t->string('Type')->nullable();
+            $t->boolean('Composition')->nullable();
+            $t->string('CodeCycle')->nullable();
+        });
     }
 }
