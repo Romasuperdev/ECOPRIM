@@ -307,4 +307,48 @@ class ConsoleCrudTest extends TestCase
         $this->getJson('/api/v1/societes')->assertOk()
             ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Nom ECOPRIM', 'ville' => 'Bouaké', 'repris' => true]);
     }
+
+    public function test_creer_un_utilisateur_dans_rh_user(): void
+    {
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'ndiaye', 'mot_de_passe' => 'secret123', 'nom' => 'Ndiaye', 'prenom' => 'Awa',
+            'email' => 'awa@ecole.ci', 'profil' => 'Secretaire',
+        ])->assertCreated()->assertJsonPath('login', 'ndiaye')->assertJsonPath('actif', true);
+
+        $this->assertDatabaseHas('RH_USER', ['Login' => 'ndiaye', 'Nom' => 'Ndiaye'], 'master');
+
+        // Mot de passe haché (bcrypt) et vérifiable par la connexion.
+        $mdp = DB::connection('master')->table('RH_USER')->where('Login', 'ndiaye')->value('MotDePasse');
+        $this->assertNotSame('secret123', $mdp);
+        $this->assertTrue(Hash::check('secret123', $mdp));
+    }
+
+    public function test_login_utilisateur_doit_etre_unique(): void
+    {
+        $this->postJson('/api/v1/utilisateurs', ['login' => 'boss', 'mot_de_passe' => 'secret123', 'nom' => 'Doublon'])
+            ->assertStatus(422)->assertJsonValidationErrors('login');
+    }
+
+    public function test_modifier_un_utilisateur_sans_changer_le_mot_de_passe(): void
+    {
+        $avant = DB::connection('master')->table('RH_USER')->where('Id', 1)->value('MotDePasse');
+
+        $this->putJson('/api/v1/utilisateurs/1', ['login' => 'boss', 'nom' => 'Corrigé'])
+            ->assertOk()->assertJsonPath('nom', 'Corrigé');
+
+        $this->assertDatabaseHas('RH_USER', ['Id' => 1, 'Nom' => 'Corrigé'], 'master');
+        // Mot de passe laissé vide : inchangé.
+        $this->assertSame($avant, DB::connection('master')->table('RH_USER')->where('Id', 1)->value('MotDePasse'));
+    }
+
+    public function test_desactiver_un_utilisateur_ne_le_supprime_pas(): void
+    {
+        $this->postJson('/api/v1/utilisateurs/1/desactiver')->assertOk()->assertJsonPath('actif', false);
+
+        // La ligne existe toujours dans la table partagée : marquée supprimée, jamais effacée.
+        $this->assertDatabaseHas('RH_USER', ['Id' => 1, 'Supprimer' => 1], 'master');
+        $this->assertSame(1, DB::connection('master')->table('RH_USER')->where('Id', 1)->count());
+
+        $this->postJson('/api/v1/utilisateurs/1/activer')->assertOk()->assertJsonPath('actif', true);
+    }
 }

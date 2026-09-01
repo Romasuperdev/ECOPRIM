@@ -699,3 +699,22 @@ désélection, refus d'un établissement non accessible, refus d'un établisseme
 Note : les requêtes de test doivent être « stateful » (en-têtes Origin/Referer) pour que la
 session Sanctum SPA soit démarrée.
 Suite : 46 tests, 204 assertions verts. Build Vite OK.
+
+## Utilisateurs : création et modification dans RH_USER (1er sept. 2026)
+
+Dernier bloc de parité BACOU. Périmètre validé : **création + modification, jamais de suppression**.
+
+- `App\Services\RhUserEcrivain` : INSERT/UPDATE sur `dbmasterbacou.RH_USER`, aucun DELETE.
+  `Id` détecté à l'exécution (IDENTITY ou `MAX(Id)+1`), largeurs réelles respectées.
+- Mot de passe haché avec `Hash::make` (bcrypt) — exactement ce que vérifie `AuthController`
+  via `Hash::check`, donc un compte créé ici peut se connecter. En modification, un mot de
+  passe laissé vide est conservé.
+- Retirer un compte = **désactivation logique** `Supprimer = 1` (la connexion refuse déjà les
+  comptes marqués supprimés). Réactivation possible. La ligne n'est jamais effacée.
+- Champs gérés : Login, Nom, Prénom, Email, Matricule, Contact, Etab, Profil, CodeApp, SuperAdmin.
+- Front : liste avec recherche, badge Super Admin, formulaire en sections
+  (Connexion / Identité / Rattachement), boutons Désactiver / Réactiver.
+
+Tests : création avec hachage bcrypt vérifié, unicité du login, modification sans changer le mot
+de passe, désactivation qui ne supprime pas la ligne.
+Suite : 50 tests, 223 assertions verts. Build Vite OK.

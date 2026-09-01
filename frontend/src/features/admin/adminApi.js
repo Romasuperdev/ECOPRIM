@@ -98,6 +98,26 @@ export async function fetchUtilisateur(id) {
   return data
 }
 
+export async function createUtilisateur(payload) {
+  const { data } = await apiClient.post('/utilisateurs', payload)
+  return data
+}
+
+export async function updateUtilisateur(id, payload) {
+  const { data } = await apiClient.put(`/utilisateurs/${id}`, payload)
+  return data
+}
+
+export async function activerUtilisateur(id) {
+  const { data } = await apiClient.post(`/utilisateurs/${id}/activer`)
+  return data
+}
+
+export async function desactiverUtilisateur(id) {
+  const { data } = await apiClient.post(`/utilisateurs/${id}/desactiver`)
+  return data
+}
+
 // Rôles (catalogue)
 export async function fetchRoles() {
   const { data } = await apiClient.get('/roles')

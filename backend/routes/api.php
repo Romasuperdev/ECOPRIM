@@ -140,7 +140,11 @@ Route::prefix('v1')->group(function () {
             Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);
 
             Route::get('utilisateurs', [UserController::class, 'index']);
+            Route::post('utilisateurs', [UserController::class, 'store']);
             Route::get('utilisateurs/{user}', [UserController::class, 'show']);
+            Route::put('utilisateurs/{user}', [UserController::class, 'update']);
+            Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
+            Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
 
             Route::get('roles', [RoleController::class, 'index']);
             Route::post('roles', [RoleController::class, 'store']);
