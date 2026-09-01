@@ -611,3 +611,11 @@ import). Suite complète : 29 tests, 133 assertions verts. Build Vite OK.
 
 À appliquer sur la machine : `php artisan migrate --path=database/migrations/console --database=ecoprim`
 puis `php artisan console:importer` (nécessite `DB_ECOPRIM_DATABASE=ecoprim` dans backend/.env).
+
+## Sociétés : bouton « Importer depuis US_SOCIETE » (1er sept. 2026)
+
+La page Sociétés reste modifiable (console_societes) et reçoit un bouton « Importer depuis US_SOCIETE ».
+`SocieteController::importer()` lit dbmasterbacou.US_SOCIETE (jamais d'écriture dessus) et n'ajoute que
+les sociétés absentes : les enregistrements déjà présents/édités dans ECOPRIM ne sont pas réécrits.
+Route POST /societes/importer (Super Admin). Test `test_import_societes_depuis_us_societe_sans_ecraser`.
+Suite : 30 tests, 138 assertions verts. Build OK.

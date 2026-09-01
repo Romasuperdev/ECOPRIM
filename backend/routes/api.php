@@ -120,6 +120,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:Super Admin')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
             Route::post('societes', [SocieteController::class, 'store']);
+            Route::post('societes/importer', [SocieteController::class, 'importer']);
             Route::get('societes/{societe}', [SocieteController::class, 'show']);
             Route::put('societes/{societe}', [SocieteController::class, 'update']);
             Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);

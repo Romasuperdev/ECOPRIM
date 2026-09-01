@@ -155,4 +155,21 @@ class ConsoleCrudTest extends TestCase
         $this->assertTrue(Role::count() >= 1);
     }
 
+    public function test_import_societes_depuis_us_societe_sans_ecraser(): void
+    {
+        // Une société déjà présente dans ECOPRIM (éditée localement) + deux dans US_SOCIETE.
+        Societe::create(['code' => 'ABN', 'nom' => 'Nom édité localement']);
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Abidjan Nord (source)', 'VILLESOCIETE' => null],
+            ['CODESOCIETE' => 'SUD', 'NOMSOCIETE' => 'Sud SARL', 'VILLESOCIETE' => 'San Pedro'],
+        ]);
+
+        $this->postJson('/api/v1/societes/importer')->assertOk()
+            ->assertJsonFragment(['importes' => 1, 'ignores' => 1]);
+
+        // La société éditée localement n'est pas réécrite.
+        $this->assertDatabaseHas('console_societes', ['code' => 'ABN', 'nom' => 'Nom édité localement'], 'ecoprim');
+        // La nouvelle est importée.
+        $this->assertDatabaseHas('console_societes', ['code' => 'SUD', 'nom' => 'Sud SARL'], 'ecoprim');
+    }
 }

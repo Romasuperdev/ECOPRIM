@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Console\Societe;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** Sociétés — CRUD (base propre ECOPRIM : console_societes). */
 class SocieteController extends Controller
@@ -65,5 +66,48 @@ class SocieteController extends Controller
         $societe->update(['actif' => false]);
 
         return response()->json($societe);
+    }
+
+    /**
+     * Importe dans console_societes les sociétés RÉELLES lues dans dbmasterbacou.US_SOCIETE
+     * (lecture seule). N'ajoute que les sociétés absentes : les enregistrements déjà
+     * présents dans ECOPRIM (éventuellement édités ici) ne sont jamais réécrits.
+     */
+    public function importer()
+    {
+        $existants = Societe::pluck('code')->all();
+        $crees = 0;
+        $ignores = 0;
+
+        foreach (DB::connection('master')->table('US_SOCIETE')->get() as $l) {
+            $code = trim((string) ($l->CODESOCIETE ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            if (in_array($code, $existants, true)) {
+                $ignores++;
+
+                continue;
+            }
+
+            Societe::create([
+                'code' => $code,
+                'actif' => true,
+                'nom' => trim((string) ($l->NOMSOCIETE ?? '')) ?: $code,
+                'ville' => $l->VILLESOCIETE ?? null,
+                'adresse' => $l->AD1SOCIETE ?? ($l->ADRESSE ?? null),
+                'telephone' => $l->TELSOCIETE ?? null,
+                'email' => $l->EMAILSOCIETE ?? null,
+                'representant' => $l->NOMPRENOMREPRESENTANT ?? ($l->REPRESENTANT ?? null),
+            ]);
+            $existants[] = $code;
+            $crees++;
+        }
+
+        return response()->json([
+            'importes' => $crees,
+            'ignores' => $ignores,
+            'message' => "{$crees} société(s) importée(s), {$ignores} déjà présente(s).",
+        ]);
     }
 }

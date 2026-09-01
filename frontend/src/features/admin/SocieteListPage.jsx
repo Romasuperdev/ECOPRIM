@@ -7,6 +7,7 @@ import {
   createSociete,
   desactiverSociete,
   fetchSocietes,
+  importerSocietes,
   updateSociete,
 } from './adminApi'
 
@@ -37,6 +38,11 @@ export default function SocieteListPage() {
     onSuccess: invalider,
   })
 
+  const importer = useMutation({
+    mutationFn: importerSocietes,
+    onSuccess: invalider,
+  })
+
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   return (
@@ -46,7 +52,12 @@ export default function SocieteListPage() {
           <h1 className="text-2xl font-bold text-slate-800">Sociétés</h1>
           <p className="mt-1 text-sm text-slate-500">Gestion des sociétés de la plateforme.</p>
         </div>
-        <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvelle société</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={importer.isPending} onClick={() => importer.mutate()}>
+            {importer.isPending ? 'Import…' : 'Importer depuis US_SOCIETE'}
+          </Button>
+          <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvelle société</Button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">

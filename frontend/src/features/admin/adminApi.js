@@ -11,6 +11,11 @@ export async function fetchAllSocietes() {
   return data.data
 }
 
+export async function importerSocietes() {
+  const { data } = await apiClient.post('/societes/importer')
+  return data
+}
+
 export async function createSociete(payload) {
   const { data } = await apiClient.post('/societes', payload)
   return data
