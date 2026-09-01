@@ -655,3 +655,25 @@ est désormais **insérée dans `dbmasterbacou.US_SOCIETE`**. Périmètre volont
 
 Tests ajoutés : insertion dans US_SOCIETE, reprise sans écriture, édition sans écriture, calcul de
 NUMAUTO, refus d'un code > 17 caractères. Suite : 36 tests, 162 assertions verts. Build Vite OK.
+
+## Établissements : parité fonctionnelle BACOU (1er sept. 2026)
+
+Inspiré du code de BACOU GESTION LOCATIVE (fourni par l'utilisateur), **fonctionnalités reprises,
+design ECOPRIM conservé**. Décisions : source = `ECONOMAT.dbo.BEtablissements` (et non
+T_ETABLISSEMENT) ; écriture = **création + modification, jamais de suppression**.
+
+- Vue fusionnée : lecture directe de `BEtablissements` + surcouche `console_etablissements`.
+  La page affiche les vrais établissements même sans surcouche migrée. Colonne « Source »
+  (`BEtablissements` / `BEtablissements + ECOPRIM` / `ECOPRIM`) et bouton « Reprendre ».
+- `App\Services\BEtablissementEcrivain` : INSERT + UPDATE seulement, jamais de DELETE.
+  Largeurs réelles respectées ; `Intitule`, `Adresse1`, `Pays`, `CodeSociete` sont NOT NULL
+  et donc obligatoires au formulaire.
+- Désactivation logique (surcouche `actif`) à la place de la suppression.
+- Fiche détaillée `/admin/etablissements/:code` en sections (Identification, Localisation,
+  Coordonnées, Rattachement), adressée par CODE donc consultable même sans surcouche.
+- Filtres liste : recherche texte (intitulé/code/ville) + filtre par société ; formulaire en
+  sections avec type Privé/Public/Confessionnel.
+
+Tests : création répercutée dans BEtablissements, champs NOT NULL exigés, liste sans surcouche,
+fiche par code, modification répercutée, désactivation sans suppression.
+Suite : 41 tests, 183 assertions verts. Build Vite OK.

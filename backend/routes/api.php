@@ -128,7 +128,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::post('etablissements', [EtablissementController::class, 'store']);
-            Route::get('etablissements/{etablissement}', [EtablissementController::class, 'show']);
+            Route::get('etablissements/{code}', [EtablissementController::class, 'show']);
             Route::put('etablissements/{etablissement}', [EtablissementController::class, 'update']);
             Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
             Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);

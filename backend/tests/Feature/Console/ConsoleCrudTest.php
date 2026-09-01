@@ -122,16 +122,87 @@ class ConsoleCrudTest extends TestCase
         $this->assertTrue($s->fresh()->actif);
     }
 
-    public function test_etablissement_exige_societe_existante(): void
+    /** Payload minimal valide : les colonnes NOT NULL de BEtablissements sont exigées. */
+    private function etabValide(array $extra = []): array
+    {
+        return array_merge([
+            'code' => 'E1', 'intitule' => 'École Alpha', 'adresse' => 'Cocody',
+            'pays' => 'Côte d\'Ivoire', 'societe_code' => 'ABN',
+        ], $extra);
+    }
+
+    public function test_creer_etablissement_l_enregistre_dans_betablissements(): void
     {
         Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
 
-        $this->postJson('/api/v1/etablissements', ['code' => 'E1', 'intitule' => 'Alpha', 'societe_code' => 'ABN'])
-            ->assertCreated();
-        $this->assertDatabaseHas('console_etablissements', ['code' => 'E1', 'societe_code' => 'ABN'], 'ecoprim');
+        $this->postJson('/api/v1/etablissements', $this->etabValide())
+            ->assertCreated()
+            ->assertJsonPath('cree_dans_source', true);
 
-        $this->postJson('/api/v1/etablissements', ['code' => 'E2', 'intitule' => 'Beta', 'societe_code' => 'INCONNU'])
-            ->assertStatus(422)->assertJsonValidationErrors('societe_code');
+        $this->assertDatabaseHas('BEtablissements', [
+            'CodeEtablissement' => 'E1', 'Intitule' => 'École Alpha', 'CodeSociete' => 'ABN',
+        ], 'economat');
+        $this->assertDatabaseHas('console_etablissements', ['code' => 'E1', 'societe_code' => 'ABN'], 'ecoprim');
+    }
+
+    public function test_champs_not_null_de_betablissements_sont_exiges(): void
+    {
+        Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
+
+        $this->postJson('/api/v1/etablissements', ['code' => 'E1', 'intitule' => 'Alpha'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['adresse', 'pays', 'societe_code']);
+    }
+
+    public function test_liste_etablissements_affiche_betablissements_sans_surcouche(): void
+    {
+        DB::connection('economat')->table('BEtablissements')->insert([
+            'CodeEtablissement' => 'E9', 'Intitule' => 'École Réelle', 'CodeSociete' => 'ABN',
+            'Adresse1' => 'Yopougon', 'Pays' => 'CI', 'Ville' => 'Abidjan',
+        ]);
+
+        $this->getJson('/api/v1/etablissements')->assertOk()
+            ->assertJsonFragment(['code' => 'E9', 'intitule' => 'École Réelle', 'source' => 'BEtablissements', 'repris' => false]);
+    }
+
+    public function test_fiche_etablissement_par_code(): void
+    {
+        Societe::create(['code' => 'ABN', 'nom' => 'Abidjan Nord']);
+        DB::connection('economat')->table('BEtablissements')->insert([
+            'CodeEtablissement' => 'E9', 'Intitule' => 'École Réelle', 'CodeSociete' => 'ABN',
+            'Adresse1' => 'Yopougon', 'Pays' => 'CI', 'Ville' => 'Abidjan', 'Telephone' => '0700',
+        ]);
+
+        $this->getJson('/api/v1/etablissements/E9')->assertOk()
+            ->assertJsonPath('code', 'E9')
+            ->assertJsonPath('ville', 'Abidjan')
+            ->assertJsonPath('societe.nom', 'Abidjan Nord');
+    }
+
+    public function test_modifier_etablissement_repercute_dans_betablissements(): void
+    {
+        Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
+        $this->postJson('/api/v1/etablissements', $this->etabValide())->assertCreated();
+        $etab = Etablissement::where('code', 'E1')->firstOrFail();
+
+        $this->putJson("/api/v1/etablissements/{$etab->id}", $this->etabValide(['intitule' => 'École Bêta']))
+            ->assertOk();
+
+        $this->assertDatabaseHas('BEtablissements', ['CodeEtablissement' => 'E1', 'Intitule' => 'École Bêta'], 'economat');
+        $this->assertDatabaseHas('console_etablissements', ['code' => 'E1', 'intitule' => 'École Bêta'], 'ecoprim');
+    }
+
+    public function test_desactivation_ne_supprime_rien_dans_betablissements(): void
+    {
+        Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
+        $this->postJson('/api/v1/etablissements', $this->etabValide())->assertCreated();
+        $etab = Etablissement::where('code', 'E1')->firstOrFail();
+
+        $this->postJson("/api/v1/etablissements/{$etab->id}/desactiver")->assertOk();
+
+        $this->assertFalse($etab->fresh()->actif);
+        // La ligne partagée existe toujours : aucune suppression.
+        $this->assertDatabaseHas('BEtablissements', ['CodeEtablissement' => 'E1'], 'economat');
     }
 
     public function test_affectation_limitee_a_une_seule_societe(): void
@@ -182,17 +253,6 @@ class ConsoleCrudTest extends TestCase
         DB::connection('master')->table('US_SOCIETE')->insert([
             ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Abidjan Nord', 'VILLESOCIETE' => 'Abidjan'],
         ]);
-        Schema::connection('economat')->create('BEtablissements', function ($t) {
-            $t->string('CodeEtablissement');
-            $t->string('Intitule')->nullable();
-            $t->string('Adresse1')->nullable();
-            $t->string('Pays')->nullable();
-            $t->string('Ville')->nullable();
-            $t->string('SiteWeb')->nullable();
-            $t->string('Telephone')->nullable();
-            $t->string('Email')->nullable();
-            $t->string('CodeSociete')->nullable();
-        });
         DB::connection('economat')->table('BEtablissements')->insert([
             ['CodeEtablissement' => 'E1', 'Intitule' => 'École Alpha', 'CodeSociete' => 'ABN'],
             ['CodeEtablissement' => 'E2', 'Intitule' => 'Orpheline', 'CodeSociete' => 'ZZZ'],

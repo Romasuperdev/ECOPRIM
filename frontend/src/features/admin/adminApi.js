@@ -41,8 +41,10 @@ export async function desactiverSociete(id) {
 }
 
 // Établissements
-export async function fetchEtablissements(page = 1) {
-  const { data } = await apiClient.get('/etablissements', { params: { page } })
+export async function fetchEtablissements(page = 1, filtres = {}) {
+  const { data } = await apiClient.get('/etablissements', {
+    params: { page, q: filtres.q || undefined, societe_code: filtres.societe_code || undefined },
+  })
   return data
 }
 
@@ -53,6 +55,11 @@ export async function fetchAllEtablissements(societeCode) {
 
 export async function fetchEtablissement(id) {
   const { data } = await apiClient.get(`/etablissements/${id}`)
+  return data
+}
+
+export async function fetchEtablissementParCode(code) {
+  const { data } = await apiClient.get(`/etablissements/${code}`)
   return data
 }
 

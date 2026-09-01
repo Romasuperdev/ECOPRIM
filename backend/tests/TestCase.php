@@ -125,6 +125,19 @@ abstract class TestCase extends BaseTestCase
             $t->string('CODESOCIETE')->nullable();
         });
 
+        Schema::connection('economat')->create('BEtablissements', function ($t) {
+            $t->string('CodeEtablissement');
+            $t->string('Intitule')->nullable();
+            $t->string('Adresse1')->nullable();
+            $t->string('Pays')->nullable();
+            $t->string('Ville')->nullable();
+            $t->string('SiteWeb')->nullable();
+            $t->string('Telephone')->nullable();
+            $t->string('Email')->nullable();
+            $t->string('CodeSociete')->nullable();
+            $t->timestamps();
+        });
+
         Schema::connection('economat')->create('T_CYCLE', function ($t) {
             $t->integer('Num');
             $t->string('CodeCycle');

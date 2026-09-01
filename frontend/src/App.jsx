@@ -42,6 +42,7 @@ const ConseilDetailPage = lazy(() => import('./features/conseils/ConseilDetailPa
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
+const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
 const UtilisateurDetailPage = lazy(() => import('./features/admin/UtilisateurDetailPage'))
 
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="/admin/societes" element={<SocieteListPage />} />
               <Route path="/admin/etablissements" element={<EtablissementListPage />} />
+              <Route path="/admin/etablissements/:code" element={<EtablissementDetailPage />} />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
               </Route>

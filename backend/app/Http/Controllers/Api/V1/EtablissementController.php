@@ -4,66 +4,190 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Console\Etablissement;
+use App\Models\Console\Societe;
+use App\Services\BEtablissementEcrivain;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
+use Throwable;
 
-/** Établissements — CRUD (console_etablissements), rattachés à une seule société. */
+/**
+ * Établissements — vue fusionnée :
+ *   - source de vérité : ECONOMAT.dbo.BEtablissements (création + modification autorisées,
+ *     JAMAIS de suppression)
+ *   - surcouche ECOPRIM : console_etablissements (activation/désactivation logique).
+ * La page affiche les vrais établissements même si la surcouche est vide.
+ */
 class EtablissementController extends Controller
 {
+    public function __construct(private BEtablissementEcrivain $source) {}
+
     public function index(Request $request)
     {
-        return Etablissement::with('societe')
-            ->when($request->filled('societe_code'), fn ($x) => $x->where('societe_code', $request->input('societe_code')))
-            ->when($request->filled('q'), fn ($x) => $x->where('intitule', 'like', "%{$request->input('q')}%"))
-            ->orderBy('intitule')
-            ->paginate(min($request->integer('per_page', 20), 200));
+        $recherche = trim((string) $request->input('q', ''));
+        $filtreSociete = trim((string) $request->input('societe_code', ''));
+
+        $surcouche = $this->surcouche();
+        $lignes = collect();
+        $vus = [];
+
+        foreach ($this->source->tous() as $l) {
+            $code = trim((string) ($l->CodeEtablissement ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $vus[] = $code;
+            $lignes->push($this->fusionner($code, $l, $surcouche->get($code)));
+        }
+
+        foreach ($surcouche as $code => $e) {
+            if (! in_array($code, $vus, true)) {
+                $lignes->push($this->fusionner($code, null, $e));
+            }
+        }
+
+        if ($filtreSociete !== '') {
+            $lignes = $lignes->filter(fn ($r) => $r['societe_code'] === $filtreSociete);
+        }
+        if ($recherche !== '') {
+            $lignes = $lignes->filter(fn ($r) => str_contains(
+                mb_strtolower($r['intitule'].' '.$r['code'].' '.$r['ville']),
+                mb_strtolower($recherche)
+            ));
+        }
+
+        return $this->paginer($lignes->sortBy('intitule')->values(), $request);
     }
 
-    public function show(Etablissement $etablissement)
+    /** Fiche détaillée, adressée par CODE (fonctionne même sans surcouche ECOPRIM). */
+    public function show(string $code)
     {
-        return $etablissement->load('societe');
+        $src = $this->source->trouver($code);
+        $eco = $this->surcouche()->get($code);
+
+        abort_if(! $src && ! $eco, 404, 'Établissement introuvable.');
+
+        $ligne = $this->fusionner($code, $src, $eco);
+        $ligne['societe'] = Societe::where('code', $ligne['societe_code'])->first();
+
+        return $ligne;
     }
 
-    private function regles(?int $id = null): array
+    private function fusionner(string $code, ?object $src, ?Etablissement $eco): array
     {
+        $s = fn (string $c) => $src ? (trim((string) ($src->{$c} ?? '')) ?: null) : null;
+
         return [
-            'code' => ['required', 'string', 'max:30', Rule::unique('ecoprim.console_etablissements', 'code')->ignore($id)],
-            'intitule' => ['required', 'string', 'max:150'],
-            'type' => ['nullable', 'string', 'max:50'],
-            'adresse' => ['nullable', 'string', 'max:200'],
-            'ville' => ['nullable', 'string', 'max:100'],
-            'pays' => ['nullable', 'string', 'max:50'],
-            'telephone' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:150'],
-            'site_web' => ['nullable', 'string', 'max:150'],
-            // Rattachement obligatoire à une société existante.
-            'societe_code' => ['required', 'string', Rule::exists('ecoprim.console_societes', 'code')],
+            'id' => $eco?->id,
+            'code' => $code,
+            'intitule' => $eco->intitule ?? ($s('Intitule') ?: $code),
+            'adresse' => $eco->adresse ?? $s('Adresse1'),
+            'ville' => $eco->ville ?? $s('Ville'),
+            'pays' => $eco->pays ?? $s('Pays'),
+            'telephone' => $eco->telephone ?? $s('Telephone'),
+            'email' => $eco->email ?? $s('Email'),
+            'site_web' => $eco->site_web ?? $s('SiteWeb'),
+            'societe_code' => $eco->societe_code ?? $s('CodeSociete'),
+            'type' => $eco->type ?? null,
+            'actif' => $eco ? (bool) $eco->actif : true,
+            'source' => $eco ? ($src ? 'BEtablissements + ECOPRIM' : 'ECOPRIM') : 'BEtablissements',
+            'repris' => (bool) $eco,
         ];
     }
 
-    public function store(Request $request)
+    private function surcouche()
     {
-        return response()->json(Etablissement::create($request->validate($this->regles()))->load('societe'), 201);
+        try {
+            return Etablissement::all()->keyBy('code');
+        } catch (Throwable $e) {
+            return collect();
+        }
     }
 
+    private function paginer($lignes, Request $request): LengthAwarePaginator
+    {
+        $parPage = min(max($request->integer('per_page', 20), 1), 200);
+        $page = max($request->integer('page', 1), 1);
+
+        return new LengthAwarePaginator(
+            $lignes->forPage($page, $parPage)->values(), $lignes->count(), $parPage, $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+    }
+
+    /** Largeurs et obligations alignées sur les colonnes réelles de BEtablissements. */
+    private function regles(bool $creation): array
+    {
+        $l = BEtablissementEcrivain::LARGEURS;
+
+        return [
+            'code' => $creation
+                ? ['required', 'string', 'max:'.$l['code'], Rule::unique('ecoprim.console_etablissements', 'code')]
+                : ['sometimes', 'string', 'max:'.$l['code']],
+            // NOT NULL côté SQL Server :
+            'intitule' => ['required', 'string', 'max:'.$l['intitule']],
+            'adresse' => ['required', 'string', 'max:'.$l['adresse']],
+            'pays' => ['required', 'string', 'max:'.$l['pays']],
+            'societe_code' => ['required', 'string', 'max:'.$l['societe_code']],
+            // Facultatives :
+            'ville' => ['nullable', 'string', 'max:'.$l['ville']],
+            'telephone' => ['nullable', 'string', 'max:'.$l['telephone']],
+            'email' => ['nullable', 'email', 'max:'.$l['email']],
+            'site_web' => ['nullable', 'string', 'max:'.$l['site_web']],
+            'type' => ['nullable', 'string', 'max:50'],
+        ];
+    }
+
+    /**
+     * Code inconnu de BEtablissements -> nouvel établissement : INSERT + surcouche.
+     * Code déjà présent -> reprise : surcouche seule, la ligne partagée reste intacte.
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate($this->regles(true));
+        $dejaDansSource = $this->source->existe($data['code']);
+
+        if (! $dejaDansSource) {
+            $this->source->creer($data);
+        }
+
+        $etab = Etablissement::create($data);
+
+        return response()->json([
+            'etablissement' => $etab,
+            'cree_dans_source' => ! $dejaDansSource,
+            'message' => $dejaDansSource
+                ? "Établissement {$data['code']} repris dans ECOPRIM (BEtablissements inchangée)."
+                : "Établissement {$data['code']} créé dans BEtablissements et dans ECOPRIM.",
+        ], 201);
+    }
+
+    /** Modification : répercutée dans BEtablissements ET dans la surcouche. */
     public function update(Request $request, Etablissement $etablissement)
     {
-        $etablissement->update($request->validate($this->regles($etablissement->id)));
+        $data = $request->validate($this->regles(false));
 
-        return response()->json($etablissement->load('societe'));
+        if ($this->source->existe($etablissement->code)) {
+            $this->source->modifier($etablissement->code, $data);
+        }
+
+        $etablissement->update(collect($data)->except('code')->all());
+
+        return response()->json($etablissement->fresh());
     }
 
     public function activer(Etablissement $etablissement)
     {
         $etablissement->update(['actif' => true]);
 
-        return response()->json($etablissement);
+        return response()->json($etablissement->fresh());
     }
 
+    /** Désactivation logique — remplace la suppression, qui est interdite ici. */
     public function desactiver(Etablissement $etablissement)
     {
         $etablissement->update(['actif' => false]);
 
-        return response()->json($etablissement);
+        return response()->json($etablissement->fresh());
     }
 }
