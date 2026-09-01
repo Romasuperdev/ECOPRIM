@@ -3,58 +3,63 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreAffectationRequest;
-use App\Models\Affectation;
-use App\Support\ActivityLogger;
+use App\Models\Console\Affectation;
+use App\Models\Console\Etablissement;
+use App\Models\RhUser;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Affectations : un rôle d'un utilisateur (RH_USER) dans un établissement.
+ * Règles : un utilisateur ne peut être affecté qu'à des établissements de LA MÊME société ;
+ * pas de doublon (même utilisateur, même établissement, même rôle).
+ */
 class AffectationController extends Controller
 {
-    public function index(Request $request)
+    public function store(Request $request)
     {
-        $query = Affectation::with('user', 'societe', 'etablissement', 'role');
+        $data = $request->validate([
+            'rh_user_id' => ['required', 'integer'],
+            'etablissement_code' => ['required', 'string', Rule::exists('ecoprim.console_etablissements', 'code')],
+            'role_id' => ['required', Rule::exists('ecoprim.console_roles', 'id')],
+        ]);
 
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->integer('user_id'));
+        // L'utilisateur doit exister dans RH_USER (lecture seule).
+        abort_unless(RhUser::find($data['rh_user_id']), 422, "Utilisateur RH_USER introuvable.");
+
+        $etab = Etablissement::where('code', $data['etablissement_code'])->firstOrFail();
+
+        // Règle : un utilisateur appartient à une seule société.
+        $existante = Affectation::where('rh_user_id', $data['rh_user_id'])->first();
+        if ($existante && $existante->societe_code !== $etab->societe_code) {
+            throw ValidationException::withMessages([
+                'etablissement_code' => ["Cet utilisateur est déjà rattaché à une autre société ({$existante->societe_code}) ; on ne peut l'affecter qu'à des établissements de cette société."],
+            ]);
         }
 
-        if ($request->filled('etablissement_id')) {
-            $query->where('etablissement_id', $request->integer('etablissement_id'));
+        // Anti-doublon (utilisateur + établissement + rôle).
+        $doublon = Affectation::where('rh_user_id', $data['rh_user_id'])
+            ->where('etablissement_code', $data['etablissement_code'])
+            ->where('role_id', $data['role_id'])->exists();
+        if ($doublon) {
+            throw ValidationException::withMessages(['role_id' => ['Cet utilisateur a déjà ce rôle dans cet établissement.']]);
         }
 
-        return $query->orderByDesc('created_at')->paginate(min($request->integer('per_page', 20), 200));
+        $affectation = Affectation::create([
+            'rh_user_id' => $data['rh_user_id'],
+            'societe_code' => $etab->societe_code,
+            'etablissement_code' => $data['etablissement_code'],
+            'role_id' => $data['role_id'],
+        ]);
+
+        return response()->json($affectation->load(['etablissement', 'role']), 201);
     }
 
-    public function store(StoreAffectationRequest $request)
+    public function destroy(Affectation $affectation)
     {
-        $affectation = Affectation::create($request->validated() + ['actif' => true]);
-        $affectation->user->assignRole($affectation->role);
+        $affectation->delete();
 
-        ActivityLogger::log($request, 'create', 'affectations', Affectation::class, $affectation->id, null, $affectation->toArray());
-
-        return response()->json($affectation->load('user', 'societe', 'etablissement', 'role'), 201);
-    }
-
-    /**
-     * Termine une affectation : on ne supprime jamais la ligne (rule #6),
-     * on la marque inactive avec une date de fin, l'historique reste consultable.
-     */
-    public function destroy(Request $request, Affectation $affectation)
-    {
-        $avant = $affectation->toArray();
-        $affectation->update(['actif' => false, 'date_fin' => now()->toDateString()]);
-
-        $encorePresente = Affectation::where('user_id', $affectation->user_id)
-            ->where('role_id', $affectation->role_id)
-            ->where('actif', true)
-            ->exists();
-
-        if (! $encorePresente) {
-            $affectation->user->removeRole($affectation->role);
-        }
-
-        ActivityLogger::log($request, 'deactivate', 'affectations', Affectation::class, $affectation->id, $avant, $affectation->toArray());
-
-        return response()->json($affectation);
+        return response()->noContent();
     }
 }

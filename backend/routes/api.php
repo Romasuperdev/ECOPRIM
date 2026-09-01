@@ -116,15 +116,31 @@ Route::prefix('v1')->group(function () {
         Route::post('conseils-classe/{conseil}/deliberations', [DeliberationController::class, 'store']);
         Route::delete('conseils-classe/{conseil}/deliberations/{deliberation}', [DeliberationController::class, 'destroy']);
 
-        // Console Administrative — LECTURE SEULE (dbmasterbacou). Réservée au Super Admin.
+        // Console Administrative — gestion (base propre ECOPRIM). Réservée au Super Admin.
         Route::middleware('role:Super Admin')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
+            Route::post('societes', [SocieteController::class, 'store']);
             Route::get('societes/{societe}', [SocieteController::class, 'show']);
+            Route::put('societes/{societe}', [SocieteController::class, 'update']);
+            Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
+            Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
+
             Route::get('etablissements', [EtablissementController::class, 'index']);
+            Route::post('etablissements', [EtablissementController::class, 'store']);
             Route::get('etablissements/{etablissement}', [EtablissementController::class, 'show']);
+            Route::put('etablissements/{etablissement}', [EtablissementController::class, 'update']);
+            Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
+            Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);
+
             Route::get('utilisateurs', [UserController::class, 'index']);
             Route::get('utilisateurs/{user}', [UserController::class, 'show']);
+
             Route::get('roles', [RoleController::class, 'index']);
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+
+            Route::post('affectations', [AffectationController::class, 'store']);
+            Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);
         });
     });
 });

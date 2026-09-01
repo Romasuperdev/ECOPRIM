@@ -583,3 +583,31 @@ Fondation posée :
 
 À suivre : contrôleurs CRUD + règles (établissement→1 société, affectations dans la société de
 l'utilisateur), commande d'import depuis US_SOCIETE/BEtablissements, écrans front, branchement des routes.
+
+## Console modifiable — CRUD complet (1er sept. 2026)
+
+Console pleinement écrivable, dans la base propre `ecoprim` (tables `console_*`), les bases partagées
+restant en lecture seule.
+
+Backend :
+- Contrôleurs CRUD : `SocieteController` (index withCount établissements, store/update, activer/désactiver),
+  `EtablissementController` (rattachement obligatoire à une société existante, activer/désactiver),
+  `RoleController` (catalogue : index/store/destroy), `UserController` (identité RH_USER lue + affectations),
+  `AffectationController` (un utilisateur = une seule société ; anti-doublon utilisateur+établissement+rôle).
+- Routes `role:Super Admin` : GET/POST/PUT + activer/désactiver pour sociétés & établissements,
+  utilisateurs (lecture), rôles (index/store/destroy), affectations (store/destroy).
+- Commande `console:importer` (idempotente) : peuple `console_societes` depuis US_SOCIETE, `console_etablissements`
+  depuis ECONOMAT.BEtablissements (CodeSociete→societe_code, établissements sans société connue ignorés),
+  et sème le catalogue de rôles par défaut. Remplace l'ancienne `societes:importer-dbmasterbacou`.
+
+Frontend :
+- Sociétés & Établissements : bouton Créer, formulaire modal (création/édition), activer/désactiver.
+  Le formulaire établissement impose le choix d'une société (liste déroulante).
+- Fiche utilisateur : gestion des rôles par établissement (ajout/retrait d'affectations), établissements
+  limités à la société de rattachement de l'utilisateur.
+
+Vérifié : `ConsoleCrudTest` (10 cas : CRUD, unicité, activer/désactiver, règle mono-société, anti-doublon,
+import). Suite complète : 29 tests, 133 assertions verts. Build Vite OK.
+
+À appliquer sur la machine : `php artisan migrate --path=database/migrations/console --database=ecoprim`
+puis `php artisan console:importer` (nécessite `DB_ECOPRIM_DATABASE=ecoprim` dans backend/.env).

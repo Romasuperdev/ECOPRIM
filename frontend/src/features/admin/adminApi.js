@@ -41,6 +41,11 @@ export async function fetchEtablissements(page = 1) {
   return data
 }
 
+export async function fetchAllEtablissements(societeCode) {
+  const { data } = await apiClient.get('/etablissements', { params: { per_page: 200, societe_code: societeCode || undefined } })
+  return data.data
+}
+
 export async function fetchEtablissement(id) {
   const { data } = await apiClient.get(`/etablissements/${id}`)
   return data
