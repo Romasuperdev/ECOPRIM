@@ -43,15 +43,67 @@ class ConsoleCrudTest extends TestCase
         $this->actingAs($rh, 'sanctum');
     }
 
-    public function test_creer_et_lister_societe(): void
+    public function test_creer_societe_l_enregistre_aussi_dans_us_societe(): void
     {
         $this->postJson('/api/v1/societes', ['code' => 'ABN', 'nom' => 'Abidjan Nord', 'ville' => 'Abidjan'])
             ->assertCreated()
-            ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Abidjan Nord']);
+            ->assertJsonPath('cree_dans_us_societe', true)
+            ->assertJsonPath('societe.code', 'ABN');
 
+        // Enregistrée dans la table maîtresse ET dans la surcouche ECOPRIM.
+        $this->assertDatabaseHas('US_SOCIETE', ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Abidjan Nord'], 'master');
         $this->assertDatabaseHas('console_societes', ['code' => 'ABN'], 'ecoprim');
 
         $this->getJson('/api/v1/societes')->assertOk()->assertJsonFragment(['code' => 'ABN']);
+    }
+
+    public function test_reprise_ne_touche_pas_us_societe(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            'CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Nom officiel', 'NUMAUTO' => 7,
+        ]);
+
+        $this->postJson('/api/v1/societes', ['code' => 'ABN', 'nom' => 'Nom ECOPRIM'])
+            ->assertCreated()
+            ->assertJsonPath('cree_dans_us_societe', false);
+
+        // La ligne partagée est intacte : aucun UPDATE sur US_SOCIETE.
+        $this->assertDatabaseHas('US_SOCIETE', ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Nom officiel'], 'master');
+        $this->assertSame(1, DB::connection('master')->table('US_SOCIETE')->where('CODESOCIETE', 'ABN')->count());
+        // Le complément vit dans ECOPRIM.
+        $this->assertDatabaseHas('console_societes', ['code' => 'ABN', 'nom' => 'Nom ECOPRIM'], 'ecoprim');
+    }
+
+    public function test_modifier_une_societe_ne_touche_pas_us_societe(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            'CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Nom officiel', 'NUMAUTO' => 7,
+        ]);
+        $s = Societe::create(['code' => 'ABN', 'nom' => 'Nom ECOPRIM']);
+
+        $this->putJson("/api/v1/societes/{$s->id}", ['code' => 'ABN', 'nom' => 'Nom corrigé'])->assertOk();
+
+        $this->assertDatabaseHas('US_SOCIETE', ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Nom officiel'], 'master');
+        $this->assertDatabaseHas('console_societes', ['code' => 'ABN', 'nom' => 'Nom corrigé'], 'ecoprim');
+    }
+
+    public function test_numauto_est_calcule_quand_ce_n_est_pas_une_colonne_identity(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            ['CODESOCIETE' => 'A', 'NOMSOCIETE' => 'A', 'NUMAUTO' => 4],
+            ['CODESOCIETE' => 'B', 'NOMSOCIETE' => 'B', 'NUMAUTO' => 9],
+        ]);
+
+        $this->postJson('/api/v1/societes', ['code' => 'NEW', 'nom' => 'Nouvelle'])->assertCreated();
+
+        $this->assertDatabaseHas('US_SOCIETE', ['CODESOCIETE' => 'NEW', 'NUMAUTO' => 10], 'master');
+    }
+
+    public function test_code_trop_long_pour_us_societe_est_refuse(): void
+    {
+        // CODESOCIETE est un varchar(17) : au-delà, l'INSERT échouerait côté SQL Server.
+        $this->postJson('/api/v1/societes', ['code' => str_repeat('X', 18), 'nom' => 'Trop long'])
+            ->assertStatus(422)->assertJsonValidationErrors('code');
     }
 
     public function test_code_societe_unique(): void

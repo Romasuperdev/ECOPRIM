@@ -68,6 +68,9 @@ abstract class TestCase extends BaseTestCase
 
         $s->create('US_SOCIETE', function ($t) {
             $t->string('CODESOCIETE');
+            $t->integer('NUMAUTO')->nullable();
+            $t->string('NOMBASE')->nullable();
+            $t->string('PAYSSOCIETE')->nullable();
             $t->string('NOMSOCIETE')->nullable();
             $t->string('VILLESOCIETE')->nullable();
             $t->string('AD1SOCIETE')->nullable();

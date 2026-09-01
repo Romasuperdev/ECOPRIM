@@ -635,3 +635,23 @@ ECOPRIM `console_societes` quand elle existe. Conséquences :
 
 Tests : affichage sans surcouche, fusion avec surcouche, import additif. Suite : 32 tests,
 148 assertions verts. Build Vite OK.
+
+## Sociétés : création enregistrée dans US_SOCIETE (1er sept. 2026)
+
+Décision (revient sur la règle précédente, à la demande explicite) : une société créée dans ECOPRIM
+est désormais **insérée dans `dbmasterbacou.US_SOCIETE`**. Périmètre volontairement restreint :
+
+- **INSERT uniquement.** `App\Services\UsSocieteCreateur` ne fait jamais d'UPDATE ni de DELETE sur
+  US_SOCIETE : les sociétés existantes, partagées avec les autres applications, ne sont jamais
+  modifiées par ECOPRIM. Les éditions/compléments restent dans la surcouche `console_societes`.
+- **`NUMAUTO` détecté à l'exécution** : si la colonne est IDENTITY on ne l'alimente pas, sinon on
+  calcule `MAX(NUMAUTO)+1`. Le code fonctionne dans les deux configurations.
+- **Validation alignée sur les largeurs réelles** de US_SOCIETE (CODESOCIETE varchar(17),
+  NOMSOCIETE/AD1SOCIETE/VILLESOCIETE varchar(50), TELSOCIETE varchar(20)…) pour qu'un INSERT ne
+  puisse pas échouer en troncature.
+- **`NOMBASE`** (base ECONOMAT rattachée) exposé dans le formulaire de création uniquement.
+- `store()` distingue automatiquement création (code absent de US_SOCIETE → INSERT + surcouche) et
+  reprise (code déjà présent → surcouche seule, US_SOCIETE intacte).
+
+Tests ajoutés : insertion dans US_SOCIETE, reprise sans écriture, édition sans écriture, calcul de
+NUMAUTO, refus d'un code > 17 caractères. Suite : 36 tests, 162 assertions verts. Build Vite OK.

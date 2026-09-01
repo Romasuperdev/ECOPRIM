@@ -11,7 +11,7 @@ import {
   updateSociete,
 } from './adminApi'
 
-const VIDE = { code: '', nom: '', ville: '', adresse: '', telephone: '', email: '', representant: '' }
+const VIDE = { code: '', nom: '', ville: '', pays: '', adresse: '', telephone: '', email: '', representant: '', nombase: '' }
 
 export default function SocieteListPage() {
   const [page, setPage] = useState(1)
@@ -128,8 +128,17 @@ export default function SocieteListPage() {
                 <Input label="Téléphone" value={form.telephone ?? ''} onChange={(e) => champ('telephone', e.target.value)} error={erreurs.telephone?.[0]} />
                 <Input label="Email" value={form.email ?? ''} onChange={(e) => champ('email', e.target.value)} error={erreurs.email?.[0]} />
                 <Input label="Représentant" value={form.representant ?? ''} onChange={(e) => champ('representant', e.target.value)} error={erreurs.representant?.[0]} />
+                <Input label="Pays" value={form.pays ?? ''} onChange={(e) => champ('pays', e.target.value)} error={erreurs.pays?.[0]} />
+                <Input label="Base ECONOMAT (NOMBASE)" value={form.nombase ?? ''} onChange={(e) => champ('nombase', e.target.value)} error={erreurs.nombase?.[0]} disabled={!!form.repris || !!form.id} />
               </div>
               <Input label="Adresse" value={form.adresse ?? ''} onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]} />
+              {!form.id && (
+                <p className="text-xs text-slate-400">
+                  {form.repris
+                    ? 'Reprise : seule la copie ECOPRIM est créée, US_SOCIETE reste inchangée.'
+                    : 'Nouvelle société : elle sera enregistrée dans US_SOCIETE (création uniquement) puis dans ECOPRIM.'}
+                </p>
+              )}
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
               <div className="mt-4 flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
