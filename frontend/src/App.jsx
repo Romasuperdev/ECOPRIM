@@ -41,6 +41,7 @@ const ConseilListPage = lazy(() => import('./features/conseils/ConseilListPage')
 const ConseilDetailPage = lazy(() => import('./features/conseils/ConseilDetailPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
+const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
@@ -98,6 +99,7 @@ export default function App() {
               }
             >
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/choisir-etablissement" element={<ChoisirEtablissementPage />} />
 
               <Route path="/niveaux" element={<NiveauListPage />} />
               <Route path="/annees-scolaires" element={<AnneeScolaireListPage />} />

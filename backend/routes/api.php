@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\CoefficientController;
 use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
+use App\Http\Controllers\Api\V1\ContexteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\JournalActiviteController;
@@ -117,6 +118,11 @@ Route::prefix('v1')->group(function () {
         Route::delete('conseils-classe/{conseil}/deliberations/{deliberation}', [DeliberationController::class, 'destroy']);
 
         // Console Administrative — gestion (base propre ECOPRIM). Réservée au Super Admin.
+        // Contexte de travail : choix de l'établissement courant (tout utilisateur connecté).
+        Route::get('contexte', [ContexteController::class, 'show']);
+        Route::post('contexte/etablissement', [ContexteController::class, 'store']);
+        Route::delete('contexte/etablissement', [ContexteController::class, 'destroy']);
+
         Route::middleware('role:Super Admin')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
             Route::post('societes', [SocieteController::class, 'store']);

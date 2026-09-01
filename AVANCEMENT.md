@@ -677,3 +677,25 @@ T_ETABLISSEMENT) ; écriture = **création + modification, jamais de suppression
 Tests : création répercutée dans BEtablissements, champs NOT NULL exigés, liste sans surcouche,
 fiche par code, modification répercutée, désactivation sans suppression.
 Suite : 41 tests, 183 assertions verts. Build Vite OK.
+
+## Sélecteur d'établissement — contexte de travail (1er sept. 2026)
+
+Fonctionnalité reprise de BACOU (`choisir.blade.php`), au design ECOPRIM. C'était le manque
+principal de la console.
+
+- `ContexteController` : `GET /contexte` (contexte courant + établissements accessibles),
+  `POST /contexte/etablissement`, `DELETE /contexte/etablissement`. Choix conservé en session
+  (`etablissement_code`, `etablissement_nom`), comme dans BACOU.
+- Périmètre : un Super Admin voit tous les établissements ; les autres uniquement ceux auxquels
+  ils sont affectés. Les établissements désactivés dans ECOPRIM ne sont jamais proposables —
+  refus en 422 même si le code est forcé côté client.
+- Routes ouvertes à tout utilisateur connecté (hors bloc Super Admin).
+- Front : page `/choisir-etablissement` (grille de cartes, établissement actif mis en avant,
+  bouton Désélectionner) et `ContexteBadge` dans l'en-tête, rappel permanent + accès rapide au
+  changement d'établissement.
+
+Tests `ContexteTest` (5 cas) : visibilité Super Admin, limitation aux affectations, choix puis
+désélection, refus d'un établissement non accessible, refus d'un établissement désactivé.
+Note : les requêtes de test doivent être « stateful » (en-têtes Origin/Referer) pour que la
+session Sanctum SPA soit démarrée.
+Suite : 46 tests, 204 assertions verts. Build Vite OK.

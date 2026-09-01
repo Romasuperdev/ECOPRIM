@@ -3,6 +3,7 @@ import Sidebar from './Sidebar'
 import Button from '../ui/Button'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
+import ContexteBadge from '../../features/contexte/ContexteBadge'
 
 export default function Layout() {
   const { user, roles, logout } = useAuthStore()
@@ -24,8 +25,11 @@ export default function Layout() {
             borderBottom: '1px solid var(--border)',
           }}
         >
-          <div className="text-sm text-muted">
-            {user?.name} <span>·</span> {roles.join(', ')}
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-muted">
+              {user?.name} <span>·</span> {roles.join(', ')}
+            </div>
+            <ContexteBadge />
           </div>
           <Button variant="outline" onClick={handleLogout}>
             Se déconnecter
