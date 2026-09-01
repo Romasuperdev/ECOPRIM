@@ -172,4 +172,27 @@ class ConsoleCrudTest extends TestCase
         // La nouvelle est importée.
         $this->assertDatabaseHas('console_societes', ['code' => 'SUD', 'nom' => 'Sud SARL'], 'ecoprim');
     }
+
+    public function test_liste_affiche_us_societe_meme_sans_surcouche_ecoprim(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Abidjan Nord', 'VILLESOCIETE' => 'Abidjan'],
+        ]);
+
+        // Aucune société dans console_societes : la page doit tout de même les afficher.
+        $this->getJson('/api/v1/societes')->assertOk()
+            ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Abidjan Nord', 'source' => 'US_SOCIETE', 'repris' => false]);
+    }
+
+    public function test_liste_fusionne_surcouche_ecoprim(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Nom source', 'VILLESOCIETE' => 'Abidjan'],
+        ]);
+        Societe::create(['code' => 'ABN', 'nom' => 'Nom ECOPRIM', 'ville' => 'Bouaké']);
+
+        // La surcouche ECOPRIM prend le dessus sur les valeurs de US_SOCIETE.
+        $this->getJson('/api/v1/societes')->assertOk()
+            ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Nom ECOPRIM', 'ville' => 'Bouaké', 'repris' => true]);
+    }
 }

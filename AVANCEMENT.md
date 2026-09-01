@@ -619,3 +619,19 @@ La page Sociétés reste modifiable (console_societes) et reçoit un bouton « I
 les sociétés absentes : les enregistrements déjà présents/édités dans ECOPRIM ne sont pas réécrits.
 Route POST /societes/importer (Super Admin). Test `test_import_societes_depuis_us_societe_sans_ecraser`.
 Suite : 30 tests, 138 assertions verts. Build OK.
+
+## Sociétés : vue fusionnée US_SOCIETE + ECOPRIM (1er sept. 2026)
+
+La page Sociétés affiche désormais les sociétés RÉELLES lues en direct dans
+`dbmasterbacou.US_SOCIETE` (lecture seule, jamais modifiée), avec par-dessus la surcouche
+ECOPRIM `console_societes` quand elle existe. Conséquences :
+- La page montre les vraies sociétés même si les tables Console ne sont pas encore migrées
+  (lecture de la surcouche protégée par try/catch) ou si l'import n'a pas été lancé.
+- Colonne « Source » : `US_SOCIETE` (pas encore reprise), `US_SOCIETE + ECOPRIM` (reprise et
+  complétée), `ECOPRIM` (créée uniquement ici).
+- Bouton « Reprendre » sur une société non reprise : ouvre le formulaire prérempli et crée la
+  surcouche ECOPRIM (même code) — activer/désactiver et édition ne sont proposés qu'ensuite.
+- Le bouton « Importer depuis US_SOCIETE » reprend toutes les sociétés absentes d'un coup.
+
+Tests : affichage sans surcouche, fusion avec surcouche, import additif. Suite : 32 tests,
+148 assertions verts. Build Vite OK.

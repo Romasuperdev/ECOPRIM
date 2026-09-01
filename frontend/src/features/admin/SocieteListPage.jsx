@@ -50,7 +50,7 @@ export default function SocieteListPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Sociétés</h1>
-          <p className="mt-1 text-sm text-slate-500">Gestion des sociétés de la plateforme.</p>
+          <p className="mt-1 text-sm text-slate-500">Sociétés réelles lues dans dbmasterbacou.US_SOCIETE, complétées par ECOPRIM.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" disabled={importer.isPending} onClick={() => importer.mutate()}>
@@ -68,28 +68,36 @@ export default function SocieteListPage() {
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Ville</th>
               <th className="px-4 py-3 font-medium">Établissements</th>
+              <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
-            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune société.</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucune société.</td></tr>}
             {data?.data?.map((s) => (
-              <tr key={s.id} className="hover:bg-slate-50">
+              <tr key={s.code} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-800">{s.code}</td>
                 <td className="px-4 py-3 text-slate-600">{s.nom}</td>
                 <td className="px-4 py-3 text-slate-600">{s.ville ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{s.etablissements_count ?? 0}</td>
+                <td className="px-4 py-3 text-slate-600">{s.etablissements_count ?? s.nb_etab ?? 0}</td>
+                <td className="px-4 py-3">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.repris ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'}`}>{s.source}</span>
+                </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.actif ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{s.actif ? 'actif' : 'inactif'}</span>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" className="!px-3 !py-1" onClick={() => { setErreurs({}); setForm({ ...VIDE, ...s }) }}>Éditer</Button>
-                    <Button variant="outline" className="!px-3 !py-1" disabled={basculer.isPending} onClick={() => basculer.mutate({ id: s.id, actif: s.actif })}>
-                      {s.actif ? 'Désactiver' : 'Activer'}
+                    <Button variant="outline" className="!px-3 !py-1" onClick={() => { setErreurs({}); setForm({ ...VIDE, ...s }) }}>
+                      {s.repris ? 'Éditer' : 'Reprendre'}
                     </Button>
+                    {s.repris && (
+                      <Button variant="outline" className="!px-3 !py-1" disabled={basculer.isPending} onClick={() => basculer.mutate({ id: s.id, actif: s.actif })}>
+                        {s.actif ? 'Désactiver' : 'Activer'}
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -108,7 +116,7 @@ export default function SocieteListPage() {
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : 'Nouvelle société'}</h2>
+            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code} dans ECOPRIM` : 'Nouvelle société')}</h2>
             <form
               onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
               className="space-y-3"
