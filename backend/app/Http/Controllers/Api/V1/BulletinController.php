@@ -3,42 +3,42 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Deliberation;
 use App\Models\Eleve;
-use App\Models\Periode;
+use App\Support\ContexteScolaire;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
+/**
+ * Bulletin PDF d'un élève, à partir des moyennes et notes calculées par ECONOMAT,
+ * pour l'année de travail et la session demandée.
+ *
+ * La « période » d'ECONOMAT est la SESSION (V_NOTECLASSE.CodeSession) : il n'y a pas
+ * de table de périodes propre. Les délibérations n'ont pas d'équivalent dans ECONOMAT
+ * et ne figurent donc plus au bulletin.
+ */
 class BulletinController extends Controller
 {
-    public function __construct(private RapportController $rapports)
-    {
-    }
+    public function __construct(private RapportController $rapports) {}
 
     public function show(Request $request, Eleve $eleve)
     {
-        abort_unless($eleve->classe_id, 422, "Cet élève n'est rattaché à aucune classe.");
+        abort_unless($eleve->classe_code, 422, "Cet élève n'est rattaché à aucune classe.");
 
-        $periodeId = $request->input('periode_id');
-        $periode = $periodeId ? Periode::find($periodeId) : null;
+        $session = $request->input('session');
 
-        $rapportClasse = $this->rapports->calculerMoyennes($eleve->classe, $periodeId);
-        $ligne = collect($rapportClasse['classement'])->firstWhere('eleve_id', $eleve->id);
-
-        $deliberation = Deliberation::where('eleve_id', $eleve->id)
-            ->when($periodeId, fn ($q) => $q->whereHas('conseilClasse', fn ($q) => $q->where('periode_id', $periodeId)))
-            ->latest()
-            ->first();
+        $classement = $this->rapports->moyennes($eleve->classe_code, $session);
+        $ligne = $classement->firstWhere('matricule', $eleve->matricule);
 
         $pdf = Pdf::loadView('pdf.bulletin', [
             'eleve' => $eleve,
-            'periode' => $periode,
-            'moyennesParMatiere' => $ligne['moyennes_par_matiere'] ?? collect(),
+            'annee' => ContexteScolaire::annee(),
+            'session' => $session,
+            'moyennesParMatiere' => $this->rapports->notesParMatiere($eleve->matricule, $session),
             'moyenneGenerale' => $ligne['moyenne'] ?? null,
             'rang' => $ligne['rang'] ?? null,
-            'deliberation' => $deliberation,
+            'effectif' => $classement->count(),
         ]);
 
-        return $pdf->download("bulletin-{$eleve->matricule}.pdf");
+        return $pdf->download('bulletin-'.($eleve->matricule ?: $eleve->getKey()).'.pdf');
     }
 }

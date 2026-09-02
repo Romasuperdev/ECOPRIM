@@ -5,6 +5,7 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use App\Support\AnneeScolaireGuard;
+use App\Support\ContexteScolaire;
 use Illuminate\Support\Facades\Schema;
 
 abstract class TestCase extends BaseTestCase
@@ -109,6 +110,7 @@ abstract class TestCase extends BaseTestCase
     protected function setUpEconomatDb(): void
     {
         AnneeScolaireGuard::oublier();
+        ContexteScolaire::oublier();
 
         config(['database.connections.economat' => [
             'driver' => 'sqlite',
@@ -320,6 +322,8 @@ abstract class TestCase extends BaseTestCase
             $t->string('TypeNote')->nullable();
             $t->string('CodeClasse')->nullable();
             $t->string('CodeSession')->nullable();
+            $t->string('CodeAnnee')->nullable();
+            $t->float('Coefficient')->nullable();
         });
 
         Schema::connection('economat')->create('T_ABSENCEELEVE', function ($t) {
@@ -330,6 +334,7 @@ abstract class TestCase extends BaseTestCase
             $t->date('Date')->nullable();
             $t->string('Cause')->nullable();
             $t->string('AnneeCour')->nullable();
+            $t->string('CodeSession')->nullable();
             $t->integer('CodeEleve')->nullable();
             $t->boolean('Justifier')->nullable();
         });
@@ -344,6 +349,8 @@ abstract class TestCase extends BaseTestCase
             $t->string('Matricule')->nullable();
             $t->string('CodeClasse')->nullable();
             $t->string('CodeSession')->nullable();
+            $t->string('CodeAnnee')->nullable();
+            $t->boolean('Passage')->nullable();
         });
     }
 }

@@ -3,10 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
-use App\Models\Classe;
-use App\Models\Eleve;
-use App\Models\Enseignant;
+use App\Support\ContexteScolaire;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -22,16 +19,22 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $anneeActive = $this->sansErreur(fn () => AnneeScolaire::where('Activer', true)->first()?->libelle);
-        $totalEleves = $this->sansErreur(fn () => Eleve::count()) ?? 0;
+        $annee = ContexteScolaire::annee();
+        $totalEleves = $this->sansErreur(fn () => ContexteScolaire::appliquer(
+            DB::connection('economat')->table('T_ETUDIANT'), 'AnneeAcad'
+        )->count()) ?? 0;
         $absencesCeMois = $this->sansErreur(fn () => $this->absencesCeMois());
 
         return [
-            'annee_scolaire_active' => $anneeActive,
+            'annee_scolaire_active' => $annee,
             'effectifs' => [
                 'total_eleves' => $totalEleves,
-                'total_classes' => $this->sansErreur(fn () => Classe::count()) ?? 0,
-                'total_enseignants' => $this->sansErreur(fn () => Enseignant::count()) ?? 0,
+                'total_classes' => $this->sansErreur(fn () => ContexteScolaire::appliquer(
+                    DB::connection('economat')->table('T_CLASSE'), 'ANNEE'
+                )->count()) ?? 0,
+                'total_enseignants' => $this->sansErreur(fn () => ContexteScolaire::appliquer(
+                    DB::connection('economat')->table('T_PROFESSEUR'), 'CodeAnnee'
+                )->count()) ?? 0,
             ],
             'moyenne_generale' => $this->sansErreur(fn () => $this->moyenneGenerale()),
             'absences_ce_mois' => $absencesCeMois,
@@ -45,28 +48,36 @@ class DashboardController extends Controller
 
     private function absencesCeMois(): int
     {
-        return (int) DB::connection('economat')->table('T_ABSENCEELEVE')
+        $requete = DB::connection('economat')->table('T_ABSENCEELEVE')
             ->whereMonth('Date', now()->month)
-            ->whereYear('Date', now()->year)
-            ->count();
+            ->whereYear('Date', now()->year);
+        ContexteScolaire::appliquer($requete, 'AnneeCour');
+
+        return (int) $requete->count();
     }
 
     /** Moyenne des moyennes élèves (V_MOYENNE_ELEVE_CLASSE). */
     private function moyenneGenerale(): ?float
     {
-        $moyenne = DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')->avg('Moyenne');
+        $requete = DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE');
+        ContexteScolaire::appliquer($requete, 'CodeAnnee');
+        $moyenne = $requete->avg('Moyenne');
 
         return $moyenne !== null ? round((float) $moyenne, 2) : null;
     }
 
     private function effectifParClasse(): array
     {
-        $libelles = DB::connection('economat')->table('T_CLASSE')
-            ->pluck('LibelleClasse', 'CodeClasse');
+        $libelles = ContexteScolaire::appliquer(
+            DB::connection('economat')->table('T_CLASSE'), 'ANNEE'
+        )->pluck('LibelleClasse', 'CodeClasse');
 
-        return DB::connection('economat')->table('T_ETUDIANT')
+        $requete = DB::connection('economat')->table('T_ETUDIANT')
             ->select('CodeClasse', DB::raw('COUNT(*) as effectif'))
-            ->whereNotNull('CodeClasse')
+            ->whereNotNull('CodeClasse');
+        ContexteScolaire::appliquer($requete, 'AnneeAcad');
+
+        return $requete
             ->groupBy('CodeClasse')
             ->orderBy('CodeClasse')
             ->get()
@@ -79,12 +90,16 @@ class DashboardController extends Controller
 
     private function moyenneParClasse(): array
     {
-        $libelles = DB::connection('economat')->table('T_CLASSE')
-            ->pluck('LibelleClasse', 'CodeClasse');
+        $libelles = ContexteScolaire::appliquer(
+            DB::connection('economat')->table('T_CLASSE'), 'ANNEE'
+        )->pluck('LibelleClasse', 'CodeClasse');
 
-        return DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')
+        $requete = DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')
             ->select('CodeClasse', DB::raw('AVG(Moyenne) as moyenne'))
-            ->whereNotNull('CodeClasse')
+            ->whereNotNull('CodeClasse');
+        ContexteScolaire::appliquer($requete, 'CodeAnnee');
+
+        return $requete
             ->groupBy('CodeClasse')
             ->orderBy('CodeClasse')
             ->get()

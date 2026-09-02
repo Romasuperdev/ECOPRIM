@@ -8,6 +8,7 @@ use App\Services\EtudiantEcrivain;
 use App\Services\PhotoEleveStockage;
 use App\Support\AnneeScolaireGuard;
 use App\Support\CoherenceScolaire;
+use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -31,7 +32,9 @@ class InscriptionController extends Controller
     public function index(Request $request)
     {
         $eleves = Eleve::query()
-            ->when($request->filled('annee'), fn ($q) => $q->where('AnneeAcad', $request->input('annee')))
+            ->when($request->filled('annee'),
+                fn ($q) => $q->where('AnneeAcad', $request->input('annee')),
+                fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
             ->when($request->filled('classe'), fn ($q) => $q->where('CodeClasse', $request->input('classe')))
             ->when($request->filled('mouvement'), function ($q) use ($request) {
                 match ($request->input('mouvement')) {

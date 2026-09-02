@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enseignant;
 use App\Services\ProfesseurEcrivain;
 use App\Support\AnneeScolaireGuard;
+use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,7 @@ class EnseignantController extends Controller
                 ->orWhere('MatriculeProfesseur', 'like', "%{$q}%"));
         })
             ->when($request->filled('matiere'), fn ($q) => $q->where('Matiere', $request->input('matiere')))
+            ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'CodeAnnee'))
             ->orderBy('NomProfesseur')
             ->paginate(min($request->integer('per_page', 15), 200));
     }

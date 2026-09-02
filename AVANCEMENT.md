@@ -1004,3 +1004,48 @@ Suite : **116 tests, 476 assertions verts**. Build propre.
 
 Reste ouvert : `T_PROFESSEUR` et `T_PREREQUIS` n'ont pas encore de contrôles de cohérence
 équivalents.
+
+## L'année sélectionnée borne toute l'application (2 sept. 2026)
+
+Le filtre est posé **côté serveur**, pas page par page : `App\Support\ContexteScolaire` lit
+l'année de travail (session, à défaut l'année active) et restreint les requêtes.
+
+**Difficulté traitée** : ECONOMAT n'a pas de convention unique — certaines tables stockent le
+libellé (`T_ETUDIANT.AnneeAcad`, `T_CLASSE.ANNEE`, `T_NIVEAU.ANNEE`, `T_PREREQUIS.ANNEE`),
+d'autres le code (`T_PROFESSEUR.CodeAnnee`, `V_NOTECLASSE.CodeAnnee`,
+`V_MOYENNE_ELEVE_CLASSE.CodeAnnee`, `T_ABSENCEELEVE.AnneeCour`). Le filtre porte donc sur les
+**deux formes** : pas de devinette table par table, et le comportement reste juste si la
+convention diffère d'une installation à l'autre.
+
+Bornés à l'année : élèves, inscriptions, classes, niveaux, enseignants, absences, notes,
+documents élèves, moyennes, assiduité, évaluations, bulletins et tableau de bord. Cycles et
+matières ne portent pas d'année et restent globaux. Un filtre explicite (`?annee=`) prime
+toujours sur l'année de l'en-tête, pour une consultation ponctuelle.
+
+Sans année connue (référentiel vide ou injoignable), les requêtes ne sont **pas** filtrées : on
+ne masque pas l'applicatif entier sur une incertitude technique.
+
+Côté écran, changer d'année invalide tout le cache de requêtes plutôt qu'une liste d'écrans
+énumérée — sinon chaque nouvelle page serait à ajouter à la main.
+
+### Corrections découvertes au passage
+- **`RapportController` était mort** : `assiduiteClasse` appelait `Classe::eleves()` et
+  `Eleve::absences`, `evaluations` et `calculerMoyennes` tapaient sur la table locale `notes` —
+  aucune de ces relations ni de cette table n'existe. Les trois endpoints renvoyaient 500.
+  Réécrits sur ECONOMAT : moyennes et rangs sont **lus** dans `V_MOYENNE_ELEVE_CLASSE`
+  (ECONOMAT les calcule déjà, NEXORA ne recalcule rien), assiduité depuis `T_ABSENCEELEVE`,
+  évaluations reconstituées en regroupant `V_NOTECLASSE` par classe, matière, session et type.
+- **Bulletins PDF** : ils dépendaient de `calculerMoyennes`, de `Periode` et de `Deliberation`,
+  tous morts. Reconstruits sur les mêmes vues ; la « période » devient la **session** ECONOMAT
+  (`CodeSession`), seule notion existante. La vue PDF affiche coefficient, nombre de notes et
+  rang sur effectif, et porte la marque NEXORA. **Les délibérations ne figurent plus au
+  bulletin** : elles n'ont aucun équivalent dans ECONOMAT.
+- **Défaut de mon propre cache** : `ContexteScolaire` met l'année en cache le temps d'une
+  requête, mais changer d'année ne l'invalidait pas — un test l'a révélé. `definirAnnee()`
+  appelle désormais `oublier()`.
+
+Tests `PorteeAnneeTest` (7 cas, jeu de données complet sur deux années) : par défaut seule
+l'année active est visible, changer d'année déplace **toutes** les listes, les niveaux suivent,
+le tableau de bord suit (effectifs, moyennes, agrégats par classe), les rapports suivent, un
+filtre explicite prime, et le choix persiste entre les appels.
+Suite : **123 tests, 553 assertions verts**. Build et lint propres.

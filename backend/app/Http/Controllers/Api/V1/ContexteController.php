@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
 use App\Models\AnneeScolaire;
+use App\Support\ContexteScolaire;
 use App\Models\Console\Etablissement;
 use App\Services\BEtablissementEcrivain;
 use Illuminate\Http\Request;
@@ -112,6 +113,9 @@ class ContexteController extends Controller
         }
 
         $request->session()->put('annee_travail', $choix['libelle']);
+        // Le contexte est mis en cache le temps d'une requête : on l'invalide pour que
+        // tout ce qui est lu ensuite parte bien de la nouvelle année.
+        ContexteScolaire::oublier();
 
         return response()->json([
             'annee' => $choix['libelle'],

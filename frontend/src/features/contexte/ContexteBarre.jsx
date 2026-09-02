@@ -15,10 +15,11 @@ export default function ContexteBarre() {
   const changerAnnee = useMutation({
     mutationFn: definirAnnee,
     onSuccess: () => {
-      // Le changement d'année redéfinit ce que montrent les écrans rattachés à une année.
-      qc.invalidateQueries({ queryKey: ['contexte'] })
-      qc.invalidateQueries({ queryKey: ['inscriptions'] })
-      qc.invalidateQueries({ queryKey: ['prerequis'] })
+      // L'année borne côté serveur presque toutes les données de l'application
+      // (élèves, classes, niveaux, enseignants, absences, notes, rapports, tableau de
+      // bord…). On invalide donc tout le cache plutôt que d'énumérer les écrans, au
+      // risque d'en oublier un à chaque nouvelle page.
+      qc.invalidateQueries()
     },
   })
 

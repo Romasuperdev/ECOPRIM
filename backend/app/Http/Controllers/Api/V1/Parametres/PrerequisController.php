@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Parametres;
 use App\Http\Controllers\Controller;
 use App\Services\EconomatTable;
 use App\Support\AnneeScolaireGuard;
+use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -26,7 +27,10 @@ class PrerequisController extends Controller
     {
         try {
             $lignes = $this->t()->requete()
-                ->when($request->filled('annee'), fn ($q) => $q->where('ANNEE', $request->input('annee')))
+                // Filtre explicite, sinon l'année de travail choisie dans l'en-tête.
+                ->when($request->filled('annee'),
+                    fn ($q) => $q->where('ANNEE', $request->input('annee')),
+                    fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
                 ->when($request->filled('niveau'), fn ($q) => $q->where('CODENIVEAU', $request->input('niveau')))
                 ->when($request->filled('q'), fn ($q) => $q->where('LIBELLE', 'like', '%'.$request->input('q').'%'))
                 ->orderBy('ANNEE', 'desc')->orderBy('CODENIVEAU')->orderBy('LIBELLE')
