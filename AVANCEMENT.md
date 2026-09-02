@@ -961,3 +961,46 @@ Le reste du fichier a été audité, aucune autre comparaison de ce type dans le
 layouts : une erreur d'affichage montre désormais un message lisible et laisse la navigation
 utilisable, au lieu d'une page blanche sans indice. Le détail technique reste dépliable, et le
 garde-fou se réarme au changement de route (`resetKey`).
+
+## Inscriptions : restrictions métier (2 sept. 2026)
+
+Constat de départ : les seuls contrôles en place étaient les champs obligatoires, les longueurs et
+le verrou d'année clôturée. Les règles de gestion, elles, n'étaient pas tenues.
+
+**Modèle de données tranché avec l'utilisateur** : `T_ETUDIANT` ne garde qu'**une ligne par élève**
+(ECONOMAT archive l'historique dans `T_HISTETUDIANT`, une copie quasi identique de la table). Cela
+change la nature des mouvements :
+
+- `inscription` et `transfert_entrant` → l'élève est **nouveau** : la ligne est créée, le matricule
+  doit être libre. Si le matricule existe, le message renvoie le nom du titulaire et invite à
+  choisir « Réinscription ».
+- `reinscription` et `transfert_sortant` → l'élève **existe** : sa ligne est **mise à jour** (201
+  devient 200), jamais dupliquée. Un matricule inconnu est refusé en invitant à choisir
+  « Inscription ».
+
+**Un élève ne peut être inscrit qu'une fois par an** : une réinscription vers l'année que l'élève
+occupe déjà est refusée, en le nommant. C'était le trou principal.
+
+Autres restrictions ajoutées :
+- **Matricule obligatoire et unique** (il était optionnel, ce qui laissait passer deux homonymes
+  sans matricule).
+- **Doublon d'identité** : même nom, même prénom et même date de naissance → refus citant le
+  matricule du dossier existant. Deux homonymes de dates de naissance différentes restent
+  possibles. Sans date de naissance, on ne bloque pas : l'homonymie est plausible.
+- **Cohérence du rattachement** (`App\Support\CoherenceScolaire`) : la classe doit exister, relever
+  du niveau annoncé et appartenir à l'année visée ; le niveau doit relever du cycle annoncé.
+- **Dates** : date de naissance obligatoirement passée ; date d'inscription comprise dans la
+  période `DEBUT`–`FIN` de l'année scolaire.
+- **Transfert entrant** : établissement d'origine exigé.
+- **Sexe** borné à M ou F.
+
+Principe appliqué partout : on ne bloque que sur une incohérence **constatée**. Référentiel
+injoignable ou valeur absente → on laisse passer, pour ne pas refuser une saisie sur une
+incertitude technique.
+
+Tests `RestrictionsInscriptionTest` (15 cas) couvrant chacune de ces règles, plus la mise à jour
+des tests antérieurs qui supposaient qu'une réinscription créait une ligne.
+Suite : **116 tests, 476 assertions verts**. Build propre.
+
+Reste ouvert : `T_PROFESSEUR` et `T_PREREQUIS` n'ont pas encore de contrôles de cohérence
+équivalents.

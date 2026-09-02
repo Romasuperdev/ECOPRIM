@@ -41,7 +41,8 @@ class AnneeClotureeTest extends TestCase
     private function eleve(array $extra = []): array
     {
         return array_merge([
-            'mouvement' => 'inscription', 'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => self::OUVERTE,
+            'mouvement' => 'inscription', 'matricule' => 'M001',
+            'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => self::OUVERTE,
         ], $extra);
     }
 

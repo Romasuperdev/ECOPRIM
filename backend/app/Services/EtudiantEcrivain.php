@@ -76,6 +76,40 @@ class EtudiantEcrivain
         return $this->table()->trouver($code);
     }
 
+
+    /** L'élève portant ce matricule, ou null. T_ETUDIANT ne garde qu'une ligne par élève. */
+    public function parMatricule(string $matricule)
+    {
+        return $this->table()->requete()->where('Matricule', trim($matricule))->first();
+    }
+
+    /**
+     * Doublon d'identité : même nom, même prénom et même date de naissance.
+     * Filet de sécurité derrière l'unicité du matricule — deux matricules différents
+     * peuvent désigner la même personne saisie deux fois.
+     */
+    public function memeIdentite(array $d)
+    {
+        $nom = trim((string) ($d['nom'] ?? ''));
+        $prenom = trim((string) ($d['prenom'] ?? ''));
+        if ($nom === '' || $prenom === '') {
+            return null;
+        }
+
+        $requete = $this->table()->requete()
+            ->whereRaw('LOWER(Nom) = ?', [mb_strtolower($nom)])
+            ->whereRaw('LOWER(Prenom) = ?', [mb_strtolower($prenom)]);
+
+        // Sans date de naissance, deux homonymes sont plausibles : on ne bloque pas.
+        $naissance = trim((string) ($d['date_naissance'] ?? ''));
+        if ($naissance === '') {
+            return null;
+        }
+        $requete->whereDate('DateNaiss', substr($naissance, 0, 10));
+
+        return $requete->first();
+    }
+
     public function matriculeExiste(string $matricule, ?int $sauf = null): bool
     {
         return $this->table()->requete()

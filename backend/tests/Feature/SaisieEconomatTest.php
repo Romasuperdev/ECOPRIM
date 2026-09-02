@@ -28,13 +28,19 @@ class SaisieEconomatTest extends TestCase
             'MotDePasse' => Hash::make('x'), 'SuperAdmin' => true, 'Supprimer' => false,
         ]);
         $this->actingAs($rh, 'sanctum');
+
+        // Référentiel minimal : la cohérence classe/niveau/année est contrôlée à la saisie.
+        DB::connection('economat')->table('T_CLASSE')->insert([
+            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A',
+                'CodN' => 'CP1', 'ANNEE' => '2025-2026'],
+        ]);
     }
 
     private function eleveValide(array $extra = []): array
     {
         return array_merge([
-            'mouvement' => 'inscription', 'nom' => 'Koné', 'prenom' => 'Aya',
-            'annee' => '2025-2026', 'sexe' => 'F',
+            'mouvement' => 'inscription', 'matricule' => 'M001',
+            'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => '2025-2026', 'sexe' => 'F',
         ], $extra);
     }
 
@@ -58,28 +64,39 @@ class SaisieEconomatTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors(['nom', 'prenom', 'annee']);
     }
 
-    public function test_les_quatre_mouvements_positionnent_les_bons_indicateurs(): void
+    public function test_les_mouvements_entrants_positionnent_les_bons_indicateurs(): void
     {
-        $attendus = [
-            'inscription' => ['Inscription' => 1, 'Reinscription' => 0, 'Transfert' => 0],
-            'reinscription' => ['Inscription' => 0, 'Reinscription' => 1, 'Transfert' => 0],
-            'transfert_entrant' => ['Inscription' => 0, 'Reinscription' => 0, 'Transfert' => 1],
-            'transfert_sortant' => ['Inscription' => 0, 'Reinscription' => 0, 'Transfert' => 1],
-        ];
+        // Inscription : élève nouveau.
+        $r = $this->postJson('/api/v1/inscriptions', $this->eleveValide())->assertCreated();
+        $this->assertDatabaseHas('T_ETUDIANT', [
+            'Code' => $r->json('id'), 'Inscription' => 1, 'Reinscription' => 0, 'Transfert' => 0,
+        ], 'economat');
 
-        foreach ($attendus as $mouvement => $indicateurs) {
-            $r = $this->postJson('/api/v1/inscriptions', $this->eleveValide([
-                'mouvement' => $mouvement, 'prenom' => ucfirst($mouvement),
-            ]))->assertCreated();
+        // Transfert entrant : élève nouveau venant d'un autre établissement.
+        $r = $this->postJson('/api/v1/inscriptions', $this->eleveValide([
+            'matricule' => 'M002', 'prenom' => 'Venu', 'mouvement' => 'transfert_entrant',
+            'etab_origine' => 'EPP Bouaké',
+        ]))->assertCreated();
+        $this->assertDatabaseHas('T_ETUDIANT', [
+            'Code' => $r->json('id'), 'Inscription' => 0, 'Reinscription' => 0, 'Transfert' => 1,
+        ], 'economat');
 
-            $this->assertDatabaseHas('T_ETUDIANT', ['Code' => $r->json('id')] + $indicateurs, 'economat');
-        }
+        // Réinscription et transfert sortant portent sur un élève EXISTANT : ils mettent à
+        // jour sa ligne au lieu d'en créer une. Couvert par RestrictionsInscriptionTest.
     }
 
     public function test_filtrer_les_inscriptions_par_mouvement(): void
     {
         $this->postJson('/api/v1/inscriptions', $this->eleveValide(['prenom' => 'Neuf']))->assertCreated();
-        $this->postJson('/api/v1/inscriptions', $this->eleveValide(['mouvement' => 'reinscription', 'prenom' => 'Ancien']))->assertCreated();
+
+        // « Ancien » est d'abord inscrit sur une autre année, puis réinscrit : sa ligne
+        // porte alors l'indicateur Reinscription.
+        $this->postJson('/api/v1/inscriptions', $this->eleveValide([
+            'matricule' => 'M002', 'prenom' => 'Ancien', 'annee' => '2024-2025',
+        ]))->assertCreated();
+        $this->postJson('/api/v1/inscriptions', $this->eleveValide([
+            'matricule' => 'M002', 'prenom' => 'Ancien', 'mouvement' => 'reinscription',
+        ]))->assertOk();
 
         $r = $this->getJson('/api/v1/inscriptions?mouvement=reinscription')->assertOk();
         $this->assertCount(1, $r->json('data'));
@@ -90,6 +107,7 @@ class SaisieEconomatTest extends TestCase
     {
         $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001']))->assertCreated();
 
+        // Même matricule en « inscription » : refusé, l'élève existe déjà.
         $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001', 'prenom' => 'Autre']))
             ->assertStatus(422)->assertJsonValidationErrors('matricule');
     }

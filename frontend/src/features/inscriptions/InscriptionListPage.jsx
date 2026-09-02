@@ -334,8 +334,15 @@ export default function InscriptionListPage() {
 
               <div className={visible(0) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Identité de l’élève</p>
+                {!form.id && (
+                  <p className="mb-3 text-xs text-slate-400">
+                    Le matricule identifie l’élève de façon unique. Pour un élève déjà connu de
+                    l’établissement, saisissez son matricule et choisissez « Réinscription » à
+                    l’étape Scolarité : son dossier sera mis à jour, pas dupliqué.
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Input label="Matricule" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
+                  <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
                   <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
                   <Input label="Prénom(s) *" value={form.prenom} onChange={(e) => champ('prenom', e.target.value)} error={err('prenom')} />
                   <Select label="Sexe" value={form.sexe} onChange={(e) => champ('sexe', e.target.value)} error={err('sexe')}>
