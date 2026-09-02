@@ -172,22 +172,6 @@ export default function InscriptionListPage() {
             <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-5">
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Type de mouvement</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {MOUVEMENTS.map((m) => (
-                    <button key={m.cle} type="button" onClick={() => champ('mouvement', m.cle)}
-                            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                              form.mouvement === m.cle
-                                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-                {err('mouvement') && <p className="mt-1 text-sm text-red-600">{err('mouvement')}</p>}
-              </div>
-
-              <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Identité de l’élève</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Matricule" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
@@ -219,6 +203,10 @@ export default function InscriptionListPage() {
               <div>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Scolarité</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Select label="Type de mouvement *" value={form.mouvement}
+                          onChange={(e) => champ('mouvement', e.target.value)} error={err('mouvement')}>
+                    {MOUVEMENTS.map((m) => <option key={m.cle} value={m.cle}>{m.label}</option>)}
+                  </Select>
                   <Select label="Année scolaire *" value={form.annee} onChange={(e) => champ('annee', e.target.value)} error={err('annee')}>
                     <option value="">— Choisir —</option>
                     {ref?.annees?.map((a) => <option key={a.id} value={a.libelle}>{a.libelle}</option>)}
