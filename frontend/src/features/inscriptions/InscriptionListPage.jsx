@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import StepIndicator from '../../components/ui/StepIndicator'
 import {
   createInscription,
   fetchInscriptions,
@@ -16,6 +17,12 @@ const MOUVEMENTS = [
   { cle: 'transfert_entrant', label: 'Transfert entrant' },
   { cle: 'transfert_sortant', label: 'Transfert sortant' },
 ]
+
+// Assistant de saisie : une section par étape, dans l'ordre demandé.
+const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère']
+
+// Champs bloquants par étape : « Suivant » ne passe pas s'ils sont vides.
+const REQUIS = [['nom', 'prenom'], [], ['mouvement', 'annee'], [], []]
 
 const VIDE = {
   mouvement: 'inscription',
@@ -31,6 +38,7 @@ export default function InscriptionListPage() {
   const [page, setPage] = useState(1)
   const [filtres, setFiltres] = useState({ q: '', annee: '', classe: '', mouvement: '' })
   const [form, setForm] = useState(null)
+  const [etape, setEtape] = useState(0)
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
 
@@ -51,11 +59,33 @@ export default function InscriptionListPage() {
   const enregistrer = useMutation({
     mutationFn: (v) => (v.id ? updateInscription(v.id, v) : createInscription(v)),
     onSuccess: () => { invalider(); setForm(null); setErreurs({}) },
-    onError: (e) => setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }),
+    onError: (e) => {
+      const err = e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }
+      setErreurs(err)
+      // Si un champ d'une étape précédente est refusé, on y ramène l'utilisateur.
+      const fautive = REQUIS.findIndex((champs) => champs.some((c) => err[c]))
+      if (fautive >= 0 && fautive !== etape) setEtape(fautive)
+    },
   })
 
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const err = (k) => erreurs[k]?.[0]
+
+  // En modification on affiche tout d'un bloc ; l'assistant sert à la création.
+  const enAssistant = Boolean(form && !form.id)
+  const visible = (index) => !enAssistant || etape === index
+  const derniere = etape === ETAPES.length - 1
+
+  /** Contrôle les champs bloquants de l'étape courante avant de passer à la suivante. */
+  const suivant = () => {
+    const manquants = REQUIS[etape].filter((c) => !String(form?.[c] ?? '').trim())
+    if (manquants.length) {
+      setErreurs(Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']])))
+      return
+    }
+    setErreurs({})
+    setEtape((e) => e + 1)
+  }
 
   // Les niveaux et classes se restreignent au cycle / niveau choisi quand l'info existe.
   const niveauxFiltres = (ref?.niveaux ?? []).filter((n) => !form?.cycle_code || n.cycle_code === form.cycle_code)
@@ -72,6 +102,7 @@ export default function InscriptionListPage() {
         </div>
         <Button onClick={() => {
           setErreurs({})
+          setEtape(0)
           setForm({ ...VIDE, annee: filtres.annee || ref?.annees?.find((a) => a.active)?.libelle || '' })
         }}>
           + Nouvelle inscription
@@ -138,6 +169,7 @@ export default function InscriptionListPage() {
                   <Button variant="outline" className="!px-3 !py-1"
                           onClick={() => {
                             setErreurs({})
+                            setEtape(0)
                             setForm({ ...VIDE, ...Object.fromEntries(Object.entries(e).map(([k, v]) => [k, v ?? ''])), id: e.id })
                           }}>
                     Éditer
@@ -169,9 +201,21 @@ export default function InscriptionListPage() {
             </h2>
             <p className="mb-5 text-xs text-slate-400">Formulaire alimenté par ECONOMAT.T_ETUDIANT.</p>
 
-            <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-5">
+            {enAssistant && (
+              <StepIndicator etapes={ETAPES} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
+            )}
 
-              <div>
+            <form
+              onSubmit={(ev) => {
+                ev.preventDefault()
+                // Entrée au clavier : on avance dans l'assistant au lieu d'enregistrer trop tôt.
+                if (enAssistant && !derniere) return suivant()
+                enregistrer.mutate(form)
+              }}
+              className="space-y-5"
+            >
+
+              <div className={visible(0) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Identité de l’élève</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Matricule" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
@@ -188,7 +232,7 @@ export default function InscriptionListPage() {
                 </div>
               </div>
 
-              <div>
+              <div className={visible(1) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Coordonnées</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
@@ -200,7 +244,7 @@ export default function InscriptionListPage() {
                 </div>
               </div>
 
-              <div>
+              <div className={visible(2) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Scolarité</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Select label="Type de mouvement *" value={form.mouvement}
@@ -238,7 +282,7 @@ export default function InscriptionListPage() {
                 )}
               </div>
 
-              <div>
+              <div className={visible(3) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Père / Tuteur</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Nom" value={form.pere_nom} onChange={(e) => champ('pere_nom', e.target.value)} error={err('pere_nom')} />
@@ -249,7 +293,7 @@ export default function InscriptionListPage() {
                 </div>
               </div>
 
-              <div>
+              <div className={visible(4) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Mère</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Nom" value={form.mere_nom} onChange={(e) => champ('mere_nom', e.target.value)} error={err('mere_nom')} />
@@ -262,11 +306,27 @@ export default function InscriptionListPage() {
 
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
 
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                <Button type="submit" disabled={enregistrer.isPending}>
-                  {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
-                </Button>
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
+                {enAssistant && etape > 0 ? (
+                  <Button type="button" variant="outline" onClick={() => { setErreurs({}); setEtape((e) => e - 1) }}>
+                    Précédent
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
+                )}
+
+                <div className="flex items-center gap-2">
+                  {enAssistant && (
+                    <span className="text-xs text-slate-400">Étape {etape + 1} sur {ETAPES.length}</span>
+                  )}
+                  {enAssistant && !derniere ? (
+                    <Button type="button" onClick={suivant}>Suivant</Button>
+                  ) : (
+                    <Button type="submit" disabled={enregistrer.isPending}>
+                      {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
           </div>

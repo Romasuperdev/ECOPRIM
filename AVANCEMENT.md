@@ -803,3 +803,19 @@ préservé à la modification, absence de route de suppression (405), départ en
 Suite : **72 tests, 322 assertions verts**. Build Vite OK.
 
 Programme du jour terminé.
+
+## Inscriptions : saisie en assistant (2 sept. 2026)
+
+Le formulaire d'inscription se remplit désormais étape par étape :
+**Identité de l'élève → Coordonnées → Scolarité → Père / Tuteur → Mère**, avec fil d'étapes,
+boutons Précédent / Suivant et compteur « Étape n sur 5 ».
+
+- `components/ui/StepIndicator.jsx` : fil d'étapes extrait en composant partagé (le formulaire
+  élève avait le même en local), avec retour possible sur une étape déjà franchie en cliquant
+  dessus.
+- « Suivant » contrôle les champs bloquants de l'étape : nom et prénom à l'étape 1, type de
+  mouvement et année scolaire à l'étape 3. Rien n'est perdu entre les étapes.
+- Si le serveur refuse un champ d'une étape précédente, l'assistant y ramène automatiquement.
+- La touche Entrée fait avancer d'une étape au lieu d'enregistrer prématurément.
+- **En modification, tout le formulaire reste affiché d'un bloc** (même parti pris que le
+  formulaire élève) : on corrige un champ sans dérouler cinq écrans.
