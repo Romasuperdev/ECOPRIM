@@ -285,4 +285,29 @@ class SaisieEconomatTest extends TestCase
 
         File::deleteDirectory($dossier);
     }
+
+    public function test_enregistrer_la_carriere_complete_d_un_enseignant(): void
+    {
+        $r = $this->postJson('/api/v1/enseignants', [
+            'nom' => 'Traoré', 'prenom' => 'Moussa', 'matricule' => 'P010', 'sexe' => 'M',
+            'situation_matrimoniale' => 'MARIE', 'ville' => 'Abidjan', 'cellulaire' => '0700',
+            'statut' => 'TITULAIRE', 'corps' => 'IEP', 'grade' => 'A3', 'echelon' => '4',
+            'diplome' => 'CAP', 'formation' => 'CAFOP', 'volume_horaire' => 24,
+            'fonction' => 'Instituteur', 'dren' => 'DREN Abidjan 1', 'dden' => 'DDEN Cocody',
+            'annees_service' => 12, 'date_premiere_prise_service' => '2013-10-01',
+            'ecole_prise_service' => 'EPP Cocody', 'date_arrivee_poste' => '2020-09-15',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('T_PROFESSEUR', [
+            'Code' => $r->json('id'), 'Corps' => 'IEP', 'Echelon' => '4',
+            'VHORAIRE' => 24, 'DREN' => 'DREN Abidjan 1', 'NbrAnneeService' => 12,
+            'EcolePriseService' => 'EPP Cocody',
+        ], 'economat');
+    }
+
+    public function test_le_volume_horaire_de_l_enseignant_est_borne(): void
+    {
+        $this->postJson('/api/v1/enseignants', ['nom' => 'A', 'prenom' => 'B', 'volume_horaire' => 99])
+            ->assertStatus(422)->assertJsonValidationErrors('volume_horaire');
+    }
 }

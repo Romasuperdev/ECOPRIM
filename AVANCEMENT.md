@@ -1049,3 +1049,31 @@ l'année active est visible, changer d'année déplace **toutes** les listes, le
 le tableau de bord suit (effectifs, moyennes, agrégats par classe), les rapports suivent, un
 filtre explicite prime, et le choix persiste entre les appels.
 Suite : **123 tests, 553 assertions verts**. Build et lint propres.
+
+## Enseignants : formulaire en assistant, calqué sur les inscriptions (2 sept. 2026)
+
+`/enseignants/nouveau` et `/enseignants/:id/modifier` reprennent la mécanique de la page
+Inscriptions : fil d'étapes partagé (`StepIndicator`), navigation Précédent / Suivant, compteur
+« Étape n sur N », contrôle des champs bloquants avant de passer, retour automatique sur l'étape
+refusée par le serveur, et touche Entrée qui avance au lieu d'enregistrer.
+
+Étapes : **État civil → Coordonnées → Carrière → Administration**, plus **Départ** uniquement en
+modification (on ne renseigne pas le départ d'un enseignant qu'on recrute).
+
+**Pas d'étape Photo** : contrairement à `T_ETUDIANT`, la table `T_PROFESSEUR` n'a aucune colonne
+photo.
+
+Le formulaire n'exposait que 6 champs alors que `T_PROFESSEUR` porte toute une carrière
+administrative. Champs ajoutés, tous déjà présents en base : situation matrimoniale, date et lieu
+de naissance, ville, cellulaire, **corps**, **échelon**, formation professionnelle (`FormaProf`),
+volume horaire (`VHORAIRE`, borné à 60 h), fonction, emploi, service, **DREN**, **DDEN**,
+première prise de service et son école, années de service, arrivée au poste. Le salaire
+(`SalaireMensuel`) et les identifiants de connexion (`LOGIN`, `Mdp`) restent hors liste blanche.
+
+Détail technique : le préremplissage ne passe plus par un effet qui recopie la fiche dans l'état.
+Le formulaire est **dérivé** de la fiche chargée plus les modifications en cours — pas de course
+entre le chargement et la saisie, et le lint ne signale plus de `setState` dans un effet.
+
+Vérifié aussi par un rendu hors navigateur des deux modes (création et modification), qui
+confirme que l'étape Départ n'apparaît qu'en modification.
+Suite : **125 tests, 558 assertions verts**. Build et lint propres.

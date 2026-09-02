@@ -267,6 +267,19 @@ abstract class TestCase extends BaseTestCase
             $t->string('DateDepart')->nullable();
             $t->string('Motif')->nullable();
             $t->string('EtabAccueil')->nullable();
+            $t->string('Corps')->nullable();
+            $t->string('Echelon')->nullable();
+            $t->string('FormaProf')->nullable();
+            $t->integer('VHORAIRE')->nullable();
+            $t->string('fonction')->nullable();
+            $t->string('Emploi')->nullable();
+            $t->string('DREN')->nullable();
+            $t->string('DDEN')->nullable();
+            $t->string('Service')->nullable();
+            $t->date('DatePremPriseService')->nullable();
+            $t->string('EcolePriseService')->nullable();
+            $t->integer('NbrAnneeService')->nullable();
+            $t->date('DateArriveePoste')->nullable();
         });
 
         Schema::connection('economat')->create('T_ETUDIANT', function ($t) {

@@ -13,34 +13,61 @@ namespace App\Services;
 class ProfesseurEcrivain
 {
     public const LARGEURS = [
+        // État civil
         'matricule' => 50, 'nom' => 50, 'prenom' => 50, 'nom_complet' => 100,
-        'sexe' => 50, 'adresse' => 50, 'telephone' => 50, 'cellulaire' => 50,
-        'email' => 50, 'statut' => 50, 'grade' => 30, 'matiere' => 50,
-        'date_embauche' => 50, 'date_naissance' => 50, 'lieu_naissance' => 100,
-        'situation_matrimoniale' => 50, 'diplome' => 50, 'ville' => 50,
-        'annee_code' => 50, 'motif_depart' => 500, 'etab_accueil' => 200,
+        'sexe' => 50, 'date_naissance' => 50, 'lieu_naissance' => 100,
+        'situation_matrimoniale' => 50,
+        // Coordonnées
+        'adresse' => 50, 'ville' => 50, 'telephone' => 50, 'cellulaire' => 50, 'email' => 50,
+        // Carrière
+        'statut' => 50, 'corps' => 50, 'grade' => 30, 'echelon' => 50,
+        'diplome' => 50, 'formation' => 50, 'matiere' => 50, 'date_embauche' => 50,
+        'annee_code' => 50,
+        // Rattachement administratif
+        'fonction' => 50, 'emploi' => 50, 'dren' => 50, 'dden' => 50,
+        'ecole_prise_service' => 50, 'service' => 50,
+        // Départ
+        'motif_depart' => 500, 'etab_accueil' => 200,
     ];
 
     private const MAP = [
+        // État civil
         'MatriculeProfesseur' => 'matricule',
         'NomProfesseur' => 'nom',
         'PrenomProfesseur' => 'prenom',
         'NomComplet' => 'nom_complet',
         'Sexe' => 'sexe',
-        'AdresseProfesseur' => 'adresse',
-        'ContactProfesseur' => 'telephone',
-        'Cellulaire' => 'cellulaire',
-        'EmailProfesseur' => 'email',
-        'TypeProfesseur' => 'statut',
-        'GradeProfesseur' => 'grade',
-        'Matiere' => 'matiere',
-        'DateEmbauche' => 'date_embauche',
         'DateNaiss' => 'date_naissance',
         'LieuNaiss' => 'lieu_naissance',
         'SituationMatrimoniale' => 'situation_matrimoniale',
-        'DiplTitrUniv' => 'diplome',
+        // Coordonnées
+        'AdresseProfesseur' => 'adresse',
         'Ville' => 'ville',
+        'ContactProfesseur' => 'telephone',
+        'Cellulaire' => 'cellulaire',
+        'EmailProfesseur' => 'email',
+        // Carrière
+        'TypeProfesseur' => 'statut',
+        'Corps' => 'corps',
+        'GradeProfesseur' => 'grade',
+        'Echelon' => 'echelon',
+        'DiplTitrUniv' => 'diplome',
+        'FormaProf' => 'formation',
+        'Matiere' => 'matiere',
+        'VHORAIRE' => 'volume_horaire',
+        'DateEmbauche' => 'date_embauche',
         'CodeAnnee' => 'annee_code',
+        // Rattachement administratif
+        'fonction' => 'fonction',
+        'Emploi' => 'emploi',
+        'DREN' => 'dren',
+        'DDEN' => 'dden',
+        'Service' => 'service',
+        'DatePremPriseService' => 'date_premiere_prise_service',
+        'EcolePriseService' => 'ecole_prise_service',
+        'NbrAnneeService' => 'annees_service',
+        'DateArriveePoste' => 'date_arrivee_poste',
+        // Départ — un enseignant n'est jamais supprimé
         'DateDepart' => 'date_depart',
         'Motif' => 'motif_depart',
         'EtabAccueil' => 'etab_accueil',

@@ -43,24 +43,46 @@ class EnseignantController extends Controller
         $l = ProfesseurEcrivain::LARGEURS;
 
         return [
+            // État civil
             'matricule' => ['nullable', 'string', 'max:'.$l['matricule']],
             'nom' => ['required', 'string', 'max:'.$l['nom']],
             'prenom' => ['required', 'string', 'max:'.$l['prenom']],
-            'sexe' => ['nullable', 'string', 'max:'.$l['sexe']],
+            'sexe' => ['nullable', 'in:M,F'],
             'date_naissance' => ['nullable', 'string', 'max:'.$l['date_naissance']],
             'lieu_naissance' => ['nullable', 'string', 'max:'.$l['lieu_naissance']],
             'situation_matrimoniale' => ['nullable', 'string', 'max:'.$l['situation_matrimoniale']],
+
+            // Coordonnées
             'adresse' => ['nullable', 'string', 'max:'.$l['adresse']],
             'ville' => ['nullable', 'string', 'max:'.$l['ville']],
             'telephone' => ['nullable', 'string', 'max:'.$l['telephone']],
             'cellulaire' => ['nullable', 'string', 'max:'.$l['cellulaire']],
             'email' => ['nullable', 'email', 'max:'.$l['email']],
+
+            // Carrière
             'statut' => ['nullable', 'string', 'max:'.$l['statut']],
+            'corps' => ['nullable', 'string', 'max:'.$l['corps']],
             'grade' => ['nullable', 'string', 'max:'.$l['grade']],
+            'echelon' => ['nullable', 'string', 'max:'.$l['echelon']],
             'diplome' => ['nullable', 'string', 'max:'.$l['diplome']],
+            'formation' => ['nullable', 'string', 'max:'.$l['formation']],
             'matiere' => ['nullable', 'string', 'max:'.$l['matiere']],
+            'volume_horaire' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'string', 'max:'.$l['date_embauche']],
             'annee_code' => ['nullable', 'string', 'max:'.$l['annee_code']],
+
+            // Rattachement administratif
+            'fonction' => ['nullable', 'string', 'max:'.$l['fonction']],
+            'emploi' => ['nullable', 'string', 'max:'.$l['emploi']],
+            'dren' => ['nullable', 'string', 'max:'.$l['dren']],
+            'dden' => ['nullable', 'string', 'max:'.$l['dden']],
+            'service' => ['nullable', 'string', 'max:'.$l['service']],
+            'date_premiere_prise_service' => ['nullable', 'date'],
+            'ecole_prise_service' => ['nullable', 'string', 'max:'.$l['ecole_prise_service']],
+            'annees_service' => ['nullable', 'integer', 'min:0', 'max:60'],
+            'date_arrivee_poste' => ['nullable', 'date'],
+
+            // Départ
             'date_depart' => ['nullable', 'string', 'max:50'],
             'motif_depart' => ['nullable', 'string', 'max:'.$l['motif_depart']],
             'etab_accueil' => ['nullable', 'string', 'max:'.$l['etab_accueil']],
