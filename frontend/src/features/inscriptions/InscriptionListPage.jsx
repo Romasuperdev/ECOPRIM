@@ -71,8 +71,8 @@ export default function InscriptionListPage() {
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const err = (k) => erreurs[k]?.[0]
 
-  // En modification on affiche tout d'un bloc ; l'assistant sert à la création.
-  const enAssistant = Boolean(form && !form.id)
+  // Assistant identique en création et en modification.
+  const enAssistant = Boolean(form)
   const visible = (index) => !enAssistant || etape === index
   const derniere = etape === ETAPES.length - 1
 

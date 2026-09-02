@@ -817,5 +817,5 @@ boutons Précédent / Suivant et compteur « Étape n sur 5 ».
   mouvement et année scolaire à l'étape 3. Rien n'est perdu entre les étapes.
 - Si le serveur refuse un champ d'une étape précédente, l'assistant y ramène automatiquement.
 - La touche Entrée fait avancer d'une étape au lieu d'enregistrer prématurément.
-- **En modification, tout le formulaire reste affiché d'un bloc** (même parti pris que le
-  formulaire élève) : on corrige un champ sans dérouler cinq écrans.
+- **L'assistant s'applique aussi en modification** : même parcours en cinq étapes pour créer et
+  pour corriger un dossier, avec retour direct sur une étape via le fil d'étapes.
