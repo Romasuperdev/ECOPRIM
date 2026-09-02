@@ -1,2 +1,4 @@
 _audit_*.tgz
 *.bak
+_imp_*.tgz
+_ref_bacou/

@@ -5,7 +5,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import StepIndicator from '../../components/ui/StepIndicator'
 import { fetchContexte } from '../contexte/contexteApi'
-import { ImagePlus, Lock, User } from 'lucide-react'
+import { ImagePlus, Lock, Printer, User } from 'lucide-react'
 import {
   createInscription,
   fetchInscriptions,
@@ -14,6 +14,7 @@ import {
   televerserPhoto,
   updateInscription,
 } from './inscriptionsApi'
+import { imprimerFicheEleve, imprimerListeClasse } from '../impressions/impressionApi'
 
 const MOUVEMENTS = [
   { cle: 'inscription', label: 'Inscription' },
@@ -185,6 +186,15 @@ export default function InscriptionListPage() {
             Inscriptions, réinscriptions et transferts — saisie directe dans ECONOMAT.T_ETUDIANT.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => imprimerListeClasse({ classe: filtres.classe, annee: anneeEffective })}
+          title="Liste nominative de la classe filtrée"
+        >
+          <Printer size={16} className="mr-1.5 inline" />
+          Imprimer la liste
+        </Button>
         <Button
           disabled={filtreVerrouille}
           title={filtreVerrouille ? 'Année clôturée : consultation seule.' : undefined}
@@ -197,6 +207,7 @@ export default function InscriptionListPage() {
         >
           + Nouvelle inscription
         </Button>
+        </div>
       </div>
 
       {filtreVerrouille && (
@@ -266,6 +277,11 @@ export default function InscriptionListPage() {
                 <td className="px-4 py-3 text-slate-600">{e.annee ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.date_naissance ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
+                  <Button variant="outline" className="!px-3 !py-1 mr-2"
+                          title="Imprimer la fiche de l'élève"
+                          onClick={() => imprimerFicheEleve(e.id)}>
+                    <Printer size={14} />
+                  </Button>
                   <Button variant="outline" className="!px-3 !py-1"
                           onClick={() => {
                             setErreurs({})

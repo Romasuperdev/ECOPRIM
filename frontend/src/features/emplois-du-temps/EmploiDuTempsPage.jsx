@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Lock, Plus, Trash2 } from 'lucide-react'
+import { Lock, Plus, Printer, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import {
@@ -11,6 +11,7 @@ import {
   fetchReferentielsEmploi,
   updateCreneau,
 } from './emploiApi'
+import { imprimerEmploiDuTemps, imprimerListeClasse } from '../impressions/impressionApi'
 
 export default function EmploiDuTempsPage() {
   const qc = useQueryClient()
@@ -76,13 +77,27 @@ export default function EmploiDuTempsPage() {
         </p>
       </div>
 
-      <div className="mb-4 max-w-sm">
-        <Select label="Classe" value={classe} onChange={(e) => { setClasse(e.target.value); fermer() }}>
-          <option value="">— Choisir une classe —</option>
-          {listes?.classes?.map((c) => (
-            <option key={c.code} value={c.code}>{c.nom ?? c.code}</option>
-          ))}
-        </Select>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="max-w-sm flex-1">
+          <Select label="Classe" value={classe} onChange={(e) => { setClasse(e.target.value); fermer() }}>
+            <option value="">— Choisir une classe —</option>
+            {listes?.classes?.map((c) => (
+              <option key={c.code} value={c.code}>{c.nom ?? c.code}</option>
+            ))}
+          </Select>
+        </div>
+        <Button variant="outline" disabled={!classe}
+                title="Imprimer la grille horaire de la classe"
+                onClick={() => imprimerEmploiDuTemps({ classe })}>
+          <Printer size={16} className="mr-1.5 inline" />
+          Imprimer la grille
+        </Button>
+        <Button variant="outline" disabled={!classe}
+                title="Imprimer la liste nominative de la classe"
+                onClick={() => imprimerListeClasse({ classe })}>
+          <Printer size={16} className="mr-1.5 inline" />
+          Liste de la classe
+        </Button>
       </div>
 
       {verrouille && (

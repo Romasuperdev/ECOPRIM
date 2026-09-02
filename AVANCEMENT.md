@@ -1117,3 +1117,34 @@ Suite : **136 tests, 610 assertions verts**. Build et lint propres.
 Au passage : le préremplissage par effet des pages Passerelle SMS et Messagerie SMTP a été
 remplacé par une dérivation (configuration chargée + modifications en cours), supprimant les
 derniers avertissements de lint sur mes fichiers.
+
+## Impression des documents
+
+Quatre documents PDF, tous bâtis sur une mise en page commune
+(`resources/views/pdf/layout.blade.php`) : entête NEXORA, nom de l'établissement du contexte
+de travail, année, pied de page daté. Les cases vides sortent en « Non renseigné » plutôt qu'en
+blanc, pour qu'un champ oublié se voie sur le papier.
+
+- **Fiche de l'élève** — identité, coordonnées, scolarité, père/tuteur, mère, et la photo. La
+  photo vit dans un dossier partagé hors du serveur web : dompdf ne pouvant pas l'atteindre par
+  URL, elle est incorporée en base64.
+- **Fiche de l'enseignant** — état civil, coordonnées, carrière, administration, et le bloc
+  départ seulement s'il est renseigné.
+- **Emploi du temps** — la grille jour × heure de la classe, en paysage.
+- **Liste de la classe** — liste nominative numérotée avec le contact du tuteur, pour l'appel.
+
+Les boutons sont posés là où le document se demande : ligne par ligne sur Inscriptions et
+Enseignants, et sur Emplois du temps pour la grille comme pour la liste de la classe. Le PDF est
+récupéré par `apiClient` en blob puis ouvert dans un onglet — un `window.open` direct perdrait
+le cookie de session ; si le navigateur bloque l'onglet, on retombe sur un téléchargement.
+
+**Imprimer est une lecture** : aucune écriture dans ECONOMAT, donc une année clôturée s'imprime
+normalement. En revanche l'année de l'en-tête est respectée : la liste d'une classe change avec
+l'année choisie.
+
+Tests `ImpressionTest` (7 cas) : les quatre documents renvoient bien un `application/pdf`, la
+classe est obligatoire pour les documents de classe, la liste suit l'année de travail (vérifié
+sur les données passées à la vue, le PDF étant binaire), la photo part en base64, et une année
+clôturée reste imprimable.
+Suite : **143 tests, 642 assertions verts**. Build et lint propres, et les trois pages modifiées
+passent le rendu à blanc hors navigateur.

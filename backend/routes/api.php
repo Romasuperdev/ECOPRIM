@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ClasseController;
 use App\Http\Controllers\Api\V1\NoteController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EmploiDuTempsController;
+use App\Http\Controllers\Api\V1\ImpressionController;
 use App\Http\Controllers\Api\V1\NiveauController;
 use App\Http\Controllers\Api\V1\AnneeScolaireController;
 use App\Http\Controllers\Api\V1\PeriodeController;
@@ -98,6 +99,12 @@ Route::prefix('v1')->group(function () {
         Route::get('classes/{classe}/moyennes', [RapportController::class, 'moyennesClasse']);
         Route::get('classes/{classe}/assiduite', [RapportController::class, 'assiduiteClasse']);
         Route::get('evaluations', [RapportController::class, 'evaluations']);
+        // Documents imprimables (PDF) — lecture seule, une année clôturée s'imprime.
+        Route::get('impressions/eleves/{eleve}', [ImpressionController::class, 'eleve']);
+        Route::get('impressions/enseignants/{enseignant}', [ImpressionController::class, 'enseignant']);
+        Route::get('impressions/emploi-du-temps', [ImpressionController::class, 'emploiDuTemps']);
+        Route::get('impressions/liste-classe', [ImpressionController::class, 'listeClasse']);
+
         Route::get('eleves/{eleve}/bulletin', [BulletinController::class, 'show']);
         Route::get('dashboard/stats', [DashboardController::class, 'index']);
 

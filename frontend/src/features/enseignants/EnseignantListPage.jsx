@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import { Printer } from 'lucide-react'
 import { fetchEnseignantsPage } from './enseignantsApi'
+import { imprimerFicheEnseignant } from '../impressions/impressionApi'
 
 // Enseignants d'ECONOMAT (T_PROFESSEUR) : création et modification, jamais de suppression.
 export default function EnseignantListPage() {
@@ -64,6 +66,11 @@ export default function EnseignantListPage() {
                 <td className="px-4 py-3 text-slate-600">{e.statut ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.matiere ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
+                  <Button variant="outline" className="!px-3 !py-1 mr-2"
+                          title="Imprimer la fiche de l'enseignant"
+                          onClick={() => imprimerFicheEnseignant(e.id)}>
+                    <Printer size={14} />
+                  </Button>
                   <Link to={`/enseignants/${e.id}/modifier`}>
                     <Button variant="outline" className="!px-3 !py-1">Éditer</Button>
                   </Link>
