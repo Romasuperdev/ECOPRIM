@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -7,26 +7,26 @@ import { fetchConfigSms, saveConfigSms } from './parametresApi'
 
 export default function SmsConfigPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState(null)
+  // Formulaire DÉRIVÉ de la configuration chargée + les modifications en cours :
+  // pas de recopie par effet, donc pas de course au chargement.
+  const [modifs, setModifs] = useState({})
   const [erreurs, setErreurs] = useState({})
   const [ok, setOk] = useState(false)
 
   const { data, isLoading } = useQuery({ queryKey: ['config-sms'], queryFn: fetchConfigSms })
 
-  useEffect(() => {
-    if (data && !form) setForm({ ...data, api_key: '', api_secret: '' })
-  }, [data, form])
+  const form = data ? { ...data, api_key: '', api_secret: '', ...modifs } : null
 
   const enregistrer = useMutation({
     mutationFn: saveConfigSms,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['config-sms'] })
-      setErreurs({}); setOk(true); setTimeout(() => setOk(false), 4000)
+      setErreurs({}); setModifs({}); setOk(true); setTimeout(() => setOk(false), 4000)
     },
     onError: (e) => { setOk(false); setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }) },
   })
 
-  const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const champ = (k, v) => setModifs((m) => ({ ...m, [k]: v }))
 
   if (isLoading || !form) return <p className="text-slate-400">Chargement…</p>
 

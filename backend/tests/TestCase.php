@@ -132,6 +132,46 @@ abstract class TestCase extends BaseTestCase
             $t->string('CODESOCIETE')->nullable();
         });
 
+        Schema::connection('economat')->create('T_EMPLOIDUTEMPS', function ($t) {
+            $t->integer('CODE');
+            $t->integer('CODEJOUR')->nullable();
+            $t->integer('CODEHEURE')->nullable();
+            $t->string('CODEMATIERE')->nullable();
+            $t->string('CODECLASSE')->nullable();
+            $t->string('CODESALLE')->nullable();
+            $t->string('ANNEE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_EMPJOUR', function ($t) {
+            $t->integer('Code')->nullable();
+            $t->string('Libelle')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_HORAIRE', function ($t) {
+            $t->integer('COD_HORAIRE');
+            $t->string('HEUR_DEBUT')->nullable();
+            $t->string('HEUR_FIN')->nullable();
+            $t->string('DUREEE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_SALLESCLASSE', function ($t) {
+            $t->integer('CODE');
+            $t->string('CODESALLE')->nullable();
+            $t->string('LIBELLESALLE')->nullable();
+            $t->integer('NBREPLACE')->nullable();
+            $t->string('CODE_TYPE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_CORPROFCLASSE', function ($t) {
+            $t->integer('Code');
+            $t->string('LOGIN')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeMatiere')->nullable();
+            $t->integer('CodeProfesseur')->nullable();
+            $t->string('ANNEE')->nullable();
+            $t->boolean('Principale')->nullable();
+        });
+
         Schema::connection('economat')->create('T_PREREQUIS', function ($t) {
             $t->integer('CODES');
             $t->string('CODENIVEAU')->nullable();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\EleveController;
 use App\Http\Controllers\Api\V1\ClasseController;
 use App\Http\Controllers\Api\V1\NoteController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\EmploiDuTempsController;
 use App\Http\Controllers\Api\V1\NiveauController;
 use App\Http\Controllers\Api\V1\AnneeScolaireController;
 use App\Http\Controllers\Api\V1\PeriodeController;
@@ -60,6 +61,13 @@ Route::prefix('v1')->group(function () {
         Route::get('eleves/{eleve}', [EleveController::class, 'show']);
         Route::get('classes', [ClasseController::class, 'index']);
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
+        // Emplois du temps : grille par classe, bornée à l'année de travail.
+        Route::get('emplois-du-temps/referentiels', [EmploiDuTempsController::class, 'referentiels']);
+        Route::get('emplois-du-temps', [EmploiDuTempsController::class, 'index']);
+        Route::post('emplois-du-temps', [EmploiDuTempsController::class, 'store']);
+        Route::put('emplois-du-temps/{creneau}', [EmploiDuTempsController::class, 'update']);
+        Route::delete('emplois-du-temps/{creneau}', [EmploiDuTempsController::class, 'destroy']);
+
         Route::get('notes', [NoteController::class, 'index']);
         Route::get('enseignants', [EnseignantController::class, 'index']);
         Route::post('enseignants', [EnseignantController::class, 'store']);

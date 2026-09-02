@@ -5,8 +5,8 @@ import Logo from '../ui/Logo'
 import { ROLES } from '../../lib/constants'
 
 // Navigation NEXORA. Seules les pages réellement fonctionnelles sont listées : les
-// entrées non construites ont été retirées, à deux exceptions assumées et validées
-// (Emplois du temps, Espace parent) qui restent affichées en « Bientôt » via `to: null`.
+// entrées non construites ont été retirées, à une exception assumée et validée
+// (Espace parent) qui reste affichée en « Bientôt » via `to: null`.
 // Les pages adossées à des tables inexistantes (documents/annonces/messages) ont été
 // supprimées ; Communication passe par l'envoi SMS/Mail.
 const GROUPS = [
@@ -34,7 +34,7 @@ const GROUPS = [
   {
     label: '📚 Programme',
     items: [
-      { to: null, label: 'Emplois du temps' },
+      { to: '/emplois-du-temps', label: 'Emplois du temps' },
       { to: '/programmes', label: 'Cours' },
       { to: '/seances', label: 'Cahier de textes' },
       { to: '/ressources', label: 'Ressources pédagogiques' },

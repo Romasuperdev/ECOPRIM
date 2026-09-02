@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -6,26 +6,25 @@ import { fetchConfigMail, saveConfigMail } from './parametresApi'
 
 export default function MailConfigPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState(null)
+  const [modifs, setModifs] = useState({})
   const [erreurs, setErreurs] = useState({})
   const [ok, setOk] = useState(false)
 
   const { data, isLoading } = useQuery({ queryKey: ['config-mail'], queryFn: fetchConfigMail })
 
-  useEffect(() => {
-    if (data && !form) setForm({ ...data, mot_de_passe: '' })
-  }, [data, form])
+  // Dérivé de la configuration chargée + les modifications en cours.
+  const form = data ? { ...data, mot_de_passe: '', ...modifs } : null
 
   const enregistrer = useMutation({
     mutationFn: saveConfigMail,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['config-mail'] })
-      setErreurs({}); setOk(true); setTimeout(() => setOk(false), 4000)
+      setErreurs({}); setModifs({}); setOk(true); setTimeout(() => setOk(false), 4000)
     },
     onError: (e) => { setOk(false); setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }) },
   })
 
-  const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const champ = (k, v) => setModifs((m) => ({ ...m, [k]: v }))
 
   if (isLoading || !form) return <p className="text-slate-400">Chargement…</p>
 

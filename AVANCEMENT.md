@@ -1077,3 +1077,43 @@ entre le chargement et la saisie, et le lint ne signale plus de `setState` dans 
 Vérifié aussi par un rendu hors navigateur des deux modes (création et modification), qui
 confirme que l'étape Départ n'apparaît qu'en modification.
 Suite : **125 tests, 558 assertions verts**. Build et lint propres.
+
+## Emplois du temps (2 sept. 2026)
+
+Entrée « Bientôt » devenue une vraie page : `/emplois-du-temps`. Tout est adossé à ECONOMAT,
+aucune table NEXORA créée.
+
+**Modèle**. Un créneau est `T_EMPLOIDUTEMPS` (jour, heure, classe, matière, salle, année).
+Trame : jours dans `T_EMPJOUR`, plages dans `T_HORAIRE` (début, fin, durée), salles dans
+`T_SALLESCLASSE` (avec nombre de places). Fait notable : **l'enseignant n'est pas stocké** — il
+est déduit de `T_CORPROFCLASSE`, qui dit qui enseigne telle matière dans telle classe pour une
+année, exactement comme le fait la vue `V_EMPLOIDUTEMPS_SIMPLE`.
+
+**Écran**. Grille jour × heure pour une classe choisie, une case par créneau affichant matière,
+enseignant déduit et salle. Clic sur une case pour la remplir, la modifier ou la vider. Trame
+horaire vide → message explicite invitant à renseigner `T_EMPJOUR` et `T_HORAIRE` dans ECONOMAT,
+plutôt qu'une grille vide inexplicable.
+
+**Contraintes, les trois bloquantes** (`App\Support\ConflitsEmploiDuTemps`) :
+1. une classe ne peut avoir deux cours au même créneau ;
+2. une salle ne peut accueillir deux classes à la fois ;
+3. un enseignant ne peut être dans deux classes à la fois — déduit via l'affectation.
+Chaque refus nomme la cause : la matière déjà posée, la classe qui occupe la salle, ou
+l'enseignant et la classe où il est déjà retenu. Une modification ne se déclare jamais en conflit
+avec elle-même. Une matière sans professeur affecté ne déclenche pas le contrôle enseignant.
+
+**Suppression réelle — exception assumée** à la règle « jamais de DELETE » qui vaut partout
+ailleurs dans NEXORA : vider une case efface la ligne. Un emploi du temps est de la planification
+qu'on réorganise, pas un historique à conserver ; sans cela une grille mal saisie resterait
+définitivement encombrée. Le verrou d'année clôturée s'applique en revanche pleinement, y compris
+à la suppression, et la grille est bornée à l'année de travail de l'en-tête.
+
+Tests `EmploiDuTempsTest` (11 cas) : trame exposée, pose et lecture d'un créneau avec enseignant
+déduit, les trois conflits refusés avec leur message, absence de conflit à une autre heure,
+modification sans auto-conflit, suppression effective, matière et salle inconnues refusées,
+verrou d'année clôturée, cloisonnement par année.
+Suite : **136 tests, 610 assertions verts**. Build et lint propres.
+
+Au passage : le préremplissage par effet des pages Passerelle SMS et Messagerie SMTP a été
+remplacé par une dérivation (configuration chargée + modifications en cours), supprimant les
+derniers avertissements de lint sur mes fichiers.
