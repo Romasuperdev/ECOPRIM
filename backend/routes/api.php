@@ -33,7 +33,11 @@ use App\Http\Controllers\Api\V1\CoefficientController;
 use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
+use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ContexteController;
+use App\Http\Controllers\Api\V1\Parametres\MailConfigController;
+use App\Http\Controllers\Api\V1\Parametres\PrerequisController;
+use App\Http\Controllers\Api\V1\Parametres\SmsConfigController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\JournalActiviteController;
@@ -118,6 +122,21 @@ Route::prefix('v1')->group(function () {
         Route::delete('conseils-classe/{conseil}/deliberations/{deliberation}', [DeliberationController::class, 'destroy']);
 
         // Console Administrative — gestion (base propre ECOPRIM). Réservée au Super Admin.
+        // Paramètres (ECONOMAT) : documents élèves, passerelle SMS, messagerie SMTP.
+        Route::get('parametres/prerequis', [PrerequisController::class, 'index']);
+        Route::post('parametres/prerequis', [PrerequisController::class, 'store']);
+        Route::put('parametres/prerequis/{prerequis}', [PrerequisController::class, 'update']);
+
+        Route::get('parametres/sms', [SmsConfigController::class, 'show']);
+        Route::post('parametres/sms', [SmsConfigController::class, 'store']);
+
+        Route::get('parametres/mail', [MailConfigController::class, 'show']);
+        Route::post('parametres/mail', [MailConfigController::class, 'store']);
+
+        // Communication : envoi SMS/mail + historique.
+        Route::post('communication/envoyer', [CommunicationController::class, 'envoyer']);
+        Route::get('communication/historique', [CommunicationController::class, 'historique']);
+
         // Contexte de travail : choix de l'établissement courant (tout utilisateur connecté).
         Route::get('contexte', [ContexteController::class, 'show']);
         Route::post('contexte/etablissement', [ContexteController::class, 'store']);

@@ -125,6 +125,62 @@ abstract class TestCase extends BaseTestCase
             $t->string('CODESOCIETE')->nullable();
         });
 
+        Schema::connection('economat')->create('T_PREREQUIS', function ($t) {
+            $t->integer('CODES');
+            $t->string('CODENIVEAU')->nullable();
+            $t->string('TYPE')->nullable();
+            $t->float('MONTANT')->nullable();
+            $t->string('ANNEE')->nullable();
+            $t->string('LIBELLE')->nullable();
+            $t->string('CODE')->nullable();
+            $t->boolean('INSCR')->nullable();
+            $t->boolean('SCO')->nullable();
+            $t->string('CODEELEVE')->nullable();
+            $t->integer('QUANTITE')->nullable();
+            $t->string('CODESOCIETE')->nullable();
+        });
+
+        Schema::connection('economat')->create('ECO_SMS_CONFIG', function ($t) {
+            $t->integer('id');
+            $t->string('CODESOCIETE')->nullable();
+            $t->string('CODEETABLISSEMENT')->nullable();
+            $t->boolean('ENABLED')->default(false);
+            $t->string('NAME')->nullable();
+            $t->string('PROVIDER')->nullable();
+            $t->string('ENVIRONMENT')->default('TEST');
+            $t->string('API_URL')->nullable();
+            $t->string('API_KEY')->nullable();
+            $t->string('API_SECRET')->nullable();
+            $t->string('SENDER_ID')->nullable();
+            $t->boolean('DELIVERY_REPORTS')->default(false);
+            $t->boolean('LONG_SMS')->default(false);
+            $t->boolean('AUTO_NOTIF')->default(false);
+            $t->dateTime('UPDATED_AT')->nullable();
+            $t->string('DESCRIPTION')->nullable();
+            $t->string('COUNTRY')->nullable();
+            $t->boolean('IS_DEFAULT')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_MAIL_DIFFUSION', function ($t) {
+            $t->integer('ID_MAIL_DIF');
+            $t->string('ADRESS_MAIL')->nullable();
+            $t->string('MOT_PASS')->nullable();
+            $t->string('SERVEUR_SMTP')->nullable();
+            $t->string('code_etab')->nullable();
+            $t->integer('PORT_SMTP')->nullable();
+            $t->string('CODESOCIETE')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_SMS', function ($t) {
+            $t->integer('id');
+            $t->date('Date')->nullable();
+            $t->string('Numero')->nullable();
+            $t->string('Message')->nullable();
+            $t->string('Heure')->nullable();
+            $t->string('Users')->nullable();
+            $t->string('Type')->nullable();
+        });
+
         Schema::connection('economat')->create('BEtablissements', function ($t) {
             $t->string('CodeEtablissement');
             $t->string('Intitule')->nullable();

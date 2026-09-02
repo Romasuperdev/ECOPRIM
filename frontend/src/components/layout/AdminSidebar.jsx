@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import Logo from '../ui/Logo'
 import { LayoutDashboard, Building2, School, Users, ShieldCheck, ScrollText, ArrowLeftCircle } from 'lucide-react'
 
 const ITEMS = [
@@ -6,9 +7,10 @@ const ITEMS = [
   { to: '/admin/societes', icon: Building2, label: 'Sociétés' },
   { to: '/admin/etablissements', icon: School, label: 'Établissements' },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
+  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions' },
 ]
 
-const A_VENIR = ['Rôles & permissions', 'Référentiels pédagogiques', 'Documents', 'Communication', 'Rapports', 'Configuration']
+const A_VENIR = ['Applications & licences', 'Abonnements']
 
 export default function AdminSidebar() {
   return (
@@ -16,9 +18,8 @@ export default function AdminSidebar() {
       className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
       style={{ background: 'var(--sidebar-2)', color: 'var(--sidebar-text)' }}
     >
-      <div className="mb-1 flex items-center gap-2 px-2 text-base font-extrabold tracking-tight text-white">
-        <ShieldCheck size={20} />
-        ECOPRIM
+      <div className="mb-1 px-2">
+        <Logo />
       </div>
       <div className="mb-4 px-2 text-[10px] font-semibold" style={{ color: 'var(--accent)' }}>
         CONSOLE ADMINISTRATIVE
@@ -27,7 +28,7 @@ export default function AdminSidebar() {
         to="/"
         className="mb-4 flex items-center gap-2 px-2 text-xs font-medium opacity-70 hover:opacity-100"
       >
-        <ArrowLeftCircle size={14} /> Retour à ECOPRIM
+        <ArrowLeftCircle size={14} /> Retour à l’application
       </NavLink>
 
       <nav className="flex-1 space-y-1 text-sm">

@@ -124,6 +124,15 @@ export async function fetchRoles() {
   return data
 }
 
+export async function createRole(payload) {
+  const { data } = await apiClient.post('/roles', payload)
+  return data
+}
+
+export async function deleteRole(id) {
+  await apiClient.delete(`/roles/${id}`)
+}
+
 // Affectations
 export async function createAffectation(payload) {
   const { data } = await apiClient.post('/affectations', payload)

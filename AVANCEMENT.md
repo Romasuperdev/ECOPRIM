@@ -718,3 +718,50 @@ Dernier bloc de parité BACOU. Périmètre validé : **création + modification,
 Tests : création avec hachage bcrypt vérifié, unicité du login, modification sans changer le mot
 de passe, désactivation qui ne supprime pas la ligne.
 Suite : 50 tests, 223 assertions verts. Build Vite OK.
+
+## NEXORA École Primaire — marque, nettoyage, paramètres, communication (2 sept. 2026)
+
+### Marque
+Renommage complet en **NEXORA École Primaire** : nouveau logo SVG (monogramme N doré sur fond
+brun, aligné sur le thème existant) dans `components/ui/Logo.jsx`, favicon `public/favicon.svg`,
+sidebar application, sidebar Console, page de connexion, titre du navigateur, `lang="fr"`.
+Aucun changement de design : palette et composants inchangés.
+
+### Nettoyage de la navigation
+- Placeholders retirés : Calendrier scolaire, Compétences, Barèmes, Salles & créneaux,
+  Préinscriptions, Classe → Salle, Statistiques, Effectifs, Réunions.
+- **Gardés en « Bientôt » sur décision explicite** : Emplois du temps, Espace parent.
+- **Pages mortes supprimées** : Documents élèves/enseignants/établissement, Annonces, Messages.
+  Motif : leurs modèles (`Document`, `Annonce`, `Message`) n'avaient aucune connexion déclarée et
+  tapaient donc sur `economat.documents/annonces/messages`, tables inexistantes. `DocumentsPanel`
+  a été retiré des fiches élève et enseignant. Fichiers rangés dans `features/_retires/`.
+- Lien mort « Journal d'activité » retiré (sa route avait déjà disparu).
+
+### Console : page Rôles & permissions activée
+`/admin/roles` branchée sur l'API existante (catalogue `console_roles`) : liste, création,
+retrait du catalogue. Ajoutée aux deux sidebars.
+
+### Paramètres adossés à ECONOMAT
+Helper commun `App\Services\EconomatTable` : INSERT/UPDATE seulement, jamais de DELETE, avec
+détection à l'exécution des clés primaires IDENTITY vs compteur manuel.
+- **Documents élèves** → `T_PREREQUIS` : catalogue par niveau et année (libellé, type, montant,
+  quantité, exigé à l'inscription / à la scolarité), filtres année/niveau/recherche.
+- **Passerelle SMS** → `ECO_SMS_CONFIG` (et non `T_SMS`, qui est le journal des envois) :
+  fournisseur, environnement, URL/clé/secret API, expéditeur, options. **Clé et secret jamais
+  réaffichés** ; un enregistrement sans clé conserve la clé existante.
+- **Messagerie SMTP** → `T_MAIL_DIFFUSION` : adresse, serveur, port, mot de passe (jamais renvoyé).
+Les deux configurations sont rattachées à l'établissement du contexte de travail.
+
+### Communication
+Annonces et Messages remplacés par deux pages : **Envoi SMS / Mail** (choix du canal,
+destinataires multiples, compteur 250 caractères pour le SMS) et **Historique des envois**.
+- SMS : un enregistrement par destinataire dans `T_SMS` (file d'envoi reprise par la passerelle) ;
+  refusé en 422 si la passerelle n'est pas active.
+- Mail : envoi SMTP réel avec les paramètres de `T_MAIL_DIFFUSION`.
+
+Tests : `ParametresCommunicationTest` (11 cas) — documents élèves, secrets non exposés et
+préservés, refus si passerelle inactive, dépôt par destinataire, historique, borne de 250
+caractères. Suite : **61 tests, 274 assertions verts**. Build Vite OK.
+
+Reste du programme : formulaire d'inscription depuis `T_ETUDIANT`, enseignants depuis
+`T_PROFESSEUR`.

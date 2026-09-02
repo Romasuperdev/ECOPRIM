@@ -164,7 +164,8 @@ export default function LoginPage() {
         >
           <div className="flex max-w-[300px] flex-col items-center text-center">
             <span className="text-5xl">🎓</span>
-            <div className="mt-2 text-xl font-extrabold tracking-tight">ECOPRIM</div>
+            <div className="mt-2 text-xl font-extrabold tracking-tight">NEXORA</div>
+            <div className="text-[11px] font-medium uppercase tracking-wider opacity-70">École Primaire</div>
             <h2 className="mt-4 text-3xl font-extrabold">Bienvenue</h2>
             {consoleActive ? (
               <>
@@ -195,7 +196,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md md:hidden">
         <div className="mb-5 flex flex-col items-center">
           <span className="text-5xl">🎓</span>
-          <div className="mt-1 text-xl font-extrabold text-heading">ECOPRIM</div>
+          <div className="mt-1 text-xl font-extrabold text-heading">NEXORA</div>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">École Primaire</div>
         </div>
         <div className="card rounded-2xl p-6">
           <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl p-1" style={{ background: 'var(--surface-2)' }}>

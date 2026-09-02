@@ -1,38 +1,34 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import Logo from '../ui/Logo'
 import { ROLES } from '../../lib/constants'
 
-// Arborescence cible de l'application, réorganisée selon la taxonomie à 7 modules
-// (Paramètre / Traitement / Programme / Affectation / Évaluation & Résultats /
-// Parents-Tuteurs / Communication) — Administration & Traçabilité restent dans la
-// Console, non affectées par ce regroupement. `to: null` = module pas encore construit
-// (affiché mais non cliquable, avec une étiquette "Bientôt").
+// Navigation NEXORA. Seules les pages réellement fonctionnelles sont listées : les
+// entrées non construites ont été retirées, à deux exceptions assumées et validées
+// (Emplois du temps, Espace parent) qui restent affichées en « Bientôt » via `to: null`.
+// Les pages adossées à des tables inexistantes (documents/annonces/messages) ont été
+// supprimées ; Communication passe par l'envoi SMS/Mail.
 const GROUPS = [
   {
     label: '⚙️ Paramètre',
     items: [
       { to: '/annees-scolaires', label: 'Années scolaires' },
-      { to: null, label: 'Calendrier scolaire' },
       { to: '/niveaux', label: 'Cycles / Niveaux' },
       { to: '/classes', label: 'Classes' },
       { to: '/matieres', label: 'Matières' },
-      { to: null, label: 'Compétences' },
-      { to: null, label: 'Barèmes' },
-      { to: null, label: 'Salles & créneaux horaires' },
+      { to: '/parametres/documents-eleves', label: 'Documents élèves' },
+      { to: '/parametres/sms', label: 'Passerelle SMS' },
+      { to: '/parametres/mail', label: 'Messagerie (SMTP)' },
     ],
   },
   {
     label: '📝 Traitement',
     items: [
-      { to: null, label: 'Préinscriptions' },
       { to: '/inscriptions', label: 'Inscriptions' },
       { to: '/eleves', label: 'Élèves' },
       { to: '/enseignants', label: 'Enseignants' },
       { to: '/absences', label: 'Absences' },
-      { to: '/documents-eleves', label: 'Documents élèves' },
-      { to: '/documents-enseignants', label: 'Documents enseignants' },
-      { to: '/documents-etablissement', label: 'Documents établissement' },
     ],
   },
   {
@@ -48,7 +44,6 @@ const GROUPS = [
     label: '🔗 Affectation',
     items: [
       { to: '/classes', label: 'Élève / Enseignant → Classe' },
-      { to: null, label: 'Classe → Salle' },
     ],
   },
   {
@@ -59,8 +54,6 @@ const GROUPS = [
       { to: '/moyennes', label: 'Résultats & bulletins' },
       { to: '/conseils-classe', label: 'Conseils & délibérations' },
       { to: '/assiduite', label: 'Assiduité' },
-      { to: null, label: 'Statistiques' },
-      { to: null, label: 'Effectifs' },
     ],
   },
   {
@@ -73,9 +66,8 @@ const GROUPS = [
   {
     label: '🔔 Communication',
     items: [
-      { to: '/annonces', label: 'Annonces & notifications' },
-      { to: '/messages', label: 'Messages' },
-      { to: null, label: 'Réunions' },
+      { to: '/communication/envoi', label: 'Envoi SMS / Mail' },
+      { to: '/communication/historique', label: 'Historique des envois' },
     ],
   },
   {
@@ -85,9 +77,7 @@ const GROUPS = [
       { to: '/admin/societes', label: 'Sociétés' },
       { to: '/admin/etablissements', label: 'Établissements' },
       { to: '/admin/utilisateurs', label: 'Utilisateurs & Accès' },
-      { to: null, label: 'Rôles & permissions' },
-      { to: null, label: 'Paramètres' },
-      { to: '/admin/journal-activite', label: "Journal d'activité" },
+      { to: '/admin/roles', label: 'Rôles & permissions' },
     ],
   },
 ]
@@ -157,8 +147,8 @@ export default function Sidebar() {
       className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
       style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
     >
-      <div className="mb-6 px-2 text-base font-extrabold tracking-tight text-white">
-        ECOPRIM <span className="font-semibold opacity-80">🎓</span>
+      <div className="mb-6 px-2">
+        <Logo />
       </div>
       <nav className="space-y-0.5 pb-6 text-sm">
         <div className="mb-2">

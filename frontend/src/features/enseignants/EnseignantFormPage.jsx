@@ -10,7 +10,6 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import FormSection from '../../components/ui/FormSection'
 import { fetchEnseignant, createEnseignant, updateEnseignant, desactiverEnseignant } from './enseignantsApi'
-import DocumentsPanel from '../documents/DocumentsPanel'
 
 const schema = z.object({
   matricule: z.string().min(1, 'Le matricule est requis').max(30),
@@ -126,11 +125,6 @@ export default function EnseignantFormPage() {
         </div>
       </form>
 
-      {isEdit && enseignant && (
-        <div className="mt-6">
-          <DocumentsPanel documentableType="enseignant" documentableId={enseignant.id} />
-        </div>
-      )}
     </div>
   )
 }

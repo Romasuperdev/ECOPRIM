@@ -31,17 +31,18 @@ const EvaluationListPage = lazy(() => import('./features/rapports/EvaluationList
 const ProgrammeListPage = lazy(() => import('./features/programmes/ProgrammeListPage'))
 const ProgrammeFormPage = lazy(() => import('./features/programmes/ProgrammeFormPage'))
 const RessourceListPage = lazy(() => import('./features/ressources/RessourceListPage'))
-const DocumentsElevesPage = lazy(() => import('./features/documents/DocumentsElevesPage'))
-const DocumentsEnseignantsPage = lazy(() => import('./features/documents/DocumentsEnseignantsPage'))
-const DocumentsEtablissementPage = lazy(() => import('./features/documents/DocumentsEtablissementPage'))
 const InscriptionListPage = lazy(() => import('./features/inscriptions/InscriptionListPage'))
-const MessagesPage = lazy(() => import('./features/communication/MessagesPage'))
-const AnnoncesPage = lazy(() => import('./features/communication/AnnoncesPage'))
 const ConseilListPage = lazy(() => import('./features/conseils/ConseilListPage'))
 const ConseilDetailPage = lazy(() => import('./features/conseils/ConseilDetailPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
+const DocumentsElevesParamPage = lazy(() => import('./features/parametres/DocumentsElevesPage'))
+const SmsConfigPage = lazy(() => import('./features/parametres/SmsConfigPage'))
+const MailConfigPage = lazy(() => import('./features/parametres/MailConfigPage'))
+const EnvoiPage = lazy(() => import('./features/communication/EnvoiPage'))
+const HistoriquePage = lazy(() => import('./features/communication/HistoriquePage'))
+const RoleListPage = lazy(() => import('./features/admin/RoleListPage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
@@ -89,6 +90,7 @@ export default function App() {
               <Route path="/admin/etablissements/:code" element={<EtablissementDetailPage />} />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
+              <Route path="/admin/roles" element={<RoleListPage />} />
               </Route>
 
             <Route
@@ -100,6 +102,13 @@ export default function App() {
             >
               <Route path="/" element={<DashboardPage />} />
               <Route path="/choisir-etablissement" element={<ChoisirEtablissementPage />} />
+
+              <Route path="/parametres/documents-eleves" element={<DocumentsElevesParamPage />} />
+              <Route path="/parametres/sms" element={<SmsConfigPage />} />
+              <Route path="/parametres/mail" element={<MailConfigPage />} />
+
+              <Route path="/communication/envoi" element={<EnvoiPage />} />
+              <Route path="/communication/historique" element={<HistoriquePage />} />
 
               <Route path="/niveaux" element={<NiveauListPage />} />
               <Route path="/annees-scolaires" element={<AnneeScolaireListPage />} />
@@ -140,14 +149,9 @@ export default function App() {
 
               <Route path="/ressources" element={<RessourceListPage />} />
 
-              <Route path="/documents-eleves" element={<DocumentsElevesPage />} />
-              <Route path="/documents-enseignants" element={<DocumentsEnseignantsPage />} />
-              <Route path="/documents-etablissement" element={<DocumentsEtablissementPage />} />
 
               <Route path="/inscriptions" element={<InscriptionListPage />} />
 
-              <Route path="/messages" element={<MessagesPage />} />
-              <Route path="/annonces" element={<AnnoncesPage />} />
 
               <Route path="/conseils-classe" element={<ConseilListPage />} />
               <Route path="/conseils-classe/:id" element={<ConseilDetailPage />} />

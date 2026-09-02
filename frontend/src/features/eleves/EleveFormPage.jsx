@@ -27,7 +27,6 @@ import Select from '../../components/ui/Select'
 import FormSection from '../../components/ui/FormSection'
 import { fetchEleve, createEleve, updateEleve } from './elevesApi'
 import { fetchAllClasses } from '../reference/referenceApi'
-import DocumentsPanel from '../documents/DocumentsPanel'
 import InscriptionsPanel from '../inscriptions/InscriptionsPanel'
 import EleveParentsPanel from './EleveParentsPanel'
 
@@ -362,7 +361,6 @@ export default function EleveFormPage() {
         <div className="mt-6 space-y-6">
           <EleveParentsPanel eleve={eleve} />
           <InscriptionsPanel eleveId={eleve.id} />
-          <DocumentsPanel documentableType="eleve" documentableId={eleve.id} />
         </div>
       )}
     </div>
