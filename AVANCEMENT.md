@@ -912,3 +912,29 @@ Tests `AnneeClotureeTest` (13 cas) : refus à la création, à la modification, 
 année clôturée, à la photo ; consultation préservée ; documents et enseignants ; reconnaissance du
 code comme du libellé ; année inconnue non bloquante ; message nommant l'année.
 Suite : **95 tests, 396 assertions verts**. Build et lint propres.
+
+## En-tête : utilisateur, établissement et année de consultation (2 sept. 2026)
+
+L'en-tête porte désormais les trois repères du contexte de travail : **nom de l'utilisateur
+connecté** (avec ses rôles), **établissement** et **année scolaire** sous forme de liste
+déroulante pour consulter les années précédentes.
+
+- **L'établissement s'affiche sans action de l'utilisateur** : à défaut de choix explicite en
+  session, c'est le rattachement du compte (`RH_USER.Etab`) qui est présenté, avec l'indicateur
+  `etablissement_par_defaut`. L'ancien badge « Aucun établissement sélectionné » ne s'affiche
+  donc plus que pour un compte réellement sans rattachement. Un choix explicite prime toujours.
+- **Année de consultation** : `POST /contexte/annee`, conservée en session
+  (`annee_travail`), par défaut l'année active du référentiel. Une année **clôturée est
+  sélectionnable** — c'est le but : on consulte le passé. Elle est alors signalée dans l'en-tête
+  (cadre ambre + cadenas), et les verrous d'écriture déjà en place s'appliquent.
+- `GET /contexte` renvoie aussi la liste des années (la plus récente d'abord) avec, pour chacune,
+  son état `active` et `cloturee` — de quoi étiqueter « en cours » et « clôturée » dans la liste.
+- Changer d'année invalide les écrans rattachés à une année (inscriptions, documents élèves) : la
+  liste des inscriptions suit l'année de l'en-tête par défaut, tout en gardant son filtre local
+  pour un choix ponctuel.
+- `ContexteBadge` remplacé par `ContexteBarre`.
+
+Tests ajoutés à `ContexteTest` : rattachement proposé par défaut, choix explicite prioritaire,
+année active par défaut, consultation d'une année précédente clôturée et persistance du choix,
+refus d'une année inconnue, états exposés par le référentiel.
+Suite : **101 tests, 420 assertions verts**. Build et lint propres.

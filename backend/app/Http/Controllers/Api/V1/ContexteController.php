@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
+use App\Models\AnneeScolaire;
 use App\Models\Console\Etablissement;
 use App\Services\BEtablissementEcrivain;
 use Illuminate\Http\Request;
@@ -23,11 +24,102 @@ class ContexteController extends Controller
     /** Contexte courant + établissements que l'utilisateur a le droit de choisir. */
     public function show(Request $request)
     {
+        $disponibles = $this->disponibles($request)->values();
+        $effectif = $this->etablissementEffectif($request, $disponibles);
+        $annees = $this->annees();
+
         return [
-            'etablissement_code' => $request->session()->get('etablissement_code'),
-            'etablissement_nom' => $request->session()->get('etablissement_nom'),
-            'disponibles' => $this->disponibles($request)->values(),
+            // Établissement de travail : celui choisi en session, à défaut celui auquel
+            // le compte est rattaché dans RH_USER — l'utilisateur n'a rien à faire pour
+            // voir son établissement s'affichera.
+            'etablissement_code' => $effectif['code'],
+            'etablissement_nom' => $effectif['nom'],
+            'etablissement_par_defaut' => $effectif['par_defaut'],
+            'disponibles' => $disponibles,
+
+            // Année de consultation : celle choisie en session, à défaut l'année active.
+            'annee' => $this->anneeEffective($request, $annees),
+            'annees' => $annees,
         ];
+    }
+
+    /** Choix explicite en session, sinon rattachement RH_USER, sinon rien. */
+    private function etablissementEffectif(Request $request, $disponibles): array
+    {
+        $code = $request->session()->get('etablissement_code');
+        if ($code) {
+            return [
+                'code' => $code,
+                'nom' => $request->session()->get('etablissement_nom'),
+                'par_defaut' => false,
+            ];
+        }
+
+        $rattachement = trim((string) ($request->user()->Etab ?? ''));
+        if ($rattachement !== '') {
+            $connu = $disponibles->firstWhere('code', $rattachement);
+
+            return [
+                'code' => $rattachement,
+                'nom' => $connu['intitule'] ?? $rattachement,
+                'par_defaut' => true,
+            ];
+        }
+
+        return ['code' => null, 'nom' => null, 'par_defaut' => false];
+    }
+
+    /** Années scolaires, la plus récente d'abord. */
+    private function annees(): array
+    {
+        try {
+            return AnneeScolaire::orderByDesc('DEBUT')->get()
+                ->map(fn ($a) => [
+                    'libelle' => $a->libelle,
+                    'code_annee' => $a->code_annee,
+                    'active' => $a->active,
+                    'cloturee' => $a->cloturee,
+                ])
+                ->filter(fn ($a) => ! empty($a['libelle']))
+                ->values()->all();
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    private function anneeEffective(Request $request, array $annees): ?string
+    {
+        $choisie = $request->session()->get('annee_travail');
+        if ($choisie && collect($annees)->firstWhere('libelle', $choisie)) {
+            return $choisie;
+        }
+
+        return collect($annees)->firstWhere('active', true)['libelle']
+            ?? ($annees[0]['libelle'] ?? null);
+    }
+
+    /** Change l'année de consultation. Une année clôturée est acceptée : on la consulte. */
+    public function definirAnnee(Request $request)
+    {
+        $data = $request->validate(['annee' => ['required', 'string', 'max:50']]);
+        $annees = $this->annees();
+
+        $choix = collect($annees)->firstWhere('libelle', $data['annee']);
+        if (! $choix) {
+            throw ValidationException::withMessages([
+                'annee' => ['Cette année scolaire est inconnue du référentiel.'],
+            ]);
+        }
+
+        $request->session()->put('annee_travail', $choix['libelle']);
+
+        return response()->json([
+            'annee' => $choix['libelle'],
+            'cloturee' => $choix['cloturee'],
+            'message' => $choix['cloturee']
+                ? "Vous consultez l'année {$choix['libelle']}, clôturée : consultation seule."
+                : "Année de travail : {$choix['libelle']}.",
+        ]);
     }
 
     public function store(Request $request)

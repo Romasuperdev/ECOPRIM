@@ -149,6 +149,7 @@ Route::prefix('v1')->group(function () {
         Route::get('contexte', [ContexteController::class, 'show']);
         Route::post('contexte/etablissement', [ContexteController::class, 'store']);
         Route::delete('contexte/etablissement', [ContexteController::class, 'destroy']);
+        Route::post('contexte/annee', [ContexteController::class, 'definirAnnee']);
 
         Route::middleware('role:Super Admin')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);

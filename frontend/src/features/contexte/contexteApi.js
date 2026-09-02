@@ -14,3 +14,8 @@ export async function quitterEtablissement() {
   const { data } = await apiClient.delete('/contexte/etablissement')
   return data
 }
+
+export async function definirAnnee(annee) {
+  const { data } = await apiClient.post('/contexte/annee', { annee })
+  return data
+}

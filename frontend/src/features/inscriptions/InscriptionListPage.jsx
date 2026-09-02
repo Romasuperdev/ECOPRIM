@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import StepIndicator from '../../components/ui/StepIndicator'
+import { fetchContexte } from '../contexte/contexteApi'
 import { ImagePlus, Lock, User } from 'lucide-react'
 import {
   createInscription,
@@ -39,7 +40,8 @@ const VIDE = {
 
 export default function InscriptionListPage() {
   const [page, setPage] = useState(1)
-  const [filtres, setFiltres] = useState({ q: '', annee: '', classe: '', mouvement: '' })
+  // annee à null = on suit l'année choisie dans l'en-tête ; une chaîne = choix local.
+  const [filtres, setFiltres] = useState({ q: '', annee: null, classe: '', mouvement: '' })
   const [form, setForm] = useState(null)
   const [etape, setEtape] = useState(0)
   const [photo, setPhoto] = useState(null)        // fichier choisi, pas encore envoyé
@@ -49,12 +51,15 @@ export default function InscriptionListPage() {
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
 
+  const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
+  const anneeEffective = filtres.annee ?? contexte?.annee ?? ''
+
   const { data, isLoading } = useQuery({
-    queryKey: ['inscriptions', page, filtres],
+    queryKey: ['inscriptions', page, { ...filtres, annee: anneeEffective }],
     queryFn: () => fetchInscriptions({
       page,
       q: filtres.q || undefined,
-      annee: filtres.annee || undefined,
+      annee: anneeEffective || undefined,
       classe: filtres.classe || undefined,
       mouvement: filtres.mouvement || undefined,
     }),
@@ -148,7 +153,7 @@ export default function InscriptionListPage() {
   const anneeCloturee = (libelle) =>
     Boolean(libelle) && (ref?.annees ?? []).some((a) => a.libelle === libelle && a.cloturee)
 
-  const filtreVerrouille = anneeCloturee(filtres.annee)
+  const filtreVerrouille = anneeCloturee(anneeEffective)
   const dossierVerrouille = Boolean(form) && (anneeCloturee(form.annee) || (form.id && anneeCloturee(form._anneeInitiale)))
 
   // Assistant identique en création et en modification.
@@ -187,7 +192,7 @@ export default function InscriptionListPage() {
             setErreurs({})
             setEtape(0)
             reinitPhoto()
-            setForm({ ...VIDE, annee: filtres.annee || ref?.annees?.find((a) => a.active && !a.cloturee)?.libelle || '' })
+            setForm({ ...VIDE, annee: (!filtreVerrouille && anneeEffective) || ref?.annees?.find((a) => a.active && !a.cloturee)?.libelle || '' })
           }}
         >
           + Nouvelle inscription
@@ -198,7 +203,7 @@ export default function InscriptionListPage() {
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <Lock size={16} className="mt-0.5 shrink-0" />
           <span>
-            L’année <strong>{filtres.annee}</strong> est clôturée : les dossiers sont en
+            L’année <strong>{anneeEffective}</strong> est clôturée : les dossiers sont en
             consultation seule. Aucun ajout, aucune modification ni suppression n’y est possible.
           </span>
         </div>
@@ -218,7 +223,7 @@ export default function InscriptionListPage() {
           </Select>
         </div>
         <div className="min-w-[150px]">
-          <Select label="Année" value={filtres.annee}
+          <Select label="Année" value={anneeEffective}
                   onChange={(e) => { setPage(1); setFiltres((f) => ({ ...f, annee: e.target.value })) }}>
             <option value="">Toutes</option>
             {ref?.annees?.map((a) => <option key={a.id} value={a.libelle}>{a.libelle}</option>)}
