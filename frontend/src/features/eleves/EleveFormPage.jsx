@@ -27,7 +27,6 @@ import Select from '../../components/ui/Select'
 import FormSection from '../../components/ui/FormSection'
 import { fetchEleve, createEleve, updateEleve } from './elevesApi'
 import { fetchAllClasses } from '../reference/referenceApi'
-import InscriptionsPanel from '../inscriptions/InscriptionsPanel'
 import EleveParentsPanel from './EleveParentsPanel'
 
 const schema = z.object({
@@ -360,7 +359,6 @@ export default function EleveFormPage() {
       {isEdit && eleve && (
         <div className="mt-6 space-y-6">
           <EleveParentsPanel eleve={eleve} />
-          <InscriptionsPanel eleveId={eleve.id} />
         </div>
       )}
     </div>

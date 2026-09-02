@@ -765,3 +765,41 @@ caractères. Suite : **61 tests, 274 assertions verts**. Build Vite OK.
 
 Reste du programme : formulaire d'inscription depuis `T_ETUDIANT`, enseignants depuis
 `T_PROFESSEUR`.
+
+## Inscriptions et Enseignants : saisie réelle dans ECONOMAT (2 sept. 2026)
+
+Deux services d'écriture, mêmes règles que le reste : création + modification, jamais de
+suppression, liste blanche stricte des colonnes.
+
+### Inscriptions → `T_ETUDIANT` (74 colonnes)
+- `App\Services\EtudiantEcrivain` : écrit uniquement identité, coordonnées, scolarité et
+  filiation. Le **financier** (`Scolarite`, `TotalPaye`, `Rb_PC`, `Rb_SCO`, `Remise`, `PC`) et le
+  **technique** (`MDP`, `MDP2`, `NUM`) ne sont jamais touchés — un test le vérifie en posant une
+  valeur financière côté ECONOMAT puis en modifiant l'élève.
+- Une inscription EST un élève. Les **quatre mouvements** (inscription, réinscription, transfert
+  entrant, transfert sortant) sont portés par les indicateurs `Inscription` / `Reinscription` /
+  `Transfert`, avec filtre par mouvement dans la liste.
+- `InscriptionController` remplace l'ancien, qui écrivait dans une table `inscriptions`
+  inexistante (page morte). Route DELETE supprimée. `InscriptionsPanel` retiré de la fiche élève :
+  il faisait doublon puisque l'inscription est l'élève lui-même.
+- Formulaire en cinq sections (mouvement, identité, coordonnées, scolarité, père/tuteur, mère),
+  listes déroulantes alimentées par les référentiels (années, cycles, niveaux, classes) avec
+  cascade cycle → niveau → classe. Champs d'origine affichés seulement pour les transferts.
+
+### Enseignants → `T_PROFESSEUR` (63 colonnes)
+- `App\Services\ProfesseurEcrivain` : état civil, coordonnées, carrière. Le **salaire**
+  (`SalaireMensuel`) et le **mot de passe** (`Mdp`) ne sont jamais écrits — testé en tentant de
+  les passer dans la requête.
+- `NomComplet` est dérivé automatiquement de prénom + nom, car les listes ECONOMAT s'en servent.
+- Pas de suppression : un départ se renseigne par `DateDepart`, `Motif`, `EtabAccueil`.
+- Le formulaire existait mais n'avait **aucune route** : `/enseignants/nouveau` et
+  `/enseignants/:id/modifier` ajoutées, bouton de création et lien Éditer dans la liste,
+  recherche par nom/prénom/matricule. Les appels `deleteEnseignant`/`desactiverEnseignant`
+  (sans route backend) ont été retirés de l'API front.
+
+Tests `SaisieEconomatTest` (11 cas) : écriture en base, champs obligatoires, les quatre
+mouvements et leurs indicateurs, filtre par mouvement, unicité des matricules, financier
+préservé à la modification, absence de route de suppression (405), départ enseignant.
+Suite : **72 tests, 322 assertions verts**. Build Vite OK.
+
+Programme du jour terminé.

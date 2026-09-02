@@ -15,6 +15,7 @@ const EleveListPage = lazy(() => import('./features/eleves/EleveListPage'))
 const EleveDetailPage = lazy(() => import('./features/eleves/EleveDetailPage'))
 const ClasseListPage = lazy(() => import('./features/classes/ClasseListPage'))
 const EnseignantListPage = lazy(() => import('./features/enseignants/EnseignantListPage'))
+const EnseignantFormPage = lazy(() => import('./features/enseignants/EnseignantFormPage'))
 const MatiereListPage = lazy(() => import('./features/matieres/MatiereListPage'))
 const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage'))
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
@@ -119,6 +120,8 @@ export default function App() {
               <Route path="/classes" element={<ClasseListPage />} />
 
               <Route path="/enseignants" element={<EnseignantListPage />} />
+              <Route path="/enseignants/nouveau" element={<EnseignantFormPage />} />
+              <Route path="/enseignants/:id/modifier" element={<EnseignantFormPage />} />
 
               <Route path="/matieres" element={<MatiereListPage />} />
               <Route path="/matieres/nouvelle" element={<MatiereFormPage />} />

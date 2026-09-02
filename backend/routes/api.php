@@ -58,7 +58,9 @@ Route::prefix('v1')->group(function () {
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
         Route::get('notes', [NoteController::class, 'index']);
         Route::get('enseignants', [EnseignantController::class, 'index']);
+        Route::post('enseignants', [EnseignantController::class, 'store']);
         Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);
+        Route::put('enseignants/{enseignant}', [EnseignantController::class, 'update']);
         Route::get('matieres', [MatiereController::class, 'index']);
         Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
         Route::get('absences', [AbsenceController::class, 'index']);
@@ -93,10 +95,11 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('ressources', RessourceController::class);
 
         // Scolarité
+        // Inscriptions = saisie d'un élève dans T_ETUDIANT. Pas de suppression : table partagée.
         Route::get('inscriptions', [InscriptionController::class, 'index']);
         Route::post('inscriptions', [InscriptionController::class, 'store']);
         Route::get('inscriptions/{inscription}', [InscriptionController::class, 'show']);
-        Route::delete('inscriptions/{inscription}', [InscriptionController::class, 'destroy']);
+        Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update']);
 
         // Documents
         Route::get('documents', [DocumentController::class, 'index']);

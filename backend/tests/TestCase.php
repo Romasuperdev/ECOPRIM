@@ -250,6 +250,16 @@ abstract class TestCase extends BaseTestCase
             $t->string('Matiere')->nullable();
             $t->string('DateEmbauche')->nullable();
             $t->integer('SalaireMensuel')->nullable();
+            $t->string('AdresseProfesseur')->nullable();
+            $t->string('SituationMatrimoniale')->nullable();
+            $t->string('DateNaiss')->nullable();
+            $t->string('LieuNaiss')->nullable();
+            $t->string('DiplTitrUniv')->nullable();
+            $t->string('Ville')->nullable();
+            $t->string('CodeAnnee')->nullable();
+            $t->string('DateDepart')->nullable();
+            $t->string('Motif')->nullable();
+            $t->string('EtabAccueil')->nullable();
         });
 
         Schema::connection('economat')->create('T_ETUDIANT', function ($t) {
@@ -261,6 +271,19 @@ abstract class TestCase extends BaseTestCase
             $t->date('DateNaiss')->nullable();
             $t->string('LieuNaiss')->nullable();
             $t->string('Nationalite')->nullable();
+            $t->string('Adresse')->nullable();
+            $t->string('Email')->nullable();
+            $t->string('Telephone')->nullable();
+            $t->string('Ville')->nullable();
+            $t->string('Commune')->nullable();
+            $t->string('Quartier')->nullable();
+            $t->string('EtabOrigine')->nullable();
+            $t->string('NiveauOrigine')->nullable();
+            $t->date('DateInscription')->nullable();
+            $t->integer('Inscription')->nullable();
+            $t->integer('Reinscription')->nullable();
+            $t->integer('Transfert')->nullable();
+            $t->string('CODESOCIETE')->nullable();
             $t->string('CodeClasse')->nullable();
             $t->string('CodeNiveau')->nullable();
             $t->string('CodeCycle')->nullable();
