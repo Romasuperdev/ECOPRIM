@@ -4,6 +4,7 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
+use App\Support\AnneeScolaireGuard;
 use Illuminate\Support\Facades\Schema;
 
 abstract class TestCase extends BaseTestCase
@@ -107,6 +108,8 @@ abstract class TestCase extends BaseTestCase
      */
     protected function setUpEconomatDb(): void
     {
+        AnneeScolaireGuard::oublier();
+
         config(['database.connections.economat' => [
             'driver' => 'sqlite',
             'database' => ':memory:',

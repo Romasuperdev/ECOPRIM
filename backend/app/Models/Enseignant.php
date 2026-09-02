@@ -15,8 +15,8 @@ class Enseignant extends Model
     public $timestamps = false;
 
     // Liste blanche : on n'expose que le pédagogique/état civil, jamais le salaire ni le mot de passe.
-    protected $visible = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche'];
-    protected $appends = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche'];
+    protected $visible = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche', 'annee_code'];
+    protected $appends = ['id', 'matricule', 'nom', 'prenom', 'nom_complet', 'sexe', 'email', 'telephone', 'statut', 'grade', 'matiere', 'date_embauche', 'annee_code'];
 
     public function getIdAttribute() { return $this->attributes['Code'] ?? null; }
     public function getMatriculeAttribute() { return $this->attributes['MatriculeProfesseur'] ?? null; }
@@ -30,4 +30,5 @@ class Enseignant extends Model
     public function getGradeAttribute() { return $this->attributes['GradeProfesseur'] ?? null; }
     public function getMatiereAttribute() { return $this->attributes['Matiere'] ?? null; }
     public function getDateEmbaucheAttribute() { return $this->attributes['DateEmbauche'] ?? null; }
+    public function getAnneeCodeAttribute() { return $this->attributes['CodeAnnee'] ?? null; }
 }

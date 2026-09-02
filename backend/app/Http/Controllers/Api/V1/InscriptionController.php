@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Eleve;
 use App\Services\EtudiantEcrivain;
 use App\Services\PhotoEleveStockage;
+use App\Support\AnneeScolaireGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -105,6 +106,9 @@ class InscriptionController extends Controller
     {
         $data = $request->validate($this->regles(true));
 
+        // Une année clôturée n'accepte aucune inscription.
+        AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, "L'inscription d'un élève");
+
         if (! empty($data['matricule']) && $this->ecrivain->matriculeExiste($data['matricule'])) {
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);
         }
@@ -118,6 +122,11 @@ class InscriptionController extends Controller
     {
         $eleve = Eleve::findOrFail($inscription);
         $data = $request->validate($this->regles(false));
+
+        // L'année ACTUELLE du dossier verrouille sa modification, et on n'autorise pas
+        // non plus de le déplacer VERS une année clôturée.
+        AnneeScolaireGuard::assertModifiable($eleve->annee, 'La modification de ce dossier');
+        AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, 'Le rattachement à cette année');
 
         if (! empty($data['matricule']) && $this->ecrivain->matriculeExiste($data['matricule'], $inscription)) {
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);
@@ -151,6 +160,8 @@ class InscriptionController extends Controller
     public function televerserPhoto(Request $request, int $inscription)
     {
         $eleve = Eleve::findOrFail($inscription);
+
+        AnneeScolaireGuard::assertModifiable($eleve->annee, "L'ajout d'une photo");
 
         $request->validate([
             'photo' => [

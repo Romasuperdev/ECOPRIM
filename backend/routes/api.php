@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\V1\SanctionController;
 use App\Http\Controllers\Api\V1\ParentController;
 use App\Http\Controllers\Api\V1\SeanceController;
 use App\Http\Controllers\Api\V1\ClasseIntervenantController;
-use App\Http\Controllers\Api\V1\RetardController;
 use App\Http\Controllers\Api\V1\RapportController;
 use App\Http\Controllers\Api\V1\ProgrammeController;
 use App\Http\Controllers\Api\V1\RessourceController;
@@ -88,7 +87,6 @@ Route::prefix('v1')->group(function () {
         Route::post('coefficients', [CoefficientController::class, 'store']);
         Route::delete('coefficients/{coefficient}', [CoefficientController::class, 'destroy']);
         Route::get('periodes', [PeriodeController::class, 'index']);
-        Route::apiResource('retards', RetardController::class);
         Route::get('classes/{classe}/moyennes', [RapportController::class, 'moyennesClasse']);
         Route::get('classes/{classe}/assiduite', [RapportController::class, 'assiduiteClasse']);
         Route::get('evaluations', [RapportController::class, 'evaluations']);

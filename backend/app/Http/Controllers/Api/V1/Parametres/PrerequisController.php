@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Parametres;
 
 use App\Http\Controllers\Controller;
 use App\Services\EconomatTable;
+use App\Support\AnneeScolaireGuard;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -98,6 +99,8 @@ class PrerequisController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->regles());
+        AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, "L'ajout d'un document");
+
         $id = $this->t()->inserer($this->colonnes($data));
 
         return response()->json($this->ligne($this->t()->trouver($id)), 201);
@@ -105,8 +108,13 @@ class PrerequisController extends Controller
 
     public function update(Request $request, $prerequis)
     {
-        abort_unless($this->t()->trouver($prerequis), 404, 'Prérequis introuvable.');
+        $existant = $this->t()->trouver($prerequis);
+        abort_unless($existant, 404, 'Prérequis introuvable.');
+
         $data = $request->validate($this->regles());
+        AnneeScolaireGuard::assertModifiable($existant->ANNEE ?? null, 'La modification de ce document');
+        AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, 'Le rattachement à cette année');
+
         $this->t()->modifier($prerequis, $this->colonnes($data));
 
         return response()->json($this->ligne($this->t()->trouver($prerequis)));

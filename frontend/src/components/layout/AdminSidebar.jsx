@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, Users, ShieldCheck, ScrollText, ArrowLeftCircle } from 'lucide-react'
+import { LayoutDashboard, Building2, School, Users, ShieldCheck, ArrowLeftCircle } from 'lucide-react'
 
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },

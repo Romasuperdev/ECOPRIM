@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import StepIndicator from '../../components/ui/StepIndicator'
-import { ImagePlus, User } from 'lucide-react'
+import { ImagePlus, Lock, User } from 'lucide-react'
 import {
   createInscription,
   fetchInscriptions,
@@ -144,6 +144,13 @@ export default function InscriptionListPage() {
     setApercu(URL.createObjectURL(fichier))
   }
 
+  // Une année clôturée est en consultation seule : ni ajout, ni modification.
+  const anneeCloturee = (libelle) =>
+    Boolean(libelle) && (ref?.annees ?? []).some((a) => a.libelle === libelle && a.cloturee)
+
+  const filtreVerrouille = anneeCloturee(filtres.annee)
+  const dossierVerrouille = Boolean(form) && (anneeCloturee(form.annee) || (form.id && anneeCloturee(form._anneeInitiale)))
+
   // Assistant identique en création et en modification.
   const enAssistant = Boolean(form)
   const visible = (index) => !enAssistant || etape === index
@@ -173,15 +180,29 @@ export default function InscriptionListPage() {
             Inscriptions, réinscriptions et transferts — saisie directe dans ECONOMAT.T_ETUDIANT.
           </p>
         </div>
-        <Button onClick={() => {
-          setErreurs({})
-          setEtape(0)
-          reinitPhoto()
-          setForm({ ...VIDE, annee: filtres.annee || ref?.annees?.find((a) => a.active)?.libelle || '' })
-        }}>
+        <Button
+          disabled={filtreVerrouille}
+          title={filtreVerrouille ? 'Année clôturée : consultation seule.' : undefined}
+          onClick={() => {
+            setErreurs({})
+            setEtape(0)
+            reinitPhoto()
+            setForm({ ...VIDE, annee: filtres.annee || ref?.annees?.find((a) => a.active && !a.cloturee)?.libelle || '' })
+          }}
+        >
           + Nouvelle inscription
         </Button>
       </div>
+
+      {filtreVerrouille && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <Lock size={16} className="mt-0.5 shrink-0" />
+          <span>
+            L’année <strong>{filtres.annee}</strong> est clôturée : les dossiers sont en
+            consultation seule. Aucun ajout, aucune modification ni suppression n’y est possible.
+          </span>
+        </div>
+      )}
 
       {/* Filtres */}
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -245,7 +266,12 @@ export default function InscriptionListPage() {
                             setErreurs({})
                             setEtape(0)
                             reinitPhoto()
-                            setForm({ ...VIDE, ...Object.fromEntries(Object.entries(e).map(([k, v]) => [k, v ?? ''])), id: e.id })
+                            setForm({
+                              ...VIDE,
+                              ...Object.fromEntries(Object.entries(e).map(([k, v]) => [k, v ?? ''])),
+                              id: e.id,
+                              _anneeInitiale: e.annee ?? '',
+                            })
                           }}>
                     Éditer
                   </Button>
@@ -276,6 +302,16 @@ export default function InscriptionListPage() {
             </h2>
             <p className="mb-5 text-xs text-slate-400">Formulaire alimenté par ECONOMAT.T_ETUDIANT.</p>
 
+            {dossierVerrouille && (
+              <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <Lock size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  Année clôturée : ce dossier est en consultation seule. L’enregistrement est
+                  désactivé.
+                </span>
+              </div>
+            )}
+
             {enAssistant && (
               <StepIndicator etapes={ETAPES} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
             )}
@@ -285,6 +321,7 @@ export default function InscriptionListPage() {
                 ev.preventDefault()
                 // Entrée au clavier : on avance dans l'assistant au lieu d'enregistrer trop tôt.
                 if (enAssistant && !derniere) return suivant()
+                if (dossierVerrouille) return
                 enregistrer.mutate(form)
               }}
               className="space-y-5"
@@ -328,7 +365,11 @@ export default function InscriptionListPage() {
                   </Select>
                   <Select label="Année scolaire *" value={form.annee} onChange={(e) => champ('annee', e.target.value)} error={err('annee')}>
                     <option value="">— Choisir —</option>
-                    {ref?.annees?.map((a) => <option key={a.id} value={a.libelle}>{a.libelle}</option>)}
+                    {ref?.annees?.map((a) => (
+                      <option key={a.id} value={a.libelle} disabled={a.cloturee && a.libelle !== form._anneeInitiale}>
+                        {a.libelle}{a.cloturee ? ' (clôturée)' : ''}
+                      </option>
+                    ))}
                   </Select>
                   <Select label="Cycle" value={form.cycle_code} onChange={(e) => { champ('cycle_code', e.target.value); champ('niveau_code', ''); champ('classe_code', '') }} error={err('cycle_code')}>
                     <option value="">—</option>
@@ -449,7 +490,11 @@ export default function InscriptionListPage() {
                   {enAssistant && !derniere ? (
                     <Button type="button" onClick={suivant}>Suivant</Button>
                   ) : (
-                    <Button type="submit" disabled={enregistrer.isPending}>
+                    <Button
+                      type="submit"
+                      disabled={enregistrer.isPending || dossierVerrouille}
+                      title={dossierVerrouille ? 'Année clôturée : consultation seule.' : undefined}
+                    >
                       {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
                     </Button>
                   )}

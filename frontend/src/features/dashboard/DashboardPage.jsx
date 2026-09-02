@@ -5,8 +5,6 @@ import {
   GraduationCap,
   TrendingUp,
   CalendarX,
-  ShieldAlert,
-  Timer,
   CheckCircle2,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -63,8 +61,6 @@ export default function DashboardPage() {
           value={stats?.taux_assiduite !== null && stats?.taux_assiduite !== undefined ? `${stats.taux_assiduite}%` : null}
         />
         <StatCard icon={CalendarX} label="Absences ce mois" value={stats?.absences_ce_mois} />
-        <StatCard icon={Timer} label="Retards ce mois" value={stats?.retards_ce_mois} />
-        <StatCard icon={ShieldAlert} label="Sanctions ce mois" value={stats?.sanctions_ce_mois} />
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">

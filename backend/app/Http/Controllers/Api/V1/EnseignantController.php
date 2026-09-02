@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Enseignant;
 use App\Services\ProfesseurEcrivain;
+use App\Support\AnneeScolaireGuard;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -67,6 +68,7 @@ class EnseignantController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->regles());
+        AnneeScolaireGuard::assertModifiable($data['annee_code'] ?? null, "L'enregistrement d'un enseignant");
 
         if (! empty($data['matricule']) && $this->ecrivain->matriculeExiste($data['matricule'])) {
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);
@@ -81,6 +83,9 @@ class EnseignantController extends Controller
     {
         $data = $request->validate($this->regles());
         $code = (int) $enseignant->getKey();
+
+        AnneeScolaireGuard::assertModifiable($enseignant->annee_code ?? null, 'La modification de cette fiche');
+        AnneeScolaireGuard::assertModifiable($data['annee_code'] ?? null, 'Le rattachement à cette année');
 
         if (! empty($data['matricule']) && $this->ecrivain->matriculeExiste($data['matricule'], $code)) {
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);

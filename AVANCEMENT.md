@@ -872,3 +872,43 @@ minimum (un libellé, débit limité, aucune autre donnée).
 Tests : reconnaissance par login/email/matricule, repli sur le code, absence de fuite pour les
 trois cas nuls, forme de la réponse, identifiant obligatoire.
 Suite : **82 tests, 363 assertions verts**. Build et lint propres.
+
+## Année scolaire clôturée : consultation seule (2 sept. 2026)
+
+Règle appliquée sans exception : sur une année clôturée (`T_ANNEEACADEMIQUE.ClotureDefinitive`),
+**aucun ajout, aucune modification, aucune suppression** — la lecture reste entière.
+
+`App\Support\AnneeScolaireGuard` réécrit. L'ancien guard était **mort** (branché uniquement sur
+`RetardController`, dont la page avait été retirée) et raisonnait sur la clé numérique de l'année,
+alors que les écritures NEXORA désignent l'année par son libellé ou son code. Il cherche
+désormais la correspondance sur `CodeAnnee`, `LibelleAnnee` et `CODE`, avec un cache par requête.
+La réponse est un **423 Locked** (la donnée existe mais est verrouillée), avec un message nommant
+l'année. L'échappatoire Super Admin `?force=1` de l'ancienne version n'a pas été reprise.
+
+Verrous posés sur les trois écritures qui portent une année :
+- **Inscriptions** (`T_ETUDIANT`) : création, modification, ajout de photo. À la modification,
+  l'année ACTUELLE du dossier verrouille, et on refuse aussi de le déplacer VERS une année
+  clôturée.
+- **Documents élèves** (`T_PREREQUIS`) : création et modification, mêmes deux contrôles.
+- **Enseignants** (`T_PROFESSEUR`) : création et modification sur `CodeAnnee`.
+Une année inconnue du référentiel ne verrouille pas, et une base injoignable non plus : on ne
+bloque pas une saisie sur une incertitude technique.
+
+Côté écran : bandeau d'avertissement quand le filtre porte sur une année clôturée, bouton
+« Nouvelle inscription » désactivé, années clôturées signalées « (clôturée) » et non sélectionnables
+dans le formulaire, bandeau et bouton Enregistrer désactivé sur un dossier verrouillé.
+
+### Corrections découvertes au passage
+- **Page Retards** : morte (modèle sur une table `retards` inexistante), pourtant encore routée en
+  `apiResource`. Contrôleur, modèle et pages front retirés.
+- **Tableau de bord** : il renvoyait une erreur 500. Il filtrait sur `active`, qui est un accesseur
+  et non une colonne (`Activer`), lisait `T_ABSENCEELEVE` par `date_absence` au lieu de `Date`, et
+  comptait des `notes`, `retards` et `sanctions` — trois tables inexistantes. Réécrit sur ECONOMAT :
+  moyennes via `V_MOYENNE_ELEVE_CLASSE`, effectifs groupés depuis `T_ETUDIANT`, indicateurs
+  « retards » et « sanctions » retirés (sans source). Chaque indicateur est isolé : une vue absente
+  renvoie null pour ce seul chiffre au lieu de faire tomber la page.
+
+Tests `AnneeClotureeTest` (13 cas) : refus à la création, à la modification, au déplacement vers une
+année clôturée, à la photo ; consultation préservée ; documents et enseignants ; reconnaissance du
+code comme du libellé ; année inconnue non bloquante ; message nommant l'année.
+Suite : **95 tests, 396 assertions verts**. Build et lint propres.
