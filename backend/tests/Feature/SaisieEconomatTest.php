@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\RhUser;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -171,5 +173,98 @@ class SaisieEconomatTest extends TestCase
 
         $this->postJson('/api/v1/enseignants', ['matricule' => 'P001', 'nom' => 'C', 'prenom' => 'D'])
             ->assertStatus(422)->assertJsonValidationErrors('matricule');
+    }
+
+    // --- Photo de l'élève (dossier partagé + T_ETUDIANT.Photo) ---
+
+    private function dossierPhotos(): string
+    {
+        $dossier = sys_get_temp_dir().'/nexora-photos-'.getmypid();
+        config(['nexora.photos_eleves.chemin' => $dossier]);
+
+        return $dossier;
+    }
+
+    public function test_televerser_une_photo_ecrit_le_fichier_et_son_nom_en_base(): void
+    {
+        $dossier = $this->dossierPhotos();
+        File::deleteDirectory($dossier);
+
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001']))
+            ->assertCreated()->json('id');
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", [
+            'photo' => UploadedFile::fake()->image('portrait.jpg', 300, 400),
+        ])->assertOk()->assertJsonPath('photo', 'M001.jpg');
+
+        // Le nom seul est stocké : ECONOMAT lit le dossier partagé.
+        $this->assertDatabaseHas('T_ETUDIANT', ['Code' => $code, 'Photo' => 'M001.jpg'], 'economat');
+        $this->assertFileExists($dossier.'/M001.jpg');
+
+        File::deleteDirectory($dossier);
+    }
+
+    public function test_une_nouvelle_photo_remplace_la_precedente(): void
+    {
+        $dossier = $this->dossierPhotos();
+        File::deleteDirectory($dossier);
+
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001']))
+            ->assertCreated()->json('id');
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", ['photo' => UploadedFile::fake()->image('a.png')])->assertOk();
+        $this->assertFileExists($dossier.'/M001.png');
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", ['photo' => UploadedFile::fake()->image('b.jpg')])->assertOk();
+
+        // Pas d'accumulation : l'ancienne extension disparaît.
+        $this->assertFileExists($dossier.'/M001.jpg');
+        $this->assertFileDoesNotExist($dossier.'/M001.png');
+        $this->assertDatabaseHas('T_ETUDIANT', ['Code' => $code, 'Photo' => 'M001.jpg'], 'economat');
+
+        File::deleteDirectory($dossier);
+    }
+
+    public function test_un_fichier_non_image_est_refuse(): void
+    {
+        $this->dossierPhotos();
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide())->assertCreated()->json('id');
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", [
+            'photo' => UploadedFile::fake()->create('dossier.pdf', 40, 'application/pdf'),
+        ])->assertStatus(422)->assertJsonValidationErrors('photo');
+    }
+
+    public function test_la_photo_est_servie_et_404_si_absente(): void
+    {
+        $dossier = $this->dossierPhotos();
+        File::deleteDirectory($dossier);
+
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001']))
+            ->assertCreated()->json('id');
+
+        $this->getJson("/api/v1/inscriptions/{$code}/photo")->assertNotFound();
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", ['photo' => UploadedFile::fake()->image('p.jpg')])->assertOk();
+        $this->get("/api/v1/inscriptions/{$code}/photo")->assertOk();
+
+        File::deleteDirectory($dossier);
+    }
+
+    public function test_un_chemin_en_base_ne_permet_pas_de_sortir_du_dossier(): void
+    {
+        $dossier = $this->dossierPhotos();
+        File::deleteDirectory($dossier);
+        File::ensureDirectoryExists($dossier);
+
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide())->assertCreated()->json('id');
+
+        // Valeur hostile dans la colonne : elle est réduite à son basename.
+        DB::connection('economat')->table('T_ETUDIANT')->where('Code', $code)
+            ->update(['Photo' => '../../../../etc/passwd']);
+
+        $this->getJson("/api/v1/inscriptions/{$code}/photo")->assertNotFound();
+
+        File::deleteDirectory($dossier);
     }
 }

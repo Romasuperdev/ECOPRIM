@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import StepIndicator from '../../components/ui/StepIndicator'
+import { ImagePlus, User } from 'lucide-react'
 import {
   createInscription,
   fetchInscriptions,
   fetchReferentiels,
+  fetchPhotoBlob,
+  televerserPhoto,
   updateInscription,
 } from './inscriptionsApi'
 
@@ -19,10 +22,10 @@ const MOUVEMENTS = [
 ]
 
 // Assistant de saisie : une section par étape, dans l'ordre demandé.
-const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère']
+const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère', 'Photo']
 
 // Champs bloquants par étape : « Suivant » ne passe pas s'ils sont vides.
-const REQUIS = [['nom', 'prenom'], [], ['mouvement', 'annee'], [], []]
+const REQUIS = [['nom', 'prenom'], [], ['mouvement', 'annee'], [], [], []]
 
 const VIDE = {
   mouvement: 'inscription',
@@ -39,6 +42,10 @@ export default function InscriptionListPage() {
   const [filtres, setFiltres] = useState({ q: '', annee: '', classe: '', mouvement: '' })
   const [form, setForm] = useState(null)
   const [etape, setEtape] = useState(0)
+  const [photo, setPhoto] = useState(null)        // fichier choisi, pas encore envoyé
+  const [apercu, setApercu] = useState(null)      // URL locale d'aperçu
+  const [erreurPhoto, setErreurPhoto] = useState(null)
+  const [photoBlob, setPhotoBlob] = useState(null) // { id, url } de la photo déjà en base
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
 
@@ -57,9 +64,29 @@ export default function InscriptionListPage() {
   const invalider = () => qc.invalidateQueries({ queryKey: ['inscriptions'] })
 
   const enregistrer = useMutation({
-    mutationFn: (v) => (v.id ? updateInscription(v.id, v) : createInscription(v)),
-    onSuccess: () => { invalider(); setForm(null); setErreurs({}) },
+    // La photo ne peut partir qu'une fois l'élève enregistré : elle est nommée d'après lui.
+    mutationFn: async (v) => {
+      const eleve = v.id ? await updateInscription(v.id, v) : await createInscription(v)
+      if (photo) {
+        try {
+          await televerserPhoto(eleve.id, photo)
+        } catch (e) {
+          // L'élève est bien enregistré : on ne perd pas la saisie pour une photo.
+          throw Object.assign(new Error('photo'), {
+            photoSeulement: e?.response?.data?.message ?? 'La photo n’a pas pu être enregistrée.',
+          })
+        }
+      }
+      return eleve
+    },
+    onSuccess: () => { invalider(); setForm(null); setErreurs({}); reinitPhoto() },
     onError: (e) => {
+      if (e?.photoSeulement) {
+        invalider()
+        setErreurPhoto(e.photoSeulement)
+        setEtape(ETAPES.length - 1)
+        return
+      }
       const err = e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }
       setErreurs(err)
       // Si un champ d'une étape précédente est refusé, on y ramène l'utilisateur.
@@ -70,6 +97,52 @@ export default function InscriptionListPage() {
 
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const err = (k) => erreurs[k]?.[0]
+
+  // Photo déjà enregistrée : chargée en blob (le cookie de session passe par axios).
+  useEffect(() => {
+    if (!form?.id || !form?.photo) return undefined
+
+    let url = null
+    let annule = false
+    fetchPhotoBlob(form.id)
+      .then((blob) => {
+        if (annule) return
+        url = URL.createObjectURL(blob)
+        setPhotoBlob({ id: form.id, url })
+      })
+      .catch(() => {})
+
+    return () => {
+      annule = true
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [form?.id, form?.photo])
+
+  // Dérivé : on n'affiche le blob que s'il correspond bien au dossier ouvert.
+  const photoExistante = photoBlob?.id === form?.id ? photoBlob.url : null
+
+  const reinitPhoto = () => {
+    if (apercu) URL.revokeObjectURL(apercu)
+    setPhoto(null)
+    setApercu(null)
+    setErreurPhoto(null)
+  }
+
+  const choisirPhoto = (fichier) => {
+    setErreurPhoto(null)
+    if (!fichier) return
+    if (!fichier.type.startsWith('image/')) {
+      setErreurPhoto('Le fichier doit être une image (JPG, PNG ou WebP).')
+      return
+    }
+    if (fichier.size > 4 * 1024 * 1024) {
+      setErreurPhoto('L’image ne doit pas dépasser 4 Mo.')
+      return
+    }
+    if (apercu) URL.revokeObjectURL(apercu)
+    setPhoto(fichier)
+    setApercu(URL.createObjectURL(fichier))
+  }
 
   // Assistant identique en création et en modification.
   const enAssistant = Boolean(form)
@@ -103,6 +176,7 @@ export default function InscriptionListPage() {
         <Button onClick={() => {
           setErreurs({})
           setEtape(0)
+          reinitPhoto()
           setForm({ ...VIDE, annee: filtres.annee || ref?.annees?.find((a) => a.active)?.libelle || '' })
         }}>
           + Nouvelle inscription
@@ -170,6 +244,7 @@ export default function InscriptionListPage() {
                           onClick={() => {
                             setErreurs({})
                             setEtape(0)
+                            reinitPhoto()
                             setForm({ ...VIDE, ...Object.fromEntries(Object.entries(e).map(([k, v]) => [k, v ?? ''])), id: e.id })
                           }}>
                     Éditer
@@ -302,6 +377,58 @@ export default function InscriptionListPage() {
                   <Input label="Téléphone" value={form.mere_telephone} onChange={(e) => champ('mere_telephone', e.target.value)} error={err('mere_telephone')} />
                   <Input label="Email" value={form.mere_email} onChange={(e) => champ('mere_email', e.target.value)} error={err('mere_email')} />
                 </div>
+
+              <div className={visible(5) ? '' : 'hidden'}>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Photo</p>
+
+                <div className="flex flex-wrap items-start gap-6">
+                  {/* Aperçu : le fichier choisi, sinon la photo déjà en base */}
+                  <div className="flex h-36 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                    {apercu ? (
+                      <img src={apercu} alt="Aperçu de la photo" className="h-full w-full object-cover" />
+                    ) : photoExistante ? (
+                      <img src={photoExistante} alt={`Photo de ${form.nom}`} className="h-full w-full object-cover" />
+                    ) : (
+                      <User size={32} className="text-slate-300" />
+                    )}
+                  </div>
+
+                  <div className="min-w-[240px] flex-1">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <ImagePlus size={16} />
+                      {photo ? 'Changer la photo' : 'Choisir une photo'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => choisirPhoto(e.target.files?.[0])}
+                      />
+                    </label>
+
+                    {photo && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                        <span className="truncate">{photo.name}</span>
+                        <button type="button" onClick={reinitPhoto} className="font-medium text-red-600 hover:underline">
+                          Retirer
+                        </button>
+                      </div>
+                    )}
+
+                    {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
+
+                    <p className="mt-3 text-xs text-slate-400">
+                      JPG, PNG ou WebP, 4 Mo maximum. La photo est enregistrée dans le dossier
+                      partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
+                      remplace la précédente s’il en existait une.
+                    </p>
+                    {!form.id && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Elle sera envoyée juste après l’enregistrement de l’élève.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
               </div>
 
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}

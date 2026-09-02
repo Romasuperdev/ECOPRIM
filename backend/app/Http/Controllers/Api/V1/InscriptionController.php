@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Eleve;
 use App\Services\EtudiantEcrivain;
+use App\Services\PhotoEleveStockage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +21,10 @@ use Illuminate\Validation\ValidationException;
  */
 class InscriptionController extends Controller
 {
-    public function __construct(private EtudiantEcrivain $ecrivain) {}
+    public function __construct(
+        private EtudiantEcrivain $ecrivain,
+        private PhotoEleveStockage $photos,
+    ) {}
 
     public function index(Request $request)
     {
@@ -121,5 +126,55 @@ class InscriptionController extends Controller
         $this->ecrivain->modifier((int) $eleve->getKey(), $data);
 
         return response()->json(Eleve::findOrFail($inscription));
+    }
+
+    /**
+     * Sert la photo de l'élève depuis le dossier partagé. Le dossier n'étant pas
+     * exposé par le serveur web, le fichier est renvoyé en flux par l'API.
+     */
+    public function photo(int $inscription)
+    {
+        $eleve = Eleve::findOrFail($inscription);
+        $valeur = DB::connection('economat')->table('T_ETUDIANT')
+            ->where('Code', $eleve->getKey())->value('Photo');
+
+        $chemin = $this->photos->chemin($valeur);
+        abort_if(! $chemin, 404, 'Aucune photo pour cet élève.');
+
+        return response()->file($chemin);
+    }
+
+    /**
+     * Téléverse la photo : le fichier va dans le dossier partagé lu par ECONOMAT,
+     * et seul son nom est écrit dans T_ETUDIANT.Photo.
+     */
+    public function televerserPhoto(Request $request, int $inscription)
+    {
+        $eleve = Eleve::findOrFail($inscription);
+
+        $request->validate([
+            'photo' => [
+                'required', 'file', 'image',
+                'mimes:'.implode(',', $this->photos->extensionsAutorisees()),
+                'max:'.$this->photos->tailleMaxKo(),
+            ],
+        ], [], ['photo' => 'photo']);
+
+        $code = (int) $eleve->getKey();
+        $nomBase = trim((string) $eleve->matricule) ?: ('eleve-'.$code);
+
+        try {
+            $nomFichier = $this->photos->enregistrer($request->file('photo'), $nomBase);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        DB::connection('economat')->table('T_ETUDIANT')
+            ->where('Code', $code)->update(['Photo' => $nomFichier]);
+
+        return response()->json([
+            'photo' => $nomFichier,
+            'message' => 'Photo enregistrée.',
+        ]);
     }
 }

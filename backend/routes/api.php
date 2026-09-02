@@ -100,6 +100,8 @@ Route::prefix('v1')->group(function () {
         Route::post('inscriptions', [InscriptionController::class, 'store']);
         Route::get('inscriptions/{inscription}', [InscriptionController::class, 'show']);
         Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update']);
+        Route::get('inscriptions/{inscription}/photo', [InscriptionController::class, 'photo']);
+        Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto']);
 
         // Documents
         Route::get('documents', [DocumentController::class, 'index']);

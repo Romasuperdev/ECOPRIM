@@ -20,6 +20,22 @@ export async function updateInscription(id, payload) {
   return data
 }
 
+// Photo de l'élève : le fichier part vers le dossier partagé lu par ECONOMAT.
+export async function televerserPhoto(id, fichier) {
+  const corps = new FormData()
+  corps.append('photo', fichier)
+  const { data } = await apiClient.post(`/inscriptions/${id}/photo`, corps, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+/** La photo est protégée par la session : on la récupère via axios, pas par <img src>. */
+export async function fetchPhotoBlob(id) {
+  const { data } = await apiClient.get(`/inscriptions/${id}/photo`, { responseType: 'blob' })
+  return data
+}
+
 // Listes de référence pour alimenter le formulaire.
 export async function fetchReferentiels() {
   const [annees, cycles, niveaux, classes] = await Promise.all([

@@ -271,6 +271,7 @@ abstract class TestCase extends BaseTestCase
             $t->date('DateNaiss')->nullable();
             $t->string('LieuNaiss')->nullable();
             $t->string('Nationalite')->nullable();
+            $t->string('Photo')->nullable();
             $t->string('Adresse')->nullable();
             $t->string('Email')->nullable();
             $t->string('Telephone')->nullable();

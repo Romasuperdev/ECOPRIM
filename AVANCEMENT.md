@@ -819,3 +819,28 @@ boutons Précédent / Suivant et compteur « Étape n sur 5 ».
 - La touche Entrée fait avancer d'une étape au lieu d'enregistrer prématurément.
 - **L'assistant s'applique aussi en modification** : même parcours en cinq étapes pour créer et
   pour corriger un dossier, avec retour direct sur une étape via le fil d'étapes.
+
+## Inscriptions : étape Photo (2 sept. 2026)
+
+Sixième étape de l'assistant : **Photo**, avec aperçu, choix du fichier et remplacement.
+
+- `ECONOMAT.T_ETUDIANT.Photo` ne stocke qu'un **nom de fichier** : les images vivent dans un
+  dossier partagé lu par ECONOMAT. Ce dossier est paramétrable —
+  `NEXORA_PHOTOS_ELEVES` dans `.env` (voir `config/nexora.php`). Sans configuration, les photos
+  restent dans le stockage local de NEXORA et ECONOMAT ne les voit pas.
+- `App\Services\PhotoEleveStockage` : nommage déterministe d'après le matricule (sinon le code
+  élève), donc **une seule photo par élève** — les variantes d'extension de l'ancienne photo sont
+  retirées, pas d'accumulation de fichiers orphelins.
+- Routes `GET|POST /inscriptions/{id}/photo`. Le dossier partagé n'étant pas exposé par le serveur
+  web, la photo est renvoyée en flux par l'API. **Sécurité** : la valeur lue en base est réduite à
+  son `basename`, donc une valeur hostile du type `../../etc/passwd` ne permet pas de sortir du
+  dossier (testé).
+- Validation : image JPG/PNG/WebP, 4 Mo maximum (seuil configurable).
+- Front : la photo est récupérée en **blob via axios** et non par `<img src>`, car l'API est sur un
+  autre port et une balise `img` n'enverrait pas le cookie de session. À la création, le fichier est
+  gardé en mémoire puis envoyé juste après l'enregistrement de l'élève — si l'envoi de la photo
+  échoue, l'élève reste enregistré et l'assistant revient sur l'étape Photo avec le message.
+
+Tests : écriture du fichier et du nom en base, remplacement sans accumulation, refus d'un non-image,
+service du fichier et 404 si absent, tentative de remontée d'arborescence.
+Suite : **77 tests, 344 assertions verts**. Build et lint propres.
