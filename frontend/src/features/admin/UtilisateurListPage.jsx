@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import Select from '../../components/ui/Select'
 import {
   activerUtilisateur,
   createUtilisateur,
   desactiverUtilisateur,
+  fetchAllEtablissements,
   fetchUtilisateurs,
   updateUtilisateur,
 } from './adminApi'
@@ -26,6 +28,11 @@ export default function UtilisateurListPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['utilisateurs', page, q],
     queryFn: () => fetchUtilisateurs(page, q),
+  })
+
+  const { data: etablissements } = useQuery({
+    queryKey: ['etabs-tous'],
+    queryFn: () => fetchAllEtablissements(),
   })
 
   const invalider = () => qc.invalidateQueries({ queryKey: ['utilisateurs'] })
@@ -150,7 +157,17 @@ export default function UtilisateurListPage() {
 
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Rattachement</p>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Établissement (Etab)" value={form.etab ?? ''} onChange={(ev) => champ('etab', ev.target.value)} error={erreurs.etab?.[0]} />
+                <Select label="Établissement" value={form.etab ?? ''} onChange={(ev) => champ('etab', ev.target.value)} error={erreurs.etab?.[0]}>
+                  <option value="">— Aucun —</option>
+                  {etablissements?.map((e) => (
+                    <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>
+                  ))}
+                  {/* Valeur héritée de RH_USER qui ne correspond à aucun établissement connu :
+                      on la conserve pour ne pas l'effacer en enregistrant. */}
+                  {form.etab && !etablissements?.some((e) => e.code === form.etab) && (
+                    <option value={form.etab}>{form.etab} (inconnu)</option>
+                  )}
+                </Select>
                 <Input label="Profil" value={form.profil ?? ''} onChange={(ev) => champ('profil', ev.target.value)} error={erreurs.profil?.[0]} />
                 <Input label="Application (CodeApp)" value={form.code_app ?? ''} onChange={(ev) => champ('code_app', ev.target.value)} error={erreurs.code_app?.[0]} />
               </div>
