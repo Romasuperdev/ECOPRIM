@@ -1,10 +1,12 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
 import Button from '../ui/Button'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
+import ErrorBoundary from '../ErrorBoundary'
 
 export default function AdminLayout() {
+  const location = useLocation()
   const { user, logout } = useAuthStore()
 
   const handleLogout = async () => {
@@ -31,7 +33,9 @@ export default function AdminLayout() {
         </div>
         <div className="p-4 sm:p-6 lg:p-8 lg:pt-6">
           <div className="mx-auto w-full max-w-6xl">
-            <Outlet />
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </div>
       </main>

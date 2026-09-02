@@ -124,7 +124,7 @@ export default function InscriptionListPage() {
   }, [form?.id, form?.photo])
 
   // Dérivé : on n'affiche le blob que s'il correspond bien au dossier ouvert.
-  const photoExistante = photoBlob?.id === form?.id ? photoBlob.url : null
+  const photoExistante = form?.id && photoBlob?.id === form.id ? photoBlob.url : null
 
   const reinitPhoto = () => {
     if (apercu) URL.revokeObjectURL(apercu)
@@ -154,7 +154,7 @@ export default function InscriptionListPage() {
     Boolean(libelle) && (ref?.annees ?? []).some((a) => a.libelle === libelle && a.cloturee)
 
   const filtreVerrouille = anneeCloturee(anneeEffective)
-  const dossierVerrouille = Boolean(form) && (anneeCloturee(form.annee) || (form.id && anneeCloturee(form._anneeInitiale)))
+  const dossierVerrouille = Boolean(form) && Boolean(anneeCloturee(form.annee) || (form.id && anneeCloturee(form._anneeInitiale)))
 
   // Assistant identique en création et en modification.
   const enAssistant = Boolean(form)

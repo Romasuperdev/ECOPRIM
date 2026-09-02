@@ -938,3 +938,26 @@ Tests ajoutés à `ContexteTest` : rattachement proposé par défaut, choix expl
 année active par défaut, consultation d'une année précédente clôturée et persistance du choix,
 refus d'une année inconnue, états exposés par le référentiel.
 Suite : **101 tests, 420 assertions verts**. Build et lint propres.
+
+## Correctif : la page Inscriptions ne s'affichait plus (2 sept. 2026)
+
+**Cause.** Dans `InscriptionListPage`, la photo existante était dérivée ainsi :
+
+```js
+const photoExistante = photoBlob?.id === form?.id ? photoBlob.url : null
+```
+
+Au premier rendu, `photoBlob` et `form` valent tous deux `null` : les deux membres de la
+comparaison valent donc `undefined`, la condition est **vraie**, et le code lit `photoBlob.url`
+sur `null`. La page plantait dès le montage, d'où l'écran vide. Le `npm run build` passait
+puisqu'il s'agit d'une erreur d'exécution et non de syntaxe — c'est ce qui l'a laissée passer.
+
+**Correction.** `form?.id && photoBlob?.id === form.id ? … : null` : plus de comparaison entre
+deux `undefined`. Vérifié par un rendu hors navigateur (`react-dom/server`, requêtes désactivées
+pour reproduire le premier rendu) : l'ancienne ligne fait échouer le rendu, la nouvelle le passe.
+Le reste du fichier a été audité, aucune autre comparaison de ce type dans le front.
+
+**Garde-fou ajouté.** `components/ErrorBoundary.jsx`, branché autour de l'`<Outlet />` des deux
+layouts : une erreur d'affichage montre désormais un message lisible et laisse la navigation
+utilisable, au lieu d'une page blanche sans indice. Le détail technique reste dépliable, et le
+garde-fou se réarme au changement de route (`resetKey`).
