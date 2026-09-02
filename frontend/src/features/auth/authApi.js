@@ -12,6 +12,16 @@ export async function login({ email, password }) {
   return data
 }
 
+/**
+ * Établissement rattaché à un identifiant, affiché sur la page de connexion.
+ * Endpoint public et limité en débit : il ne renvoie que le libellé, et null pour
+ * un identifiant inconnu, désactivé ou sans établissement.
+ */
+export async function fetchEtablissementDuCompte(identifiant) {
+  const { data } = await apiClient.post('/etablissement-du-compte', { identifiant })
+  return data.etablissement ?? null
+}
+
 export async function logout() {
   await apiClient.post('/logout')
 }

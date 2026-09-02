@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, ShieldCheck, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { GraduationCap, ShieldCheck, Mail, Lock, Eye, EyeOff, School } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { useAuthStore } from '../../store/authStore'
 import { ROLES } from '../../lib/constants'
-import { login, logout } from './authApi'
+import { fetchEtablissementDuCompte, login, logout } from './authApi'
 
 // Deux paires de champs indépendantes (une par face du panneau). Contrôlées via useState,
 // pas React Hook Form : chaque face est montée deux fois en simultané (desktop + mobile,
@@ -17,6 +17,25 @@ function useCredentials() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({})
+  // { identifiant, nom } du dernier établissement trouvé : conservé avec l'identifiant
+  // interrogé pour n'afficher le libellé que s'il correspond encore à la saisie.
+  const [trouve, setTrouve] = useState(null)
+
+  useEffect(() => {
+    const identifiant = email.trim()
+    if (identifiant.length < 3) return undefined
+
+    let annule = false
+    const minuteur = setTimeout(() => {
+      fetchEtablissementDuCompte(identifiant)
+        .then((nom) => { if (!annule) setTrouve({ identifiant, nom }) })
+        .catch(() => {}) // silencieux : c'est un simple confort d'affichage
+    }, 500)
+
+    return () => { annule = true; clearTimeout(minuteur) }
+  }, [email])
+
+  const etablissement = trouve?.identifiant === email.trim() ? trouve.nom : null
 
   const validate = () => {
     const next = {}
@@ -26,7 +45,7 @@ function useCredentials() {
     return Object.keys(next).length === 0
   }
 
-  return { email, setEmail, password, setPassword, errors, validate }
+  return { email, setEmail, password, setPassword, errors, validate, etablissement }
 }
 
 export default function LoginPage() {
@@ -104,6 +123,19 @@ export default function LoginPage() {
           value={creds.email}
           onChange={(e) => creds.setEmail(e.target.value)}
         />
+        {creds.etablissement && (
+          <Input
+            id={fieldId('etablissement')}
+            type="text"
+            label="Établissement"
+            icon={School}
+            value={creds.etablissement}
+            readOnly
+            tabIndex={-1}
+            className="cursor-default opacity-90"
+            onChange={() => {}}
+          />
+        )}
         <Input
           id={fieldId('password')}
           type={showPassword ? 'text' : 'password'}

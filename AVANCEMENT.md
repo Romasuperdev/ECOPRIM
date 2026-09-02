@@ -844,3 +844,31 @@ Sixième étape de l'assistant : **Photo**, avec aperçu, choix du fichier et re
 Tests : écriture du fichier et du nom en base, remplacement sans accumulation, refus d'un non-image,
 service du fichier et 404 si absent, tentative de remontée d'arborescence.
 Suite : **77 tests, 344 assertions verts**. Build et lint propres.
+
+## Connexion : établissement du compte affiché avant le mot de passe (2 sept. 2026)
+
+Dès que l'identifiant est saisi (login, email ou matricule), le nom de l'établissement rattaché
+au compte apparaît dans un champ en lecture seule, placé **avant** le mot de passe.
+
+- Endpoint `POST /etablissement-du-compte`, public par nécessité (l'utilisateur n'est pas encore
+  connecté), avec plusieurs garde-fous :
+  - **il ne renvoie QUE le libellé de l'établissement** — la réponse ne contient rien d'autre,
+    vérifié par un test sur les clés du corps ;
+  - identifiant inconnu, compte désactivé ou compte sans établissement renvoient tous `null`,
+    donc aucune de ces situations n'est distinguable ;
+  - `throttle:10,1` pour freiner l'énumération d'identifiants ;
+  - le filtre `CodeApp` de la connexion s'applique aussi ici.
+- Le libellé vient de `BEtablissements`, à défaut de la surcouche `console_etablissements`, à
+  défaut le code brut est affiché.
+- Front : recherche déclenchée après 500 ms d'inactivité et à partir de 3 caractères ; le résultat
+  est conservé avec l'identifiant interrogé, donc le champ ne montre jamais un libellé qui ne
+  correspond plus à la saisie en cours. Échec réseau silencieux : ce n'est qu'un confort
+  d'affichage, il ne doit jamais bloquer la connexion.
+
+**Réserve assumée** : afficher un établissement confirme, pour un compte qui en a un, que
+l'identifiant existe. C'est inhérent à la fonctionnalité demandée ; l'exposition est réduite au
+minimum (un libellé, débit limité, aucune autre donnée).
+
+Tests : reconnaissance par login/email/matricule, repli sur le code, absence de fuite pour les
+trois cas nuls, forme de la réponse, identifiant obligatoire.
+Suite : **82 tests, 363 assertions verts**. Build et lint propres.

@@ -48,6 +48,11 @@ Route::prefix('v1')->group(function () {
     // Publiques
     Route::post('/login', [AuthController::class, 'login']);
 
+    // Public : libellé de l'établissement rattaché à un identifiant, affiché sur la page
+    // de connexion. Limité en débit pour freiner l'énumération d'identifiants.
+    Route::post('/etablissement-du-compte', [AuthController::class, 'etablissementDuCompte'])
+        ->middleware('throttle:10,1');
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);

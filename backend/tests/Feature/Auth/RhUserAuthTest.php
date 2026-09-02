@@ -19,6 +19,7 @@ class RhUserAuthTest extends TestCase
     {
         parent::setUp();
         $this->setUpMasterDb();
+        $this->setUpEconomatDb();
     }
 
     private function creerRh(array $a = []): array
@@ -114,5 +115,67 @@ class RhUserAuthTest extends TestCase
             ->assertOk()
             ->assertJsonPath('email', 'ama@ecole.ci')
             ->assertJsonFragment(['roles' => ['Super Admin']]);
+    }
+
+    // --- Établissement affiché sur la page de connexion ---
+
+    private function etablissementDe(string $identifiant)
+    {
+        return $this->withHeaders($this->spa)
+            ->postJson('/api/v1/etablissement-du-compte', ['identifiant' => $identifiant]);
+    }
+
+    public function test_l_etablissement_du_compte_est_renvoye_pour_la_page_de_connexion(): void
+    {
+        $this->creerRh(['Etab' => 'E1']);
+        DB::connection('economat')->table('BEtablissements')->insert([
+            'CodeEtablissement' => 'E1', 'Intitule' => 'École Alpha', 'CodeSociete' => 'ABN',
+        ]);
+
+        // Reconnu par le login, l'email ou le matricule.
+        foreach (['jdupont', 'jean@ecole.ci', 'MAT1'] as $identifiant) {
+            $this->etablissementDe($identifiant)->assertOk()
+                ->assertJsonPath('etablissement', 'École Alpha');
+        }
+    }
+
+    public function test_a_defaut_d_intitule_le_code_est_renvoye(): void
+    {
+        $this->creerRh(['Etab' => 'INCONNU']);
+
+        $this->etablissementDe('jdupont')->assertOk()
+            ->assertJsonPath('etablissement', 'INCONNU');
+    }
+
+    public function test_aucune_information_pour_un_identifiant_inconnu_desactive_ou_sans_etablissement(): void
+    {
+        // Identifiant inconnu
+        $this->etablissementDe('personne')->assertOk()->assertJsonPath('etablissement', null);
+
+        // Compte sans établissement
+        $this->creerRh(['Id' => 2, 'Login' => 'sansetab', 'Email' => 's@e.ci', 'Matricule' => 'MAT2', 'Etab' => null]);
+        $this->etablissementDe('sansetab')->assertOk()->assertJsonPath('etablissement', null);
+
+        // Compte désactivé, pourtant rattaché : même réponse, pas de fuite.
+        $this->creerRh(['Id' => 3, 'Login' => 'parti', 'Email' => 'p@e.ci', 'Matricule' => 'MAT3', 'Etab' => 'E1', 'Supprimer' => true]);
+        DB::connection('economat')->table('BEtablissements')->insert([
+            'CodeEtablissement' => 'E1', 'Intitule' => 'École Alpha', 'CodeSociete' => 'ABN',
+        ]);
+        $this->etablissementDe('parti')->assertOk()->assertJsonPath('etablissement', null);
+    }
+
+    public function test_la_reponse_ne_contient_que_l_etablissement(): void
+    {
+        $this->creerRh(['Etab' => 'E1']);
+
+        $corps = $this->etablissementDe('jdupont')->assertOk()->json();
+
+        // Aucune donnée personnelle ne doit transiter par cet endpoint public.
+        $this->assertSame(['etablissement'], array_keys($corps));
+    }
+
+    public function test_l_identifiant_est_obligatoire(): void
+    {
+        $this->etablissementDe('')->assertStatus(422)->assertJsonValidationErrors('identifiant');
     }
 }
