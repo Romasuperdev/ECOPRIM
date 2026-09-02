@@ -11,8 +11,13 @@ return [
     | vivent dans un dossier partagé, lu aussi bien par ECONOMAT que par NEXORA.
     | Renseignez ce dossier dans .env (NEXORA_PHOTOS_ELEVES), par exemple :
     |
-    |   NEXORA_PHOTOS_ELEVES="\\\\SERVEUR\\ECONOMAT\\Photos"
+    |   NEXORA_PHOTOS_ELEVES='\\SERVEUR\ECONOMAT\Photos'   <- guillemets SIMPLES
+    |   NEXORA_PHOTOS_ELEVES="//SERVEUR/ECONOMAT/Photos"
     |   NEXORA_PHOTOS_ELEVES="C:/ECONOMAT/Photos"
+    |
+    | Attention : entre guillemets DOUBLES, dotenv interprète les antislashs comme des
+    | séquences d'échappement et refuse de démarrer. Utilisez des guillemets simples,
+    | ou des slashs (PHP les accepte sous Windows, y compris pour les chemins UNC).
     |
     | Sans configuration, les photos restent dans le stockage local de NEXORA
     | (ECONOMAT ne les verra pas) — utile pour tester avant de brancher le partage.
