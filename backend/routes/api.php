@@ -17,7 +17,6 @@ use App\Http\Controllers\Api\V1\AbsenceController;
 use App\Http\Controllers\Api\V1\SanctionController;
 use App\Http\Controllers\Api\V1\ParentController;
 use App\Http\Controllers\Api\V1\SeanceController;
-use App\Http\Controllers\Api\V1\ClasseIntervenantController;
 use App\Http\Controllers\Api\V1\RapportController;
 use App\Http\Controllers\Api\V1\ProgrammeController;
 use App\Http\Controllers\Api\V1\RessourceController;
@@ -34,6 +33,7 @@ use App\Http\Controllers\Api\V1\CoefficientController;
 use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
+use App\Http\Controllers\Api\V1\AffectationEnseignantController;
 use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ConsoleContexteController;
 use App\Http\Controllers\Api\V1\ContexteController;
@@ -70,6 +70,14 @@ Route::prefix('v1')->group(function () {
         Route::put('emplois-du-temps/{creneau}', [EmploiDuTempsController::class, 'update']);
         Route::delete('emplois-du-temps/{creneau}', [EmploiDuTempsController::class, 'destroy']);
 
+        // Affectation enseignant <-> classe <-> matiere (ECONOMAT.T_CORPROFCLASSE).
+        // En amont de l'emploi du temps, qui en deduit l'enseignant de chaque creneau.
+        Route::get('affectations-enseignants/referentiels', [AffectationEnseignantController::class, 'referentiels']);
+        Route::get('affectations-enseignants', [AffectationEnseignantController::class, 'index']);
+        Route::post('affectations-enseignants', [AffectationEnseignantController::class, 'store']);
+        Route::put('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'update']);
+        Route::delete('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'destroy']);
+
         Route::get('notes', [NoteController::class, 'index']);
         Route::get('enseignants', [EnseignantController::class, 'index']);
         Route::post('enseignants', [EnseignantController::class, 'store']);
@@ -84,9 +92,6 @@ Route::prefix('v1')->group(function () {
         Route::post('parents/{parent}/eleves', [ParentController::class, 'attachEleve']);
         Route::delete('parents/{parent}/eleves/{eleve}', [ParentController::class, 'detachEleve']);
         Route::apiResource('seances', SeanceController::class);
-        Route::get('classes/{classe}/intervenants', [ClasseIntervenantController::class, 'index']);
-        Route::post('classes/{classe}/intervenants', [ClasseIntervenantController::class, 'store']);
-        Route::delete('classes/{classe}/intervenants/{intervenant}', [ClasseIntervenantController::class, 'destroy']);
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
         Route::get('cycles', [CycleController::class, 'index']);

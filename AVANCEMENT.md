@@ -1258,3 +1258,49 @@ Tests : `PerimetreConsoleTest` passe à 21 cas (accueil borné à la société, 
 qui suit la société choisie, catalogue de rôles lisible mais non modifiable).
 Suite : **168 tests, 750 assertions verts**. Build et lint propres ; accueil, établissements
 et fiche utilisateur rendus à blanc pour les deux profils.
+
+## Affectation enseignant – classe
+
+Nouvelle page `/affectations-enseignants`, adossée à `ECONOMAT.dbo.T_CORPROFCLASSE` :
+qui enseigne quelle matière, dans quelle classe, pour l'année de travail. Deux lectures,
+parce que ce sont les deux questions qu'on se pose : la grille d'une classe (son équipe
+pédagogique) et le service d'un enseignant (où il intervient).
+
+**Cette page est en amont de l'emploi du temps**, et c'est ce qui dicte ses règles :
+le planning ne stocke pas l'enseignant, il le *déduit* de cette table, et c'est encore elle
+qui sert à refuser qu'un professeur soit dans deux classes à la même heure.
+
+- Une matière n'a **qu'un** enseignant par classe et par année : réaffecter, c'est
+  remplacer. Une seconde affectation est refusée en nommant celui qui occupe déjà la place
+  — sans cela l'emploi du temps ne saurait pas quel professeur déduire.
+- **Un seul titulaire par classe** (colonne `Principale`) : désigner un nouveau titulaire
+  retire la marque au précédent, dans la même opération.
+- Le **retrait est une suppression réelle** — deuxième exception assumée à la règle
+  « jamais de DELETE », après `T_EMPLOIDUTEMPS`, pour la même raison : c'est de
+  l'organisation qu'on réajuste, pas un historique. Mais il est **refusé si des créneaux
+  d'emploi du temps ou des notes en dépendent**, avec le décompte exact dans le message,
+  et la ligne l'annonce *avant* le clic (colonne « Dépendances », bouton désactivé). Le
+  geste correct quand un professeur change en cours d'année est de **remplacer**
+  l'enseignant : les créneaux suivent, puisqu'ils le déduisent d'ici.
+- Année clôturée : consultation seule, comme partout. Le verrou porte sur l'année de la
+  ligne, pas sur celle qu'on regarde.
+- Seules les colonnes métier sont écrites (`CodeClasse`, `CodeMatiere`, `CodeProfesseur`,
+  `ANNEE`, `Principale`) ; `LOGIN`, qui trace la saisie côté ECONOMAT, est laissée intacte.
+- Une classe, une matière ou un enseignant inconnu d'ECONOMAT est refusé.
+
+Modifier une affectation invalide aussi le cache de l'emploi du temps : sa grille afficherait
+sinon l'ancien enseignant.
+
+**Encore un vestige, remplacé plutôt que réanimé** : la route `classes/{classe}/intervenants`
+existait, mais `ClasseMatiereEnseignant` visait une table `classe_matiere_enseignant`
+inexistante et `Classe` n'avait même pas la relation — l'appel plantait en 500. Route,
+contrôleur et modèle retirés dans `app/_retires/`.
+
+Tests `AffectationEnseignantTest` (15 cas) : référentiels bornés à l'année, affectation et
+double lecture (par classe, par enseignant), cloisonnement par année, unicité matière+classe
+avec le nom du titulaire actuel dans le message, un même enseignant sur plusieurs matières et
+classes, références inconnues refusées, remplacement, titulaire unique par classe sans
+toucher aux autres classes, retrait effectif, retrait refusé sur créneaux puis sur notes,
+remplacement toujours possible malgré des créneaux, année clôturée. Les trois règles
+sensibles (refus de retrait, exclusivité du titulaire) ont été vérifiées par mutation.
+Suite : **183 tests, 826 assertions verts**. Build et lint propres, page rendue à blanc.

@@ -34,6 +34,7 @@ const GROUPS = [
   {
     label: '📚 Programme',
     items: [
+      { to: '/affectations-enseignants', label: 'Affectation enseignant – classe' },
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
       { to: '/programmes', label: 'Cours' },
       { to: '/seances', label: 'Cahier de textes' },

@@ -38,6 +38,7 @@ const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPag
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
 const EmploiDuTempsPage = lazy(() => import('./features/emplois-du-temps/EmploiDuTempsPage'))
+const AffectationEnseignantPage = lazy(() => import('./features/affectations-enseignants/AffectationEnseignantPage'))
 const DocumentsElevesParamPage = lazy(() => import('./features/parametres/DocumentsElevesPage'))
 const SmsConfigPage = lazy(() => import('./features/parametres/SmsConfigPage'))
 const MailConfigPage = lazy(() => import('./features/parametres/MailConfigPage'))
@@ -111,6 +112,7 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/choisir-etablissement" element={<ChoisirEtablissementPage />} />
               <Route path="/emplois-du-temps" element={<EmploiDuTempsPage />} />
+              <Route path="/affectations-enseignants" element={<AffectationEnseignantPage />} />
 
               <Route path="/parametres/documents-eleves" element={<DocumentsElevesParamPage />} />
               <Route path="/parametres/sms" element={<SmsConfigPage />} />
