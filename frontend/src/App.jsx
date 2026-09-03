@@ -86,12 +86,19 @@ export default function App() {
               }
             >
               <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/societes" element={<SocieteListPage />} />
+              {/* Console générale : réservée au Super Admin, côté écran comme côté serveur. */}
+              <Route
+                path="/admin/societes"
+                element={<ProtectedRoute exigeSuperAdmin><SocieteListPage /></ProtectedRoute>}
+              />
               <Route path="/admin/etablissements" element={<EtablissementListPage />} />
               <Route path="/admin/etablissements/:code" element={<EtablissementDetailPage />} />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
-              <Route path="/admin/roles" element={<RoleListPage />} />
+              <Route
+                path="/admin/roles"
+                element={<ProtectedRoute exigeSuperAdmin><RoleListPage /></ProtectedRoute>}
+              />
               </Route>
 
             <Route

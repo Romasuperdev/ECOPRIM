@@ -1224,3 +1224,37 @@ cloisonnement ont été vérifiés par mutation : en retirant le filtre, puis en
 middleware, les tests concernés tombent bien.
 Suite : **165 tests, 730 assertions verts**. Build et lint propres ; page de connexion et
 console rendues à blanc pour les deux profils.
+
+### L'interface de console de l'Admin Société
+
+Avoir le droit d'entrer ne suffisait pas : sa console était en partie inutilisable, pour
+trois raisons dont une bloquante.
+
+1. **Son accueil restait vide.** La page appelait `/societes`, `/etablissements` et
+   `/utilisateurs` ; la première est réservée au Super Admin et répondait 403. Remplacé par
+   un seul appel `console/tableau-de-bord`, borné au périmètre. Le nombre de sociétés n'est
+   renvoyé qu'au Super Admin en vue générale ; l'Admin Société voit à la place ses
+   affectations, et le titre nomme sa société (« Console — Groupe ABN ») au lieu du
+   générique « Console Administrative ».
+2. **Il ne pouvait pas créer d'établissement** : la liste déroulante des sociétés du
+   formulaire venait de `/societes`, interdite — donc vide, donc le bouton restait
+   désactivé. Elle vient maintenant du contexte de la console, qui ne propose que les
+   sociétés autorisées.
+3. **Il ne pouvait affecter personne** : la fiche utilisateur a besoin du catalogue de
+   rôles, et `/roles` était entièrement fermée. La **lecture** du catalogue est désormais
+   ouverte à la console société — il faut bien nommer les rôles qu'on affecte — tandis que
+   sa **modification** reste à la console générale : ce catalogue est commun à toutes les
+   sociétés.
+
+Les pages Sociétés et Rôles sont en plus gardées côté écran (`exigeSuperAdmin`), qui renvoie
+l'Admin Société à son accueil de console au lieu de lui afficher une page vouée au 403 —
+le menu les masquait déjà, mais l'URL restait atteignable à la main.
+
+**Encore un vestige** : `JournalActivitePage` interrogeait `/journal-activite`, une route
+qui n'existe pas et un modèle pointant une table disparue ; la page n'était routée nulle
+part. Retirée dans `features/_retires/`, comme les précédentes.
+
+Tests : `PerimetreConsoleTest` passe à 21 cas (accueil borné à la société, accueil général
+qui suit la société choisie, catalogue de rôles lisible mais non modifiable).
+Suite : **168 tests, 750 assertions verts**. Build et lint propres ; accueil, établissements
+et fiche utilisateur rendus à blanc pour les deux profils.

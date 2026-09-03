@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Console\Affectation;
+use App\Models\Console\Etablissement;
 use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
+use Throwable;
 
 /**
  * Contexte de la console : quelle société on administre, et lesquelles on a le droit
@@ -30,6 +33,45 @@ class ConsoleContexteController extends Controller
             'societe_verrouillee' => ! $user->isSuperAdmin(),
             'societes' => $disponibles,
         ]);
+    }
+
+    /**
+     * Chiffres d'accueil de la console, bornés au périmètre.
+     *
+     * Un Admin Société n'a pas accès à /societes : sans cet endpoint, sa page d'accueil
+     * appelait une route interdite et restait vide. Le nombre de sociétés n'est renvoyé
+     * qu'au Super Admin, et seulement en vue générale — ailleurs il n'aurait pas de sens.
+     */
+    public function tableauDeBord(Request $request)
+    {
+        $user = $request->user();
+        $courant = PerimetreConsole::codeCourant($user);
+        $general = $user->isSuperAdmin() && $courant === null;
+
+        return response()->json([
+            'societe_code' => $courant,
+            'societe_nom' => $general
+                ? null
+                : (collect(PerimetreConsole::disponibles($user))->firstWhere('code', $courant)['nom'] ?? $courant),
+            'vue_generale' => $general,
+            'societes' => $general ? count(PerimetreConsole::disponibles($user)) : null,
+            'etablissements' => $this->compter(fn () => PerimetreConsole::appliquer(Etablissement::query())->count()),
+            'utilisateurs' => $this->compter(
+                fn () => PerimetreConsole::appliquer(Affectation::query())
+                    ->distinct()->count('rh_user_id')
+            ),
+            'affectations' => $this->compter(fn () => PerimetreConsole::appliquer(Affectation::query())->count()),
+        ]);
+    }
+
+    /** Un chiffre indisponible vaut null : une tuile vide plutôt qu'une page en erreur. */
+    private function compter(callable $calcul): ?int
+    {
+        try {
+            return (int) $calcul();
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     /** Bascule la console sur une autre société. Un code vide ramène le Super Admin à la vue générale. */

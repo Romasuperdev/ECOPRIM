@@ -145,7 +145,8 @@ class PerimetreConsoleTest extends TestCase
 
         $this->getJson('/api/v1/societes')->assertForbidden();
         $this->postJson('/api/v1/societes', ['code' => 'X', 'nom' => 'X'])->assertForbidden();
-        $this->getJson('/api/v1/roles')->assertForbidden();
+        // Le catalogue de rôles se lit (il en a besoin pour affecter) mais ne se modifie pas :
+        // c'est vérifié à part, dans test_l_admin_societe_lit_le_catalogue_de_roles…
         $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
     }
 
@@ -312,6 +313,58 @@ class PerimetreConsoleTest extends TestCase
         // Il apparaît bien dans sa liste.
         $logins = collect($this->getJson('/api/v1/utilisateurs')->json('data'))->pluck('login')->all();
         $this->assertContains('nouveau', $logins);
+    }
+
+    // --- Interface de console de l'Admin Société ---
+
+    public function test_l_admin_societe_a_son_accueil_de_console_borne_a_sa_societe(): void
+    {
+        $this->compte(10, 'chezabn');
+        $this->affecter(10, 'ABN', 'E-ABN', 2);
+        $this->compte(11, 'chezsud');
+        $this->affecter(11, 'SUD', 'E-SUD', 2);
+
+        $this->adminSociete('ABN');
+
+        $this->getJson('/api/v1/console/tableau-de-bord')->assertOk()
+            ->assertJsonPath('vue_generale', false)
+            ->assertJsonPath('societe_code', 'ABN')
+            ->assertJsonPath('societe_nom', 'Groupe ABN')
+            // Le nombre de sociétés ne lui est pas communiqué : il n'en administre qu'une.
+            ->assertJsonPath('societes', null)
+            ->assertJsonPath('etablissements', 1)
+            // Lui-même et l'utilisateur affecté chez ABN, jamais celui de SUD.
+            ->assertJsonPath('utilisateurs', 2)
+            ->assertJsonPath('affectations', 2);
+    }
+
+    public function test_l_accueil_du_super_admin_couvre_tout_puis_suit_la_societe_choisie(): void
+    {
+        $this->superAdmin();
+
+        $this->getJson('/api/v1/console/tableau-de-bord')->assertOk()
+            ->assertJsonPath('vue_generale', true)
+            ->assertJsonPath('societes', 2)
+            ->assertJsonPath('etablissements', 2);
+
+        $this->postJson('/api/v1/console/societe', ['societe_code' => 'SUD'])->assertOk();
+
+        $this->getJson('/api/v1/console/tableau-de-bord')->assertOk()
+            ->assertJsonPath('vue_generale', false)
+            ->assertJsonPath('societe_nom', 'Groupe Sud')
+            ->assertJsonPath('etablissements', 1);
+    }
+
+    public function test_l_admin_societe_lit_le_catalogue_de_roles_mais_ne_le_modifie_pas(): void
+    {
+        $this->adminSociete('ABN');
+
+        // Il doit pouvoir nommer les rôles qu'il affecte…
+        $this->getJson('/api/v1/roles')->assertOk()->assertJsonCount(2);
+
+        // …sans pouvoir toucher au catalogue, qui est commun à toutes les sociétés.
+        $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
+        $this->deleteJson('/api/v1/roles/2')->assertForbidden();
     }
 
     // --- Page de connexion ---

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { Building2, School, Users } from 'lucide-react'
+import { Building2, School, Users, UserCheck } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { fetchSocietes, fetchEtablissements, fetchUtilisateurs } from './adminApi'
+import { fetchConsoleTableauDeBord } from './consoleContexteApi'
 
 function StatCard({ icon: Icon, label, value }) {
   return (
@@ -17,11 +17,21 @@ function StatCard({ icon: Icon, label, value }) {
   )
 }
 
+/**
+ * Accueil de la console, pour les deux sortes d'administrateur.
+ *
+ * Un seul appel borné au périmètre, au lieu de trois listes dont l'une (/societes) est
+ * réservée au Super Admin : un Admin Société arrivait sur une page vide. Le titre et les
+ * tuiles disent ce qu'il administre — sa société, et non « toutes ».
+ */
 export default function AdminDashboardPage() {
-  const { user } = useAuthStore()
-  const { data: societes } = useQuery({ queryKey: ['admin', 'societes', 1], queryFn: () => fetchSocietes(1) })
-  const { data: etablissements } = useQuery({ queryKey: ['admin', 'etablissements', 1], queryFn: () => fetchEtablissements(1) })
-  const { data: utilisateurs } = useQuery({ queryKey: ['admin', 'utilisateurs', 1], queryFn: () => fetchUtilisateurs(1) })
+  const { user, superAdmin } = useAuthStore()
+  const { data } = useQuery({ queryKey: ['console-tableau-de-bord'], queryFn: fetchConsoleTableauDeBord, retry: false })
+
+  const generale = data?.vue_generale
+  const titre = generale
+    ? 'Console Administrative'
+    : `Console — ${data?.societe_nom ?? data?.societe_code ?? '…'}`
 
   return (
     <div>
@@ -31,17 +41,25 @@ export default function AdminDashboardPage() {
       >
         <div className="pointer-events-none absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-primary-500/30 blur-3xl" />
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-primary-400/30 blur-3xl" />
-        <h1 className="relative text-2xl font-bold text-white">Console Administrative</h1>
+        <h1 className="relative text-2xl font-bold text-white">{titre}</h1>
         <p className="relative mt-1" style={{ color: 'var(--sidebar-text)' }}>
-          Connecté en tant que {user?.name}
+          Connecté en tant que {user?.name} · {superAdmin ? 'Super Admin' : 'Admin Société'}
         </p>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard icon={Building2} label="Sociétés" value={societes?.total} />
-        <StatCard icon={School} label="Établissements" value={etablissements?.total} />
-        <StatCard icon={Users} label="Utilisateurs" value={utilisateurs?.total} />
+        {/* Le nombre de sociétés n'a de sens qu'en vue générale. */}
+        {generale && <StatCard icon={Building2} label="Sociétés" value={data?.societes} />}
+        <StatCard icon={School} label="Établissements" value={data?.etablissements} />
+        <StatCard icon={Users} label="Utilisateurs" value={data?.utilisateurs} />
+        {!generale && <StatCard icon={UserCheck} label="Affectations" value={data?.affectations} />}
       </div>
+
+      {!generale && (
+        <p className="mt-3 text-xs text-muted">
+          Ces chiffres ne portent que sur {data?.societe_nom ?? 'la société sélectionnée'}.
+        </p>
+      )}
     </div>
   )
 }

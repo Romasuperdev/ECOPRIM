@@ -15,3 +15,13 @@ export async function definirSocieteConsole(societeCode) {
   const { data } = await apiClient.post('console/societe', { societe_code: societeCode ?? '' })
   return data
 }
+
+/**
+ * Chiffres d'accueil de la console, bornés à la société courante. Remplace les appels
+ * directs à /societes, /etablissements et /utilisateurs : un Admin Société n'a pas accès
+ * au premier, et sa page d'accueil restait vide.
+ */
+export async function fetchConsoleTableauDeBord() {
+  const { data } = await apiClient.get('console/tableau-de-bord')
+  return data
+}

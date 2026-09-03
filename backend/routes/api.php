@@ -177,7 +177,9 @@ Route::prefix('v1')->group(function () {
             Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
 
-            Route::get('roles', [RoleController::class, 'index']);
+            // Le catalogue de rôles se MODIFIE depuis la console générale seulement ; sa
+            // lecture est plus bas, car un Admin Société doit pouvoir nommer les rôles
+            // qu'il affecte.
             Route::post('roles', [RoleController::class, 'store']);
             Route::delete('roles/{role}', [RoleController::class, 'destroy']);
         });
@@ -186,7 +188,10 @@ Route::prefix('v1')->group(function () {
         // sienne. Le cloisonnement par société est appliqué dans les contrôleurs.
         Route::middleware('console:societe')->group(function () {
             Route::get('console/contexte', [ConsoleContexteController::class, 'show']);
+            Route::get('console/tableau-de-bord', [ConsoleContexteController::class, 'tableauDeBord']);
             Route::post('console/societe', [ConsoleContexteController::class, 'definirSociete']);
+
+            Route::get('roles', [RoleController::class, 'index']);
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::post('etablissements', [EtablissementController::class, 'store']);

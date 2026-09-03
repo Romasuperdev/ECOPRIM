@@ -8,10 +8,10 @@ import {
   activerEtablissement,
   createEtablissement,
   desactiverEtablissement,
-  fetchAllSocietes,
   fetchEtablissements,
   updateEtablissement,
 } from './adminApi'
+import { fetchConsoleContexte } from './consoleContexteApi'
 
 const VIDE = {
   code: '', intitule: '', type: '', adresse: '', ville: '', pays: 'Côte d’Ivoire',
@@ -32,7 +32,11 @@ export default function EtablissementListPage() {
     queryKey: ['etablissements', page, q, filtreSociete],
     queryFn: () => fetchEtablissements(page, { q, societe_code: filtreSociete }),
   })
-  const { data: societes } = useQuery({ queryKey: ['societes-all'], queryFn: fetchAllSocietes })
+  // La liste des sociétés vient du contexte de la console, pas de /societes : cette
+  // dernière est réservée au Super Admin, et un Admin Société se retrouvait sans aucune
+  // société sélectionnable — donc incapable de créer un établissement.
+  const { data: contexte } = useQuery({ queryKey: ['console-contexte'], queryFn: fetchConsoleContexte, retry: false })
+  const societes = contexte?.societes
 
   const invalider = () => qc.invalidateQueries({ queryKey: ['etablissements'] })
 
