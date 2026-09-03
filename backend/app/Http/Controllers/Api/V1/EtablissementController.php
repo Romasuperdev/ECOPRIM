@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Console\Etablissement;
 use App\Models\Console\Societe;
 use App\Services\BEtablissementEcrivain;
+use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
@@ -17,6 +18,11 @@ use Throwable;
  *     JAMAIS de suppression)
  *   - surcouche ECOPRIM : console_etablissements (activation/désactivation logique).
  * La page affiche les vrais établissements même si la surcouche est vide.
+ *
+ * Cloisonnement : un Admin Société ne voit et ne touche que les établissements de sa
+ * société ; un Super Admin voit tout, ou la seule société qu'il a choisie dans l'en-tête.
+ * Un établissement sans société rattachée n'est visible que du Super Admin en vue
+ * générale — sinon on ne saurait pas à qui il appartient.
  */
 class EtablissementController extends Controller
 {
@@ -46,6 +52,8 @@ class EtablissementController extends Controller
             }
         }
 
+        $lignes = $this->cloisonner($lignes);
+
         if ($filtreSociete !== '') {
             $lignes = $lignes->filter(fn ($r) => $r['societe_code'] === $filtreSociete);
         }
@@ -68,6 +76,7 @@ class EtablissementController extends Controller
         abort_if(! $src && ! $eco, 404, 'Établissement introuvable.');
 
         $ligne = $this->fusionner($code, $src, $eco);
+        PerimetreConsole::assertAutorisee($ligne['societe_code']);
         $ligne['societe'] = Societe::where('code', $ligne['societe_code'])->first();
 
         return $ligne;
@@ -93,6 +102,27 @@ class EtablissementController extends Controller
             'source' => $eco ? ($src ? 'BEtablissements + ECOPRIM' : 'ECOPRIM') : 'BEtablissements',
             'repris' => (bool) $eco,
         ];
+    }
+
+    /**
+     * Restreint la liste fusionnée au périmètre. On filtre ici plutôt qu'en SQL parce que
+     * la liste vient de deux bases distinctes (BEtablissements + surcouche).
+     */
+    private function cloisonner($lignes)
+    {
+        $user = auth()->user();
+        $courant = PerimetreConsole::codeCourant($user);
+
+        if ($user && $user->isSuperAdmin()) {
+            return $courant === null
+                ? $lignes
+                : $lignes->filter(fn ($r) => $r['societe_code'] === $courant);
+        }
+
+        // Fail closed : hors Super Admin, sans société courante on ne montre rien.
+        return $courant === null
+            ? $lignes->take(0)
+            : $lignes->filter(fn ($r) => $r['societe_code'] === $courant);
     }
 
     private function surcouche()
@@ -145,6 +175,7 @@ class EtablissementController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->regles(true));
+        PerimetreConsole::assertAutorisee($data['societe_code']);
         $dejaDansSource = $this->source->existe($data['code']);
 
         if (! $dejaDansSource) {
@@ -166,6 +197,11 @@ class EtablissementController extends Controller
     public function update(Request $request, Etablissement $etablissement)
     {
         $data = $request->validate($this->regles(false));
+        PerimetreConsole::assertAutorisee($etablissement->societe_code);
+        // Un déplacement d'établissement ne doit pas servir à sortir de son périmètre.
+        if (isset($data['societe_code'])) {
+            PerimetreConsole::assertAutorisee($data['societe_code']);
+        }
 
         if ($this->source->existe($etablissement->code)) {
             $this->source->modifier($etablissement->code, $data);
@@ -178,6 +214,7 @@ class EtablissementController extends Controller
 
     public function activer(Etablissement $etablissement)
     {
+        PerimetreConsole::assertAutorisee($etablissement->societe_code);
         $etablissement->update(['actif' => true]);
 
         return response()->json($etablissement->fresh());
@@ -186,6 +223,7 @@ class EtablissementController extends Controller
     /** Désactivation logique — remplace la suppression, qui est interdite ici. */
     public function desactiver(Etablissement $etablissement)
     {
+        PerimetreConsole::assertAutorisee($etablissement->societe_code);
         $etablissement->update(['actif' => false]);
 
         return response()->json($etablissement->fresh());

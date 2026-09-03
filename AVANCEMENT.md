@@ -1171,3 +1171,56 @@ les casses et avec des espaces de bord, refus du nom de famille, et l'établisse
 aussi par le nom d'utilisateur.
 Suite : **146 tests, 657 assertions verts**. Build et lint propres, page de connexion vérifiée
 au rendu à blanc.
+
+## Console : deux sortes d'administrateur
+
+**Super Admin** — la console générale (sociétés, rôles) *et* la console de chaque société.
+**Admin Société** — la console de sa seule société : ses établissements, ses utilisateurs,
+leurs affectations. La console générale lui est fermée.
+
+Le rôle et la société se lisent dans `console_affectations` + `console_roles`, tables
+propres à NEXORA et réglables depuis `/admin/utilisateurs` : aucune écriture dans les
+tables partagées. Une affectation ne compte que si elle est active et non échue, pour
+qu'un accès retiré ou daté cesse de lui-même.
+
+Trois choix laissés à mon appréciation, notés ici pour qu'on puisse en changer en
+connaissance de cause : (1) la source du rôle est `console_affectations` plutôt que
+`role_user`/`societe_utilisateur` de dbmasterbacou ; (2) la console générale se limite aux
+sociétés et aux rôles ; (3) la société courante vit dans la session, avec un sélecteur dans
+l'en-tête, comme l'année scolaire — plutôt qu'une URL par société.
+
+**Fail closed partout.** Un compte sans affectation d'Admin Société ne voit rien, jamais
+« périmètre vide, donc tout montrer ». Un utilisateur hors périmètre répond 404 et non 403 :
+son existence même n'a pas à être confirmée. Un Admin Société ne peut pas déplacer un
+établissement vers une autre société — ce serait agir dessus tout en le perdant de vue — ni
+créer un compte sans l'affecter chez lui, ce compte lui serait invisible ; l'établissement
+et le rôle sont donc exigés à la création, et l'affectation est posée dans le même geste.
+
+À la connexion, la société **et** l'établissement de rattachement s'affichent avant le mot
+de passe, sur les deux faces de la page. L'endpoint reste public et avare : uniquement des
+libellés de rattachement, jamais le nom du titulaire ni son rôle, la même réponse vide pour
+un identifiant inconnu, désactivé ou non rattaché, et un débit limité contre l'énumération.
+Un Super Admin s'y annonce « Toutes les sociétés » plutôt qu'avec un champ vide, qui se
+lirait comme un compte mal configuré.
+
+Côté écran : le menu de la console masque Sociétés et Rôles à un Admin Société plutôt que
+de le laisser cliquer vers un 403, l'en-tête annonce sa qualité réelle (« Super Admin » ou
+« Admin Société ») au lieu du « Super Admin » qui était écrit en dur, et le sélecteur de
+société devient un libellé cadenassé quand il n'y a rien à choisir. Ces indicateurs ne sont
+qu'un affichage : l'autorisation est décidée par le serveur à chaque appel.
+
+**Au passage** — encore un vestige d'avant le pivot ECONOMAT : toute une couche de périmètre
+(`App\Models\User`, `App\Models\Affectation`, `BelongsToPerimetre`, `StoreEtablissementRequest`,
+`StoreAffectationRequest`, `UpdateEtablissementRequest`) visait des tables
+`societes`/`etablissements`/`affectations` à clés numériques qui n'existent plus, et n'était
+appelée par aucune route. Elle est remplacée par `App\Support\PerimetreConsole` et
+`ConsoleMiddleware`, alignés sur les tables réelles `console_*` à clés textuelles.
+
+Tests `PerimetreConsoleTest` (18 cas) : qui est quoi, une affectation sans le rôle ou échue
+ne donne pas la console, la console générale fermée à l'Admin Société, cloisonnement des
+établissements et des utilisateurs, refus de déplacer ou d'affecter hors périmètre, bascule
+de société du Super Admin, et la société annoncée sur la page de connexion. Les cas de
+cloisonnement ont été vérifiés par mutation : en retirant le filtre, puis en ouvrant le
+middleware, les tests concernés tombent bien.
+Suite : **165 tests, 730 assertions verts**. Build et lint propres ; page de connexion et
+console rendues à blanc pour les deux profils.

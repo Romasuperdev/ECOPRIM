@@ -5,7 +5,6 @@ import ProtectedRoute from './routes/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/layout/AdminLayout'
 import { useAuthStore } from './store/authStore'
-import { ROLES } from './lib/constants'
 import { fetchMe } from './features/auth/authApi'
 
 // Pages chargées à la demande (code-splitting par route) pour alléger le premier chargement.
@@ -81,7 +80,7 @@ export default function App() {
 
             <Route
               element={
-                <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                <ProtectedRoute exigeConsole>
                   <AdminLayout />
                 </ProtectedRoute>
               }

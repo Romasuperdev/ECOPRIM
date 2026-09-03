@@ -122,4 +122,68 @@ class RhUser extends Model implements AuthenticatableContract
             ->pluck('societe_id')
             ->all();
     }
+
+    // --- Console : les deux sortes d'administrateur ---
+
+    /** Code du rôle « Admin Société » au catalogue console_roles. */
+    public const ROLE_ADMIN_SOCIETE = 'admin-societe';
+
+    /**
+     * Codes des sociétés que l'utilisateur administre, lus dans les affectations propres
+     * à NEXORA (console_affectations + console_roles).
+     *
+     * « Fail closed » assumé : aucune affectation résolue = aucune société, jamais un
+     * repli « si vide, alors tout ». Un Super Admin ne passe pas par ici : il administre
+     * toutes les sociétés, ce que dit isSuperAdmin().
+     *
+     * Une affectation ne compte que si elle est active et non échue, pour qu'un accès
+     * retiré ou daté cesse de lui-même.
+     */
+    public function societesAdministrees(): array
+    {
+        try {
+            return DB::connection('ecoprim')
+                ->table('console_affectations as a')
+                ->join('console_roles as r', 'r.id', '=', 'a.role_id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')
+                    ->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->where(fn ($q) => $q->where('r.code', self::ROLE_ADMIN_SOCIETE)
+                    ->orWhere('r.nom', 'Admin Société'))
+                ->whereNotNull('a.societe_code')
+                ->pluck('a.societe_code')
+                ->map(fn ($c) => trim((string) $c))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            // Base console absente (migrations non passées) : personne n'est admin société.
+            return [];
+        }
+    }
+
+    public function estAdminSociete(): bool
+    {
+        return ! $this->isSuperAdmin() && $this->societesAdministrees() !== [];
+    }
+
+    /** Accès à la console, à quelque titre que ce soit. */
+    public function peutAccederConsole(): bool
+    {
+        return $this->isSuperAdmin() || $this->societesAdministrees() !== [];
+    }
+
+    /** Droit d'administrer une société donnée. Le Super Admin les administre toutes. */
+    public function peutAdministrerSociete(?string $code): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $code = trim((string) $code);
+
+        return $code !== '' && in_array($code, $this->societesAdministrees(), true);
+    }
 }

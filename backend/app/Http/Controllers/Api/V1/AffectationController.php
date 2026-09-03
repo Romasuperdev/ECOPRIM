@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
 use App\Models\Console\Etablissement;
 use App\Models\RhUser;
+use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +14,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Affectations : un rôle d'un utilisateur (RH_USER) dans un établissement.
  * Règles : un utilisateur ne peut être affecté qu'à des établissements de LA MÊME société ;
- * pas de doublon (même utilisateur, même établissement, même rôle).
+ * pas de doublon (même utilisateur, même établissement, même rôle). Un Admin Société ne
+ * peut affecter que dans sa propre société — sans quoi il se donnerait un accès ailleurs.
  */
 class AffectationController extends Controller
 {
@@ -29,6 +31,7 @@ class AffectationController extends Controller
         abort_unless(RhUser::find($data['rh_user_id']), 422, "Utilisateur RH_USER introuvable.");
 
         $etab = Etablissement::where('code', $data['etablissement_code'])->firstOrFail();
+        PerimetreConsole::assertAutorisee($etab->societe_code);
 
         // Règle : un utilisateur appartient à une seule société.
         $existante = Affectation::where('rh_user_id', $data['rh_user_id'])->first();
@@ -58,6 +61,7 @@ class AffectationController extends Controller
 
     public function destroy(Affectation $affectation)
     {
+        PerimetreConsole::assertAutorisee($affectation->societe_code);
         $affectation->delete();
 
         return response()->noContent();

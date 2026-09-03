@@ -95,17 +95,24 @@ class AuthController extends Controller
             'name' => trim("{$rhUser->Prenom} {$rhUser->Nom}") ?: $rhUser->Login,
             'email' => $rhUser->Email,
             'roles' => $rhUser->getRoleNames(),
+            // Les deux sortes d'administrateur de la console. Le front s'en sert pour
+            // router et pour masquer la console générale, mais l'autorisation reste
+            // décidée côté serveur : ces indicateurs ne sont qu'un affichage.
+            'super_admin' => $rhUser->isSuperAdmin(),
+            'admin_societe' => $rhUser->estAdminSociete(),
+            'peut_console' => $rhUser->peutAccederConsole(),
         ];
     }
 
     /**
-     * Établissement rattaché à un identifiant, pour l'afficher sur la page de connexion
-     * avant la saisie du mot de passe.
+     * Société et établissement rattachés à un identifiant, pour les afficher sur la page
+     * de connexion avant la saisie du mot de passe : l'utilisateur voit à quoi il se
+     * connecte, et un compte mal rattaché se repère avant même la première tentative.
      *
-     * Endpoint PUBLIC, donc volontairement avare : il ne renvoie QUE le libellé de
-     * l'établissement, jamais le nom du titulaire ni la moindre confirmation explicite
-     * d'existence. Un identifiant inconnu, un compte désactivé ou un compte sans
-     * établissement renvoient tous la même réponse (null). Il est limité en débit par
+     * Endpoint PUBLIC, donc volontairement avare : il ne renvoie QUE des libellés de
+     * rattachement, jamais le nom du titulaire, son rôle, ni la moindre confirmation
+     * explicite d'existence. Un identifiant inconnu, un compte désactivé ou un compte sans
+     * rattachement renvoient tous la même réponse (null, null). Il est limité en débit par
      * le middleware throttle pour freiner l'énumération d'identifiants.
      */
     public function etablissementDuCompte(Request $request)
@@ -114,11 +121,63 @@ class AuthController extends Controller
 
         $rhUser = $this->trouverParIdentifiant($donnees['identifiant']);
 
-        $code = ($rhUser && ! $rhUser->estSupprime()) ? trim((string) $rhUser->Etab) : '';
+        $utilisable = $rhUser && ! $rhUser->estSupprime();
+        $code = $utilisable ? trim((string) $rhUser->Etab) : '';
 
         return response()->json([
             'etablissement' => $code !== '' ? $this->libelleEtablissement($code) : null,
+            'societe' => $utilisable ? $this->libelleSociete($rhUser) : null,
         ]);
+    }
+
+    /**
+     * Société de rattachement, lue dans les affectations de la console. Un Super Admin
+     * n'est rattaché à aucune société en particulier : on le dit explicitement plutôt que
+     * de laisser le champ vide, qui se lirait comme un compte mal configuré.
+     */
+    private function libelleSociete(RhUser $rhUser): ?string
+    {
+        if ($rhUser->isSuperAdmin()) {
+            return 'Toutes les sociétés (Super Administrateur)';
+        }
+
+        try {
+            $code = DB::connection('ecoprim')->table('console_affectations')
+                ->where('rh_user_id', $rhUser->Id)
+                ->where('actif', true)
+                ->whereNotNull('societe_code')
+                ->orderBy('id')
+                ->value('societe_code');
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $code = trim((string) $code);
+        if ($code === '') {
+            return null;
+        }
+
+        try {
+            $nom = DB::connection('ecoprim')->table('console_societes')
+                ->where('code', $code)->value('nom');
+            if ($nom) {
+                return $nom;
+            }
+        } catch (\Throwable $e) {
+            // Surcouche absente : on tente la table partagée.
+        }
+
+        try {
+            $nom = DB::connection('master')->table('US_SOCIETE')
+                ->where('CODESOCIETE', $code)->value('NOMSOCIETE');
+            if ($nom) {
+                return trim((string) $nom);
+            }
+        } catch (\Throwable $e) {
+            // dbmasterbacou injoignable : on retombe sur le code.
+        }
+
+        return $code;
     }
 
     /** Intitulé de l'établissement ; à défaut, son code brut. */

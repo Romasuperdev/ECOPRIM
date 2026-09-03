@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School } from 'lucide-react'
+import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School, Building2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { useAuthStore } from '../../store/authStore'
-import { ROLES } from '../../lib/constants'
-import { fetchEtablissementDuCompte, login, logout } from './authApi'
+import { fetchRattachementDuCompte, login, logout } from './authApi'
 
 // Deux paires de champs indépendantes (une par face du panneau). Contrôlées via useState,
 // pas React Hook Form : chaque face est montée deux fois en simultané (desktop + mobile,
@@ -17,8 +16,9 @@ function useCredentials() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({})
-  // { identifiant, nom } du dernier établissement trouvé : conservé avec l'identifiant
-  // interrogé pour n'afficher le libellé que s'il correspond encore à la saisie.
+  // { identifiant, societe, etablissement } du dernier rattachement trouvé : conservé avec
+  // l'identifiant interrogé pour n'afficher les libellés que s'ils correspondent encore
+  // à la saisie en cours.
   const [trouve, setTrouve] = useState(null)
 
   useEffect(() => {
@@ -27,15 +27,17 @@ function useCredentials() {
 
     let annule = false
     const minuteur = setTimeout(() => {
-      fetchEtablissementDuCompte(identifiant)
-        .then((nom) => { if (!annule) setTrouve({ identifiant, nom }) })
+      fetchRattachementDuCompte(identifiant)
+        .then((r) => { if (!annule) setTrouve({ identifiant, ...r }) })
         .catch(() => {}) // silencieux : c'est un simple confort d'affichage
     }, 500)
 
     return () => { annule = true; clearTimeout(minuteur) }
   }, [email])
 
-  const etablissement = trouve?.identifiant === email.trim() ? trouve.nom : null
+  const aJour = trouve?.identifiant === email.trim()
+  const etablissement = aJour ? trouve.etablissement : null
+  const societe = aJour ? trouve.societe : null
 
   const validate = () => {
     const next = {}
@@ -45,7 +47,7 @@ function useCredentials() {
     return Object.keys(next).length === 0
   }
 
-  return { email, setEmail, password, setPassword, errors, validate, etablissement }
+  return { email, setEmail, password, setPassword, errors, validate, etablissement, societe }
 }
 
 export default function LoginPage() {
@@ -75,9 +77,11 @@ export default function LoginPage() {
     try {
       const user = await login({ email: creds.email, password: creds.password })
 
-      if (kind === 'admin' && !user.roles?.includes(ROLES.SUPER_ADMIN)) {
+      // Deux sortes d'administrateur ont accès à la console : le Super Admin (console
+      // générale et console de chaque société) et l'Admin Société (la sienne seulement).
+      if (kind === 'admin' && !user.peut_console) {
         await logout()
-        setServerError("Ce compte n'a pas accès à la console administrateur.")
+        setServerError("Ce compte n'a pas accès à la console d'administration.")
         return
       }
 
@@ -124,6 +128,19 @@ export default function LoginPage() {
           value={creds.email}
           onChange={(e) => creds.setEmail(e.target.value)}
         />
+        {creds.societe && (
+          <Input
+            id={fieldId('societe')}
+            type="text"
+            label="Société"
+            icon={Building2}
+            value={creds.societe}
+            readOnly
+            tabIndex={-1}
+            className="cursor-default opacity-90"
+            onChange={() => {}}
+          />
+        )}
         {creds.etablissement && (
           <Input
             id={fieldId('etablissement')}

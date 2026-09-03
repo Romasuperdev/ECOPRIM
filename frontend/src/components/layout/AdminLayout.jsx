@@ -4,10 +4,11 @@ import Button from '../ui/Button'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ErrorBoundary from '../ErrorBoundary'
+import SocieteBarre from '../../features/admin/SocieteBarre'
 
 export default function AdminLayout() {
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user, logout, superAdmin } = useAuthStore()
 
   const handleLogout = async () => {
     await logoutApi()
@@ -26,7 +27,12 @@ export default function AdminLayout() {
             borderBottom: '1px solid var(--border)',
           }}
         >
-          <div className="text-sm text-muted">{user?.name} · Super Admin</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted">
+              {user?.name} · {superAdmin ? 'Super Admin' : 'Admin Société'}
+            </span>
+            <SocieteBarre />
+          </div>
           <Button variant="outline" onClick={handleLogout}>
             Se déconnecter
           </Button>

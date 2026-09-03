@@ -201,14 +201,24 @@ class RhUserAuthTest extends TestCase
         $this->etablissementDe('parti')->assertOk()->assertJsonPath('etablissement', null);
     }
 
-    public function test_la_reponse_ne_contient_que_l_etablissement(): void
+    public function test_la_reponse_ne_contient_que_les_rattachements(): void
     {
         $this->creerRh(['Etab' => 'E1']);
 
         $corps = $this->etablissementDe('jdupont')->assertOk()->json();
 
-        // Aucune donnée personnelle ne doit transiter par cet endpoint public.
-        $this->assertSame(['etablissement'], array_keys($corps));
+        // Aucune donnée personnelle ne doit transiter par cet endpoint public : ni le nom
+        // du titulaire, ni son rôle, ni la confirmation qu'il existe.
+        $this->assertSame(['etablissement', 'societe'], array_keys($corps));
+    }
+
+    public function test_un_super_admin_n_est_rattache_a_aucune_societe_en_particulier(): void
+    {
+        $this->creerRh(['Login' => 'boss', 'SuperAdmin' => true, 'Etab' => '']);
+
+        $this->etablissementDe('boss')->assertOk()
+            ->assertJsonPath('etablissement', null)
+            ->assertJsonPath('societe', 'Toutes les sociétés (Super Administrateur)');
     }
 
     public function test_l_identifiant_est_obligatoire(): void

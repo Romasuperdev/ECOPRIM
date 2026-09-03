@@ -1,18 +1,24 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
 import { LayoutDashboard, Building2, School, Users, ShieldCheck, ArrowLeftCircle } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
+// « generale » : réservé au Super Admin. Le reste est la console d'une société, ouverte
+// aussi à l'Admin Société. On masque plutôt que de laisser cliquer vers un 403.
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
-  { to: '/admin/societes', icon: Building2, label: 'Sociétés' },
+  { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
   { to: '/admin/etablissements', icon: School, label: 'Établissements' },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
-  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions' },
+  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions', generale: true },
 ]
 
 const A_VENIR = ['Applications & licences', 'Abonnements']
 
 export default function AdminSidebar() {
+  const superAdmin = useAuthStore((s) => s.superAdmin)
+  const items = ITEMS.filter((i) => !i.generale || superAdmin)
+
   return (
     <aside
       className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
@@ -32,7 +38,7 @@ export default function AdminSidebar() {
       </NavLink>
 
       <nav className="flex-1 space-y-1 text-sm">
-        {ITEMS.map(({ to, end, icon: Icon, label }) => (
+        {items.map(({ to, end, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}

@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
 use App\Http\Controllers\Api\V1\CommunicationController;
+use App\Http\Controllers\Api\V1\ConsoleContexteController;
 use App\Http\Controllers\Api\V1\ContexteController;
 use App\Http\Controllers\Api\V1\Parametres\MailConfigController;
 use App\Http\Controllers\Api\V1\Parametres\PrerequisController;
@@ -166,7 +167,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('contexte/etablissement', [ContexteController::class, 'destroy']);
         Route::post('contexte/annee', [ContexteController::class, 'definirAnnee']);
 
-        Route::middleware('role:Super Admin')->group(function () {
+        // Console générale — Super Admin seul : le catalogue des sociétés et des rôles.
+        Route::middleware('console:generale')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
             Route::post('societes', [SocieteController::class, 'store']);
             Route::post('societes/importer', [SocieteController::class, 'importer']);
@@ -174,6 +176,17 @@ Route::prefix('v1')->group(function () {
             Route::put('societes/{societe}', [SocieteController::class, 'update']);
             Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
+
+            Route::get('roles', [RoleController::class, 'index']);
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+        });
+
+        // Console d'une société — Super Admin sur n'importe laquelle, Admin Société sur la
+        // sienne. Le cloisonnement par société est appliqué dans les contrôleurs.
+        Route::middleware('console:societe')->group(function () {
+            Route::get('console/contexte', [ConsoleContexteController::class, 'show']);
+            Route::post('console/societe', [ConsoleContexteController::class, 'definirSociete']);
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::post('etablissements', [EtablissementController::class, 'store']);
@@ -188,10 +201,6 @@ Route::prefix('v1')->group(function () {
             Route::put('utilisateurs/{user}', [UserController::class, 'update']);
             Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
             Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
-
-            Route::get('roles', [RoleController::class, 'index']);
-            Route::post('roles', [RoleController::class, 'store']);
-            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);

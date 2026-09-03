@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\ConsoleMiddleware;
 use App\Http\Middleware\RhRoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
-        $middleware->alias(['role' => RhRoleMiddleware::class]);
+        $middleware->alias([
+            'role' => RhRoleMiddleware::class,
+            'console' => ConsoleMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

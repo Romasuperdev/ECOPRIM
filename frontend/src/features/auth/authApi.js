@@ -13,13 +13,13 @@ export async function login({ email, password }) {
 }
 
 /**
- * Établissement rattaché à un identifiant, affiché sur la page de connexion.
- * Endpoint public et limité en débit : il ne renvoie que le libellé, et null pour
- * un identifiant inconnu, désactivé ou sans établissement.
+ * Société et établissement rattachés à un identifiant, affichés sur la page de connexion
+ * avant la saisie du mot de passe. Endpoint public et limité en débit : il ne renvoie que
+ * des libellés, et { null, null } pour un identifiant inconnu, désactivé ou non rattaché.
  */
-export async function fetchEtablissementDuCompte(identifiant) {
+export async function fetchRattachementDuCompte(identifiant) {
   const { data } = await apiClient.post('/etablissement-du-compte', { identifiant })
-  return data.etablissement ?? null
+  return { etablissement: data.etablissement ?? null, societe: data.societe ?? null }
 }
 
 export async function logout() {
