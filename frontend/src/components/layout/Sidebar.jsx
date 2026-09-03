@@ -16,7 +16,7 @@ const GROUPS = [
     label: '⚙️ Paramètre',
     items: [
       { to: '/annees-scolaires', label: 'Années scolaires' },
-      { to: '/niveaux', label: 'Cycles / Niveaux' },
+      { to: '/niveaux', label: 'Niveaux' },
       { to: '/classes', label: 'Classes' },
       { to: '/matieres', label: 'Matières' },
       { to: '/parametres/documents-eleves', label: 'Documents élèves' },

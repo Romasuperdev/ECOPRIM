@@ -1400,3 +1400,10 @@ Suite : **214 tests, 952 assertions verts**. Build et lint propres, écran rendu
   un service. `EleveFormPage` et `elevesApi.js` restent du code mort à retirer.
 - **Évaluations, Résultats & bulletins, Assiduité** — ce sont des restitutions d'agrégats
   calculés par ECONOMAT (`V_MOYENNE_ELEVE_CLASSE`, vues d'absences). Rien à y écrire.
+
+Sur demande, la page des niveaux ne montre plus ni **Cycle** ni **Ordre** : colonnes du
+tableau, champs du formulaire et panneau « Cycles » retirés, et l'entrée de menu devient
+simplement « Niveaux ». Les colonnes `CodeCycle` et `Ordre` existent toujours dans
+`T_NIVEAU` et leurs valeurs sont préservées — la page ne les affiche plus et ne les écrit
+plus. Les routes `/cycles` restent en place côté serveur (elles sont testées) : seul
+l'écran disparaît, `CyclesPanel` rejoint `features/_retires/`.

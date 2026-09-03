@@ -3,22 +3,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import Select from '../../components/ui/Select'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { fetchContexte } from '../contexte/contexteApi'
 import { fetchNiveaux } from '../reference/referenceApi'
 import { createNiveau, deleteNiveau, updateNiveau } from './niveauxApi'
-import { fetchCycles } from './cyclesApi'
-import CyclesPanel from './CyclesPanel'
 
-const VIDE = { code: '', libelle: '', cycle_code: '', ordre: '' }
+const VIDE = { code: '', libelle: '' }
 
 /**
- * Cycles et niveaux — ECONOMAT.T_CYCLE et T_NIVEAU.
+ * Niveaux — ECONOMAT.T_NIVEAU.
  *
- * Un niveau appartient à l'année de travail (le même CP1 est recréé chaque année) ; un
- * cycle, non : il traverse les années, et se gère dans le panneau du bas.
+ * Un niveau appartient à l'année de travail : le même CP1 est recréé chaque année.
+ *
+ * Ni le cycle ni l'ordre d'affichage n'apparaissent ici, à la demande : les colonnes
+ * existent toujours dans T_NIVEAU et leurs valeurs sont préservées, la page ne les
+ * affiche simplement pas et ne les écrit plus.
  */
 export default function NiveauListPage() {
   const qc = useQueryClient()
@@ -27,7 +27,6 @@ export default function NiveauListPage() {
   const [refus, setRefus] = useState(null)
 
   const { data: niveaux, isLoading } = useQuery({ queryKey: ['niveaux'], queryFn: fetchNiveaux })
-  const { data: cycles } = useQuery({ queryKey: ['cycles'], queryFn: fetchCycles })
   const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
 
   const anneeCourante = contexte?.annees?.find((a) => a.libelle === contexte?.annee)
@@ -37,10 +36,7 @@ export default function NiveauListPage() {
   const fermer = () => { setForm(null); setErreurs({}) }
 
   const enregistrer = useMutation({
-    mutationFn: (v) => {
-      const charge = { ...v, ordre: v.ordre === '' ? null : Number(v.ordre) }
-      return v.id ? updateNiveau(v.id, charge) : createNiveau(charge)
-    },
+    mutationFn: (v) => (v.id ? updateNiveau(v.id, v) : createNiveau(v)),
     onSuccess: () => { rafraichir(); fermer() },
     onError: (e) => setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }),
   })
@@ -57,7 +53,7 @@ export default function NiveauListPage() {
     <div>
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Cycles / Niveaux</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Niveaux</h1>
           <p className="mt-1 text-sm text-slate-500">
             Niveaux de l’année {contexte?.annee ?? 'en cours'} (source : ECONOMAT).
           </p>
@@ -84,26 +80,22 @@ export default function NiveauListPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">Ordre</th>
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Libellé</th>
-              <th className="px-4 py-3 font-medium">Cycle</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
             )}
             {!isLoading && niveaux?.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucun niveau.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Aucun niveau.</td></tr>
             )}
             {niveaux?.map((niveau) => (
               <tr key={niveau.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 text-slate-600">{niveau.ordre ?? '—'}</td>
                 <td className="px-4 py-3 font-medium text-slate-800">{niveau.code}</td>
                 <td className="px-4 py-3 text-slate-600">{niveau.libelle}</td>
-                <td className="px-4 py-3 text-slate-600">{niveau.cycle?.libelle ?? niveau.cycle_code ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
                   <Button
                     variant="outline" className="!px-3 !py-1 mr-2" disabled={verrouille}
@@ -113,8 +105,6 @@ export default function NiveauListPage() {
                         id: niveau.id,
                         code: niveau.code ?? '',
                         libelle: niveau.libelle ?? '',
-                        cycle_code: niveau.cycle_code ?? '',
-                        ordre: niveau.ordre ?? '',
                       })
                     }}
                   >
@@ -134,10 +124,6 @@ export default function NiveauListPage() {
         </table>
       </div>
 
-      <div className="mt-8">
-        <CyclesPanel />
-      </div>
-
       {form && (
         <ModaleFormulaire
           titre={form.id ? `Modifier ${form.libelle}` : 'Nouveau niveau'}
@@ -151,13 +137,6 @@ export default function NiveauListPage() {
                  error={erreurs.code?.[0]} onChange={(e) => champ('code', e.target.value)} />
           <Input label="Libellé" placeholder="Cours préparatoire 1" value={form.libelle}
                  error={erreurs.libelle?.[0]} onChange={(e) => champ('libelle', e.target.value)} />
-          <Select label="Cycle" value={form.cycle_code} error={erreurs.cycle_code?.[0]}
-                  onChange={(e) => champ('cycle_code', e.target.value)}>
-            <option value="">— Aucun —</option>
-            {cycles?.map((c) => <option key={c.id} value={c.code}>{c.libelle}</option>)}
-          </Select>
-          <Input label="Ordre d’affichage" type="number" min="0" value={form.ordre}
-                 error={erreurs.ordre?.[0]} onChange={(e) => champ('ordre', e.target.value)} />
           {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
         </ModaleFormulaire>
       )}
