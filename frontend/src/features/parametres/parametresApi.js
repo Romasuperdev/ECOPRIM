@@ -13,6 +13,10 @@ export async function createPrerequis(payload) {
   return data
 }
 
+export async function deletePrerequis(id) {
+  await apiClient.delete(`/parametres/prerequis/${id}`)
+}
+
 export async function updatePrerequis(id, payload) {
   const { data } = await apiClient.put(`/parametres/prerequis/${id}`, payload)
   return data

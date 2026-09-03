@@ -61,8 +61,13 @@ Route::prefix('v1')->group(function () {
 
         Route::get('eleves', [EleveController::class, 'index']);
         Route::get('eleves/{eleve}', [EleveController::class, 'show']);
+        // Référentiels ECONOMAT : création et modification ; la suppression est réelle mais
+        // refusée dès qu'une ligne s'y rattache (voir DependancesReferentiel).
         Route::get('classes', [ClasseController::class, 'index']);
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
+        Route::post('classes', [ClasseController::class, 'store']);
+        Route::put('classes/{classe}', [ClasseController::class, 'update']);
+        Route::delete('classes/{classe}', [ClasseController::class, 'destroy']);
         // Emplois du temps : grille par classe, bornée à l'année de travail.
         Route::get('emplois-du-temps/referentiels', [EmploiDuTempsController::class, 'referentiels']);
         Route::get('emplois-du-temps', [EmploiDuTempsController::class, 'index']);
@@ -85,6 +90,9 @@ Route::prefix('v1')->group(function () {
         Route::put('enseignants/{enseignant}', [EnseignantController::class, 'update']);
         Route::get('matieres', [MatiereController::class, 'index']);
         Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
+        Route::post('matieres', [MatiereController::class, 'store']);
+        Route::put('matieres/{matiere}', [MatiereController::class, 'update']);
+        Route::delete('matieres/{matiere}', [MatiereController::class, 'destroy']);
         Route::get('absences', [AbsenceController::class, 'index']);
         Route::get('absences/{absence}', [AbsenceController::class, 'show']);
         Route::apiResource('sanctions', SanctionController::class);
@@ -94,10 +102,21 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('seances', SeanceController::class);
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
+        Route::post('niveaux', [NiveauController::class, 'store']);
+        Route::put('niveaux/{niveau}', [NiveauController::class, 'update']);
+        Route::delete('niveaux/{niveau}', [NiveauController::class, 'destroy']);
+
         Route::get('cycles', [CycleController::class, 'index']);
+        Route::get('cycles/{cycle}', [CycleController::class, 'show']);
+        Route::post('cycles', [CycleController::class, 'store']);
+        Route::put('cycles/{cycle}', [CycleController::class, 'update']);
+        Route::delete('cycles/{cycle}', [CycleController::class, 'destroy']);
         // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
         Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
         Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);
+        Route::post('annees-scolaires', [AnneeScolaireController::class, 'store']);
+        Route::put('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'update']);
+        Route::delete('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'destroy']);
         Route::get('coefficients', [CoefficientController::class, 'index']);
         Route::post('coefficients', [CoefficientController::class, 'store']);
         Route::delete('coefficients/{coefficient}', [CoefficientController::class, 'destroy']);
@@ -155,6 +174,7 @@ Route::prefix('v1')->group(function () {
         Route::get('parametres/prerequis', [PrerequisController::class, 'index']);
         Route::post('parametres/prerequis', [PrerequisController::class, 'store']);
         Route::put('parametres/prerequis/{prerequis}', [PrerequisController::class, 'update']);
+        Route::delete('parametres/prerequis/{prerequis}', [PrerequisController::class, 'destroy']);
 
         Route::get('parametres/sms', [SmsConfigController::class, 'show']);
         Route::post('parametres/sms', [SmsConfigController::class, 'store']);

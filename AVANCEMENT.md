@@ -1308,3 +1308,54 @@ Suite : **183 tests, 826 assertions verts**. Build et lint propres, page rendue 
 Le groupe « 🔗 Affectation » du menu a été retiré : sa seule entrée renvoyait vers
 `/classes`, déjà listée sous Paramètre, et l'affectation enseignant-classe a désormais sa
 vraie page sous Programme.
+
+## Paramètres : création, modification, suppression
+
+Les pages de Paramètres étaient en **consultation seule** — et pire, leurs fichiers `*Api.js`
+exposaient déjà `create`/`update`/`delete` vers des routes qui n'existaient pas : du code
+mort, et deux formulaires (`/matieres/nouvelle`, `/matieres/:id/modifier`) accessibles par
+URL mais voués au 404. Tout est branché.
+
+| Page | Table | Créer | Modifier | Supprimer |
+|---|---|---|---|---|
+| Années scolaires | `T_ANNEEACADEMIQUE` | oui | oui | si rien n'y est rattaché |
+| Cycles | `T_CYCLE` | oui | oui | si aucun niveau ni matière |
+| Niveaux | `T_NIVEAU` | oui | oui | si aucune classe ni document |
+| Classes | `T_CLASSE` | oui | oui | si aucun élève, créneau, note, absence, affectation |
+| Matières | `T_MATIERE` | oui | oui | si aucune affectation, créneau ni note |
+| Documents élèves | `T_PREREQUIS` | déjà | déjà | si aucun élève ne l'a au dossier |
+
+**La règle de suppression, généralisée.** Vous avez tranché pour les affectations
+enseignant-classe : « suppression seulement si rien n'en dépend ». C'est la même ici, et
+c'est nécessaire — les référentiels d'ECONOMAT ne portent **aucune clé étrangère**. Rien
+n'empêcherait techniquement de supprimer une classe de trente élèves : la base ne dirait
+rien, et les dossiers pointeraient vers un code inexistant. Chaque refus (409) nomme ce qui
+bloque et combien : « 12 élèves y sont rattachés ». Le message s'affiche dans un bandeau, à
+la place de l'`alert()` du navigateur qui tronquait et bloquait la page.
+
+Quelques décisions à connaître :
+- **Une année clôturée reste modifiable.** Le verrou de clôture protège les données DANS une
+  année, pas sa définition : s'il s'appliquait aussi à la fiche, une clôture faite par erreur
+  serait irréversible. Rouvrir une année est donc possible, et c'est voulu.
+- **Activer une année désactive les autres** : sans cela le contexte de travail ne saurait
+  laquelle prendre par défaut.
+- **Codes uniques dans l'année** pour les classes et les niveaux, pas au global : le même
+  CP1 se recrée chaque année.
+- **Cycles et matières ignorent la clôture** : ils traversent les années scolaires.
+- Seules les colonnes métier sont écrites. `CODESOCIETE`, `CODEETABLISSEMENT`, `CodeEtab` et
+  tout ce que les autres applications de la suite déposent dans ces tables restent intacts.
+
+**Un piège Laravel rencontré en route**, qui vaut d'être noté : `Matiere::getAttribute('Code')`
+renvoyait `CodeMatiere` — donc « MATH » au lieu de `1`, et un 404 à chaque écriture. Laravel
+dérive le même nom d'accesseur (`getCodeAttribute`) pour la colonne `Code` et pour l'alias
+`code` que ces modèles exposent. Tous les accès aux colonnes réelles passent désormais par
+`getRawOriginal()`, qui contourne les accesseurs. Le cas se reproduira sur tout modèle
+mêlant colonnes réelles et alias différant seulement par la casse.
+
+Tests `ReferentielsCrudTest` (21 cas) : les cinq référentiels créés / modifiés / supprimés,
+unicité des codes, dépendances refusant chaque suppression avec le bon libellé, année
+clôturée rouvrable, activation exclusive, codes réutilisables d'une année sur l'autre,
+verrou de clôture sur classes et niveaux mais pas sur les matières, retrait d'un document
+et refus quand un élève l'a au dossier.
+Suite : **204 tests, 910 assertions verts**. Build et lint propres, les sept écrans touchés
+rendus à blanc.

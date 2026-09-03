@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
-import { createPrerequis, fetchPrerequis, updatePrerequis } from './parametresApi'
+import { Trash2 } from 'lucide-react'
+import MessageRefus from '../../components/ui/MessageRefus'
+import { createPrerequis, deletePrerequis, fetchPrerequis, updatePrerequis } from './parametresApi'
 
 const VIDE = {
   libelle: '', type: '', code: '', niveau: '', annee: '',
@@ -14,6 +16,7 @@ export default function DocumentsElevesPage() {
   const [filtres, setFiltres] = useState({ q: '', annee: '', niveau: '' })
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
+  const [refus, setRefus] = useState(null)
   const qc = useQueryClient()
 
   const { data: lignes, isLoading } = useQuery({
@@ -30,6 +33,14 @@ export default function DocumentsElevesPage() {
     },
     onSuccess: () => { invalider(); setForm(null); setErreurs({}) },
     onError: (e) => setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }),
+  })
+
+  // Retrait refusé (409) si des élèves ont déjà ce document au dossier : T_PREREQUIS sert
+  // à la fois de catalogue et de suivi par élève.
+  const supprimer = useMutation({
+    mutationFn: deletePrerequis,
+    onSuccess: () => { invalider(); setRefus(null) },
+    onError: (e) => setRefus(e?.response?.data?.message ?? 'Retrait impossible.'),
   })
 
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -70,6 +81,8 @@ export default function DocumentsElevesPage() {
         </div>
       </div>
 
+      <MessageRefus message={refus} onFermer={() => setRefus(null)} />
+
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
@@ -105,9 +118,14 @@ export default function DocumentsElevesPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="outline" className="!px-3 !py-1"
+                  <Button variant="outline" className="!px-3 !py-1 mr-2"
                           onClick={() => { setErreurs({}); setForm({ ...VIDE, ...l, montant: l.montant ?? '', quantite: l.quantite ?? '' }) }}>
                     Éditer
+                  </Button>
+                  <Button variant="outline" className="!px-3 !py-1"
+                          title="Retirer — refusé si des élèves ont déjà ce document au dossier"
+                          onClick={() => supprimer.mutate(l.id)}>
+                    <Trash2 size={14} />
                   </Button>
                 </td>
               </tr>
@@ -117,8 +135,8 @@ export default function DocumentsElevesPage() {
       </div>
 
       <p className="mt-3 text-xs text-slate-400">
-        Ces lignes sont partagées avec ECONOMAT : elles peuvent être créées et modifiées ici,
-        mais jamais supprimées.
+        Ces lignes sont partagées avec ECONOMAT : elles peuvent être créées, modifiées et
+        retirées ici — le retrait étant refusé dès qu'un élève a déjà ce document au dossier.
       </p>
 
       {form && (

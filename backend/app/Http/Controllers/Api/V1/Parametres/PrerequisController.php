@@ -7,6 +7,7 @@ use App\Services\EconomatTable;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 /**
@@ -14,7 +15,9 @@ use Throwable;
  * Catalogue par niveau et par année : chaque ligne est un document ou un prérequis
  * à fournir, éventuellement chiffré (MONTANT), exigible à l'inscription (INSCR)
  * et/ou au titre de la scolarité (SCO).
- * Création + modification ; jamais de suppression (table partagée).
+ * Création, modification, et retrait conditionnel : une ligne de paramétrage ne peut pas
+ * disparaître si des élèves se sont déjà vu enregistrer ce document (lignes portant un
+ * CODEELEVE), sinon leur dossier référencerait un document qui n'existe plus.
  */
 class PrerequisController extends Controller
 {
@@ -108,6 +111,47 @@ class PrerequisController extends Controller
         $id = $this->t()->inserer($this->colonnes($data));
 
         return response()->json($this->ligne($this->t()->trouver($id)), 201);
+    }
+
+    /**
+     * Retrait d'une ligne de paramétrage.
+     *
+     * Refusé si des élèves ont déjà ce document à leur dossier : T_PREREQUIS sert à la
+     * fois de catalogue (CODEELEVE vide) et de suivi par élève (CODEELEVE renseigné).
+     */
+    public function destroy($prerequis)
+    {
+        $existant = $this->t()->trouver($prerequis);
+        abort_unless($existant, 404, 'Prérequis introuvable.');
+
+        AnneeScolaireGuard::assertModifiable($existant->ANNEE ?? null, 'Le retrait de ce document');
+
+        $rattaches = $this->elevesRattaches($existant);
+        if ($rattaches > 0) {
+            throw new HttpException(409,
+                'Ce document ne peut pas être retiré : il est déjà enregistré au dossier de '
+                .$rattaches.' élève'.($rattaches > 1 ? 's' : '')
+                .". Retirez-le d'abord de ces dossiers, ou laissez la ligne en place.");
+        }
+
+        $this->t()->requete()->where('CODES', $prerequis)->delete();
+
+        return response()->noContent();
+    }
+
+    /** Lignes de suivi par élève portant le même document, sur la même année. */
+    private function elevesRattaches(object $ligne): int
+    {
+        try {
+            return (int) $this->t()->requete()
+                ->whereNotNull('CODEELEVE')
+                ->where('CODEELEVE', '!=', '')
+                ->when($ligne->CODE ?? null, fn ($q, $c) => $q->where('CODE', $c))
+                ->when($ligne->ANNEE ?? null, fn ($q, $a) => $q->where('ANNEE', $a))
+                ->count();
+        } catch (Throwable $e) {
+            return 0;
+        }
     }
 
     public function update(Request $request, $prerequis)
