@@ -81,6 +81,43 @@ class RhUserAuthTest extends TestCase
         $this->login('M9')->assertOk()->assertJsonPath('email', 'p9@ecole.ci');
     }
 
+    public function test_connexion_par_nom_d_utilisateur_ou_email_quelle_que_soit_la_casse(): void
+    {
+        $this->creerRh(['Login' => 'JDupont', 'Email' => 'Jean.Dupont@Ecole.ci']);
+
+        // Le nom d'utilisateur, tel qu'enregistré puis en minuscules.
+        $this->login('JDupont')->assertOk()->assertJsonPath('name', 'Jean Dupont');
+        $this->login('jdupont')->assertOk()->assertJsonPath('name', 'Jean Dupont');
+
+        // L'email, y compris recopié avec une casse ou des espaces différents.
+        $this->login('Jean.Dupont@Ecole.ci')->assertOk()->assertJsonPath('name', 'Jean Dupont');
+        $this->login('jean.dupont@ecole.ci')->assertOk()->assertJsonPath('name', 'Jean Dupont');
+        $this->login('  jean.dupont@ecole.ci  ')->assertOk()->assertJsonPath('name', 'Jean Dupont');
+    }
+
+    public function test_le_nom_de_famille_n_est_pas_un_identifiant(): void
+    {
+        // Nom n'est pas unique dans RH_USER : l'accepter ferait entrer un homonyme
+        // sur le compte d'un autre.
+        $this->creerRh(['Id' => 1, 'Nom' => 'Kone', 'Login' => 'kone1', 'Email' => 'k1@ecole.ci', 'Matricule' => 'K1']);
+        $this->creerRh(['Id' => 2, 'Nom' => 'Kone', 'Login' => 'kone2', 'Email' => 'k2@ecole.ci', 'Matricule' => 'K2']);
+
+        $this->login('Kone')->assertStatus(422)->assertJsonValidationErrors('email');
+    }
+
+    public function test_l_etablissement_se_trouve_aussi_par_le_nom_d_utilisateur(): void
+    {
+        $this->creerRh(['Login' => 'MmeTraore', 'Etab' => 'ETAB1']);
+        DB::connection('economat')->table('BEtablissements')->insert([
+            'CodeEtablissement' => 'ETAB1', 'Intitule' => 'Groupe Scolaire Les Palmiers',
+        ]);
+
+        $this->withHeaders($this->spa)
+            ->postJson('/api/v1/etablissement-du-compte', ['identifiant' => 'mmetraore'])
+            ->assertOk()
+            ->assertJsonPath('etablissement', 'Groupe Scolaire Les Palmiers');
+    }
+
     public function test_mot_de_passe_incorrect(): void
     {
         $this->creerRh(['Email' => 'a@ecole.ci']);

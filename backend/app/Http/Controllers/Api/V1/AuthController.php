@@ -19,25 +19,14 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        // Le champ « email » accepte un identifiant : Email, Login ou Matricule.
+        // Le champ « email » accepte indifféremment le nom d'utilisateur, l'email ou le
+        // matricule : l'utilisateur saisit ce dont il se souvient.
         $credentials = $request->validate([
             'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        $identifiant = trim($credentials['email']);
-
-        $query = RhUser::where(function ($q) use ($identifiant) {
-            $q->where('Email', $identifiant)
-                ->orWhere('Login', $identifiant)
-                ->orWhere('Matricule', $identifiant);
-        });
-
-        if ($codeApp = config('ecoprim.code_app')) {
-            $query->where('CodeApp', $codeApp);
-        }
-
-        $rhUser = $query->first();
+        $rhUser = $this->trouverParIdentifiant($credentials['email']);
 
         if (! $rhUser || ! Hash::check($credentials['password'], $rhUser->MotDePasse)) {
             throw ValidationException::withMessages(['email' => ['Identifiants invalides.']]);
@@ -51,6 +40,38 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return response()->json($this->userPayload($rhUser));
+    }
+
+    /**
+     * Retrouve un compte RH_USER à partir de ce que l'utilisateur a tapé : son nom
+     * d'utilisateur (Login), son email ou son matricule.
+     *
+     * La comparaison est explicitement insensible à la casse et aux espaces de bord :
+     * un email recopié depuis un mail arrive souvent avec une majuscule ou une espace
+     * traînante. SQL Server l'ignorerait de lui-même avec une collation CI, mais on ne
+     * dépend pas de la collation du serveur pour que la connexion fonctionne.
+     *
+     * Le nom de famille (Nom) n'est volontairement PAS un identifiant : il n'est pas
+     * unique dans RH_USER, deux homonymes se connecteraient l'un sur le compte de l'autre.
+     */
+    private function trouverParIdentifiant(string $saisie): ?RhUser
+    {
+        $identifiant = mb_strtolower(trim($saisie));
+        if ($identifiant === '') {
+            return null;
+        }
+
+        $query = RhUser::where(function ($q) use ($identifiant) {
+            foreach (['Email', 'Login', 'Matricule'] as $colonne) {
+                $q->orWhereRaw("LOWER(LTRIM(RTRIM({$colonne}))) = ?", [$identifiant]);
+            }
+        });
+
+        if ($codeApp = config('ecoprim.code_app')) {
+            $query->where('CodeApp', $codeApp);
+        }
+
+        return $query->first();
     }
 
     public function logout(Request $request)
@@ -90,19 +111,8 @@ class AuthController extends Controller
     public function etablissementDuCompte(Request $request)
     {
         $donnees = $request->validate(['identifiant' => ['required', 'string', 'max:100']]);
-        $identifiant = trim($donnees['identifiant']);
 
-        $query = RhUser::where(function ($q) use ($identifiant) {
-            $q->where('Email', $identifiant)
-                ->orWhere('Login', $identifiant)
-                ->orWhere('Matricule', $identifiant);
-        });
-
-        if ($codeApp = config('ecoprim.code_app')) {
-            $query->where('CodeApp', $codeApp);
-        }
-
-        $rhUser = $query->first();
+        $rhUser = $this->trouverParIdentifiant($donnees['identifiant']);
 
         $code = ($rhUser && ! $rhUser->estSupprime()) ? trim((string) $rhUser->Etab) : '';
 

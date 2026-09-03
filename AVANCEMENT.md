@@ -1148,3 +1148,26 @@ sur les données passées à la vue, le PDF étant binaire), la photo part en ba
 clôturée reste imprimable.
 Suite : **143 tests, 642 assertions verts**. Build et lint propres, et les trois pages modifiées
 passent le rendu à blanc hors navigateur.
+
+## Connexion par nom d'utilisateur ou par email
+
+La saisie est résolue par une seule méthode, partagée par la connexion et par la recherche
+de l'établissement affiché avant le mot de passe : `Login`, `Email` ou `Matricule`, au choix
+de l'utilisateur. Le champ de la page de connexion est désormais intitulé
+« Nom d'utilisateur ou email » avec un exemple en filigrane, pour que la possibilité se voie.
+
+La comparaison est explicitement insensible à la casse et aux espaces de bord
+(`LOWER(LTRIM(RTRIM(colonne)))`) : un email recopié depuis un courrier arrive souvent avec
+une majuscule ou une espace traînante. Une collation SQL Server insensible à la casse le
+ferait déjà, mais la connexion ne dépend plus de la configuration du serveur.
+
+**Le nom de famille (`Nom`) n'est volontairement pas un identifiant** : il n'est pas unique
+dans `RH_USER`. L'accepter ferait entrer un homonyme sur le compte d'un autre — c'est testé
+explicitement, avec deux comptes « Kone », pour que personne ne l'ajoute plus tard par
+inadvertance.
+
+Tests `RhUserAuthTest` (16 cas) : connexion par nom d'utilisateur et par email dans toutes
+les casses et avec des espaces de bord, refus du nom de famille, et l'établissement retrouvé
+aussi par le nom d'utilisateur.
+Suite : **146 tests, 657 assertions verts**. Build et lint propres, page de connexion vérifiée
+au rendu à blanc.

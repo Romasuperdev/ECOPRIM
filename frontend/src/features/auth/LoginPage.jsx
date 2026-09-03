@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, ShieldCheck, Mail, Lock, Eye, EyeOff, School } from 'lucide-react'
+import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { useAuthStore } from '../../store/authStore'
@@ -116,8 +116,9 @@ export default function LoginPage() {
         <Input
           id={fieldId('email')}
           type="text"
-          label="Identifiant ou email"
-          icon={Mail}
+          label="Nom d’utilisateur ou email"
+          placeholder="jdupont ou jean@ecole.ci"
+          icon={UserRound}
           autoComplete="username"
           error={creds.errors.email}
           value={creds.email}
