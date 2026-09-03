@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\ContexteController;
 use App\Http\Controllers\Api\V1\Parametres\MailConfigController;
 use App\Http\Controllers\Api\V1\Parametres\PrerequisController;
 use App\Http\Controllers\Api\V1\Parametres\SmsConfigController;
+use App\Http\Controllers\Api\V1\TracabiliteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\JournalActiviteController;
@@ -236,6 +237,10 @@ Route::prefix('v1')->group(function () {
             Route::put('utilisateurs/{user}', [UserController::class, 'update']);
             Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
             Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
+
+            // Traçabilité (ECONOMAT.T_TRACABILITE) — lecture seule, cloisonnée par société.
+            Route::get('tracabilite', [TracabiliteController::class, 'index']);
+            Route::get('tracabilite/utilisateurs/{user}', [TracabiliteController::class, 'utilisateur']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);

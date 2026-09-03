@@ -1407,3 +1407,47 @@ simplement « Niveaux ». Les colonnes `CodeCycle` et `Ordre` existent toujours 
 `T_NIVEAU` et leurs valeurs sont préservées — la page ne les affiche plus et ne les écrit
 plus. Les routes `/cycles` restent en place côté serveur (elles sont testées) : seul
 l'écran disparaît, `CyclesPanel` rejoint `features/_retires/`.
+
+## Traçabilité des utilisateurs
+
+Nouvelle page `/admin/tracabilite` dans la console, adossée à `ECONOMAT.dbo.T_TRACABILITE`,
+en **lecture seule** : NEXORA restitue ce qu'ECONOMAT y a écrit, il n'y trace rien. Une
+seconde entrée, `/admin/utilisateurs/:id/tracabilite`, ouvre la traçabilité d'un compte
+depuis sa fiche.
+
+**La structure de cette table n'a pas été relevée sur votre base, et je ne l'ai pas
+inventée.** La lecture découvre les colonnes réelles à l'exécution
+(`Schema::getColumnListing`) et les rapproche de rôles métier — quand, qui, quoi, sur quoi,
+détail, où — par motifs de noms. Conséquences : une colonne absente n'apparaît pas, les
+filtres proposés à l'écran sont ceux que la table permet réellement, et ce qu'on ne sait
+pas nommer reste visible sous « autres » plutôt que d'être perdu. L'écran expose la
+correspondance retenue, pour qu'un rapprochement faux se voie.
+
+**Le cloisonnement est le point délicat**, puisque rien ne garantit que cette table porte
+une colonne société. Trois stratégies, de la plus fiable à la plus indirecte :
+
+1. une colonne société → filtre direct ;
+2. une colonne établissement → restreinte aux établissements de la société ;
+3. une colonne utilisateur → restreinte aux identifiants (login, matricule, email) des
+   comptes affectés dans la société — l'écran annonce alors que l'activité enregistrée sous
+   un identifiant inconnu de la console n'y apparaît pas.
+
+**Si aucune ne s'applique, l'Admin Société ne voit RIEN**, et la réponse dit pourquoi.
+Jamais « on ne sait pas cloisonner, donc on montre tout ». Le Super Admin voit toute la
+table en vue générale, et la société choisie sinon. La traçabilité d'un compte hors
+périmètre répond 404, pas 403 : son existence n'a pas à être confirmée.
+
+Tests `TracabiliteTest` (15 cas) : reconnaissance des colonnes sur **deux nommages
+différents** — précisément pour ne pas dépendre de ce qu'on avait imaginé —, table absente
+sans casser la page, colonnes non reconnues conservées, filtres utilisateur / action /
+période, les trois stratégies de cloisonnement, le fail closed quand aucune ne s'applique,
+la bascule de société du Super Admin, la traçabilité d'un compte et son refus hors
+périmètre, l'absence d'accès pour un compte sans droit console, et la lecture seule. Le
+cloisonnement par société et le fail closed ont été vérifiés par mutation.
+Suite : **229 tests, 1007 assertions verts**. Build et lint propres.
+
+**Limite de validation à connaître** : mon rendu à blanc hors navigateur ne peut pas
+exercer les branches qui dépendent du store zustand — en rendu serveur, zustand sert l'état
+*initial*, donc un `superAdmin` posé avant le rendu n'est pas lu par le sélecteur. Le
+masquage des entrées de menu réservées à la console générale n'est donc vérifié que par le
+serveur (403) et par `ProtectedRoute`, pas par ce harnais.

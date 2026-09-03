@@ -45,6 +45,7 @@ const MailConfigPage = lazy(() => import('./features/parametres/MailConfigPage')
 const EnvoiPage = lazy(() => import('./features/communication/EnvoiPage'))
 const HistoriquePage = lazy(() => import('./features/communication/HistoriquePage'))
 const RoleListPage = lazy(() => import('./features/admin/RoleListPage'))
+const TracabilitePage = lazy(() => import('./features/tracabilite/TracabilitePage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
@@ -96,6 +97,9 @@ export default function App() {
               <Route path="/admin/etablissements/:code" element={<EtablissementDetailPage />} />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
+              {/* Traçabilité : la liste générale, et celle d'un compte depuis sa fiche. */}
+              <Route path="/admin/tracabilite" element={<TracabilitePage />} />
+              <Route path="/admin/utilisateurs/:id/tracabilite" element={<TracabilitePage />} />
               <Route
                 path="/admin/roles"
                 element={<ProtectedRoute exigeSuperAdmin><RoleListPage /></ProtectedRoute>}

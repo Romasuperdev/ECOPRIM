@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, Users, ShieldCheck, ArrowLeftCircle } from 'lucide-react'
+import { LayoutDashboard, Building2, School, Users, ShieldCheck, History, ArrowLeftCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. Le reste est la console d'une société, ouverte
@@ -10,6 +10,7 @@ const ITEMS = [
   { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
   { to: '/admin/etablissements', icon: School, label: 'Établissements' },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
+  { to: '/admin/tracabilite', icon: History, label: 'Traçabilité' },
   { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions', generale: true },
 ]
 

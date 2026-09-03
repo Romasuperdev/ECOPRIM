@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, History, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import {
@@ -59,6 +59,13 @@ export default function UtilisateurDetailPage() {
       <div className="flex items-center gap-3">
         <Link to="/admin/utilisateurs" className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
         <h1 className="text-2xl font-bold text-slate-800">{user.name}</h1>
+        {/* La traçabilité du compte se lit depuis sa fiche, filtrée sur ses identifiants. */}
+        <Link to={`/admin/utilisateurs/${user.id}/tracabilite`} className="ml-auto">
+          <Button variant="outline">
+            <History size={16} className="mr-1.5 inline" />
+            Traçabilité
+          </Button>
+        </Link>
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
