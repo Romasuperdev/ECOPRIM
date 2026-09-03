@@ -1359,3 +1359,44 @@ verrou de clôture sur classes et niveaux mais pas sur les matières, retrait d'
 et refus quand un élève l'a au dossier.
 Suite : **204 tests, 910 assertions verts**. Build et lint propres, les sept écrans touchés
 rendus à blanc.
+
+## Saisie des absences
+
+C'était le manque le plus sérieux relevé par l'audit : un suivi quotidien entièrement en
+lecture seule, avec un formulaire orphelin (`AbsenceFormPage`) et un `absencesApi.js`
+pointant des routes inexistantes.
+
+La saisie **part de l'effectif d'une classe** : on choisit l'élève dans la liste, jamais en
+tapant un matricule — c'est ce qui évite d'inscrire une absence au mauvais dossier. La
+classe et l'année ne se saisissent pas : elles sont déduites de l'élève et de l'année de
+travail, sinon les relevés par classe deviendraient faux.
+
+Règles posées : l'élève doit être inscrit **pour l'année de travail** ; pas deux absences
+pour le même élève le même jour à la même heure (c'est une double saisie, pas deux
+absences) ; pas d'absence dans le futur ; année clôturée en consultation seule.
+
+**Suppression réelle — troisième exception assumée** après `T_EMPLOIDUTEMPS` et
+`T_CORPROFCLASSE` : une absence saisie par erreur (mauvais élève, mauvais jour) n'a aucune
+autre voie de correction, et rien ne dépend d'une ligne d'absence en aval. Elle reste
+bornée par le verrou de clôture.
+
+Tests `AbsenceSaisieTest` (10 cas) : saisie avec classe et année déduites, élève non
+inscrit refusé, doublon jour+heure refusé mais autre heure acceptée, date future refusée,
+correction et justification, retrait, cloisonnement par année, verrou de clôture, filtres
+classe et jour, effectif d'une classe exposé pour la saisie. La déduction de la classe a
+été vérifiée par mutation.
+Suite : **214 tests, 952 assertions verts**. Build et lint propres, écran rendu à blanc.
+
+### Ce qui reste sans écriture, et pourquoi
+
+- **Saisie des notes** — le menu promet une saisie, la page ne fait que consulter
+  `V_NOTECLASSE`, **qui est une vue** : on ne peut pas y écrire. Les vraies tables sont
+  `T_NOTEENTETE` / `T_NOTEDETAILS`, dont je n'ai pas les colonnes. À faire, mais il me faut
+  d'abord un `SELECT TOP 5 *` de ces deux tables — je ne veux pas inventer la structure
+  d'une table de notes.
+- **Élèves** — pas de création directe, et c'est volontaire : la fiche élève s'écrit par
+  Inscriptions, qui porte les règles métier (une inscription par an, doublons d'identité,
+  cohérence classe/niveau). Deux portes d'écriture sur `T_ETUDIANT` seraient un risque, pas
+  un service. `EleveFormPage` et `elevesApi.js` restent du code mort à retirer.
+- **Évaluations, Résultats & bulletins, Assiduité** — ce sont des restitutions d'agrégats
+  calculés par ECONOMAT (`V_MOYENNE_ELEVE_CLASSE`, vues d'absences). Rien à y écrire.

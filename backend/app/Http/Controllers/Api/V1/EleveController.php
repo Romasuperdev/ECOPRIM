@@ -14,6 +14,9 @@ class EleveController extends Controller
     {
         return Eleve::with('classe')
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
+            // Filtre par classe : sert notamment à la saisie des absences, où l'on part
+            // de l'effectif d'une classe.
+            ->when($request->filled('classe_code'), fn ($q) => $q->where('CodeClasse', $request->input('classe_code')))
             ->when($request->filled('q'), function ($query) use ($request) {
                 $q = $request->input('q');
                 $query->where(fn ($w) => $w->where('Nom', 'like', "%{$q}%")

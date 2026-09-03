@@ -93,8 +93,13 @@ Route::prefix('v1')->group(function () {
         Route::post('matieres', [MatiereController::class, 'store']);
         Route::put('matieres/{matiere}', [MatiereController::class, 'update']);
         Route::delete('matieres/{matiere}', [MatiereController::class, 'destroy']);
+        // Absences : saisie, correction et retrait (suppression réelle assumée — une
+        // absence mal saisie n'a pas d'autre voie de correction).
         Route::get('absences', [AbsenceController::class, 'index']);
         Route::get('absences/{absence}', [AbsenceController::class, 'show']);
+        Route::post('absences', [AbsenceController::class, 'store']);
+        Route::put('absences/{absence}', [AbsenceController::class, 'update']);
+        Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
         Route::apiResource('sanctions', SanctionController::class);
         Route::apiResource('parents', ParentController::class);
         Route::post('parents/{parent}/eleves', [ParentController::class, 'attachEleve']);

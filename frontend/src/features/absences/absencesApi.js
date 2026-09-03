@@ -1,13 +1,18 @@
 import apiClient from '../../api/client'
 
-export async function fetchAbsences(page = 1) {
-  const { data } = await apiClient.get('/absences', { params: { page } })
+export async function fetchAbsences({ classe_code, date, page } = {}) {
+  const { data } = await apiClient.get('/absences', {
+    params: { classe_code: classe_code || undefined, date: date || undefined, page },
+  })
   return data
 }
 
-export async function fetchAbsence(id) {
-  const { data } = await apiClient.get(`/absences/${id}`)
-  return data
+/** Effectif d'une classe, pour choisir l'élève absent dans la liste plutôt qu'au clavier. */
+export async function fetchEffectifClasse(classeCode) {
+  const { data } = await apiClient.get('/eleves', {
+    params: { classe_code: classeCode, per_page: 200 },
+  })
+  return data.data ?? []
 }
 
 export async function createAbsence(payload) {
