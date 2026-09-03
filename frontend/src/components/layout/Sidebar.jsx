@@ -9,6 +9,8 @@ import { ROLES } from '../../lib/constants'
 // (Espace parent) qui reste affichée en « Bientôt » via `to: null`.
 // Les pages adossées à des tables inexistantes (documents/annonces/messages) ont été
 // supprimées ; Communication passe par l'envoi SMS/Mail.
+// Le groupe « Affectation » a été retiré : sa seule entrée renvoyait vers /classes, déjà
+// listée sous Paramètre, et l'affectation enseignant-classe a désormais sa vraie page.
 const GROUPS = [
   {
     label: '⚙️ Paramètre',
@@ -39,12 +41,6 @@ const GROUPS = [
       { to: '/programmes', label: 'Cours' },
       { to: '/seances', label: 'Cahier de textes' },
       { to: '/ressources', label: 'Ressources pédagogiques' },
-    ],
-  },
-  {
-    label: '🔗 Affectation',
-    items: [
-      { to: '/classes', label: 'Élève / Enseignant → Classe' },
     ],
   },
   {

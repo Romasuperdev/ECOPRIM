@@ -1304,3 +1304,7 @@ toucher aux autres classes, retrait effectif, retrait refusé sur créneaux puis
 remplacement toujours possible malgré des créneaux, année clôturée. Les trois règles
 sensibles (refus de retrait, exclusivité du titulaire) ont été vérifiées par mutation.
 Suite : **183 tests, 826 assertions verts**. Build et lint propres, page rendue à blanc.
+
+Le groupe « 🔗 Affectation » du menu a été retiré : sa seule entrée renvoyait vers
+`/classes`, déjà listée sous Paramètre, et l'affectation enseignant-classe a désormais sa
+vraie page sous Programme.
