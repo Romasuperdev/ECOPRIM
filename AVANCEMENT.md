@@ -1552,3 +1552,21 @@ aux routes React, et les pages routées vérifiées présentes sur le disque. Le
 zéro. Le code retiré est exclu du lint (`ignorePatterns` sur `**/_retires/**`), qui ne
 laisse plus qu'un avertissement connu sur `ErrorBoundary`.
 Suite : **236 tests, 1027 assertions verts** — 65 fichiers retirés sans qu'un test bouge.
+
+## Bulletin PDF : dernier point du registre couvert
+
+`GET eleves/{eleve}/bulletin` n'avait aucun test — le seul document imprimable qui n'en
+avait pas. `BulletinTest` (7 cas) couvre ce qui est réellement de notre ressort : NEXORA
+ne calcule rien, il restitue les moyennes, coefficients et rangs d'ECONOMAT. Les tests
+portent donc sur la restitution, pas sur l'arithmétique.
+
+Vérifiés : le PDF sort ; le rang, la moyenne et l'effectif viennent bien des vues ECONOMAT ;
+**les sessions ne se mélangent pas** (une note de S2 ne pèse pas sur la moyenne de S1) ;
+les coefficients sont restitués tels quels ; un élève sans classe est refusé en 422 ; un
+élève sans note donne un bulletin vide plutôt qu'une erreur ; et le bulletin suit l'année
+de travail. Le cloisonnement par session a été vérifié par mutation.
+
+Deux erreurs de ma part corrigées en route, toutes deux dans le test et non dans le code :
+le piège SQLite des colonnes hétérogènes dans un insert groupé, déjà rencontré en début de
+projet, et la clé `matiere_code` que j'avais écrite `code`.
+Suite : **243 tests, 1066 assertions verts**.
