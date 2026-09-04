@@ -19,7 +19,3 @@ export async function deleteAnneeScolaire(id) {
   await apiClient.delete(`/annees-scolaires/${id}`)
 }
 
-export async function proposerReinscriptions(id) {
-  const { data } = await apiClient.post(`/annees-scolaires/${id}/proposer-reinscriptions`)
-  return data
-}

@@ -26,10 +26,6 @@ export async function updateSociete(id, payload) {
   return data
 }
 
-export async function deleteSociete(id) {
-  await apiClient.delete(`/societes/${id}`)
-}
-
 export async function activerSociete(id) {
   const { data } = await apiClient.post(`/societes/${id}/activer`)
   return data
@@ -71,10 +67,6 @@ export async function createEtablissement(payload) {
 export async function updateEtablissement(id, payload) {
   const { data } = await apiClient.put(`/etablissements/${id}`, payload)
   return data
-}
-
-export async function deleteEtablissement(id) {
-  await apiClient.delete(`/etablissements/${id}`)
 }
 
 export async function activerEtablissement(id) {
@@ -145,7 +137,6 @@ export async function terminerAffectation(id) {
 }
 
 // Journal d'activité (lecture seule, immuable)
-export async function fetchJournalActivite(page = 1) {
-  const { data } = await apiClient.get('/journal-activite', { params: { page } })
-  return data
-}
+
+// Sociétés et établissements ne se suppriment pas : ils se désactivent
+// (activerSociete / desactiverSociete, et l'équivalent établissement).

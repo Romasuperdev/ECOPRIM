@@ -1451,3 +1451,42 @@ exercer les branches qui dépendent du store zustand — en rendu serveur, zusta
 *initial*, donc un `superAdmin` posé avant le rendu n'est pas lu par le sélecteur. Le
 masquage des entrées de menu réservées à la console générale n'est donc vérifié que par le
 serveur (403) et par `ProtectedRoute`, pas par ce harnais.
+
+## Nettoyage de l'avant-pivot, et un risque écarté
+
+En reprenant le registre d'audit, j'ai trouvé pire que ce qu'il annonçait. Le fichier `.env`
+porte **`DB_CONNECTION=economat`** : la connexion **par défaut** de l'application est votre
+base de production partagée. Deux conséquences, l'une constatée, l'autre évitée de peu.
+
+**Constatée.** Tout modèle sans `$connection` explicite interroge ECONOMAT. Dix-huit
+modèles étaient dans ce cas, visant des tables du schéma d'avant le pivot (`programmes`,
+`seances`, `parents`, `conseils_classe`, `periodes`, `sanctions`…) qui n'ont jamais été
+créées là. Vérifié par sonde sur les endpoints réels : **dix répondent 500** —
+`programmes`, `ressources`, `seances`, `parents`, `conseils-classe`, `periodes`,
+`coefficients`, `sanctions`, `annonces`, `messages`. Les cinq pages que l'audit classait
+« complètes mais non testées » ne fonctionnent pas du tout.
+
+**Évitée.** Les 36 migrations d'avant le pivot créaient tout ce schéma local. Un
+`php artisan migrate` sans `--database` les aurait créées **dans ECONOMAT**, au milieu des
+tables de la suite. Elles sont déplacées dans `database/migrations/_retires/` avec un
+LISEZ-MOI qui explique pourquoi : la commande ne trouve plus rien à créer. Seules restent
+actives les migrations de `console/`, qui se lancent explicitement.
+
+Retirés dans `app/_retires/` : cinq contrôleurs sans page (Messages, Annonces, Documents,
+Documents établissement, Journal d'activité — ce dernier n'avait même pas de route), onze
+modèles orphelins dont la chaîne de périmètre morte (`User`, `Affectation`, `Societe`,
+`Etablissement`, `BelongsToPerimetre`, cinq `FormRequest` jamais type-hintées),
+`ActivityLogger` appelé nulle part, et les modèles `Note` et `Inscription` que rien ne
+référençait. Les routes correspondantes ont disparu de `api.php`.
+
+Côté écran, dans `features/_retires/` : six formulaires jamais routés
+(`ClasseFormPage`, `ClasseIntervenantsPanel`, `EleveFormPage`, `EleveParentsPanel`,
+`NoteFormPage`, `AbsenceFormPage`), et les fonctions d'API qui appelaient des routes
+inexistantes (`fetchIntervenants`, `archiverClasse`, `deleteSociete`,
+`deleteEtablissement`, `fetchJournalActivite`, `proposerReinscriptions`).
+
+**Contrôle ajouté à la validation** : un script compare désormais tous les
+`apiClient.<verbe>('…')` du front aux routes déclarées dans `api.php`. Résultat après
+nettoyage : aucun appel orphelin. La suite reste à **229 tests, 1007 assertions verts** —
+22 fichiers et 36 migrations retirés sans qu'un seul test bouge, ce qui confirme qu'ils
+étaient bien morts.

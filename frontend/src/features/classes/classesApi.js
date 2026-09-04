@@ -24,21 +24,5 @@ export async function deleteClasse(id) {
   await apiClient.delete(`/classes/${id}`)
 }
 
-export async function archiverClasse(id) {
-  const { data } = await apiClient.post(`/classes/${id}/archiver`)
-  return data
-}
-
-export async function fetchIntervenants(classeId) {
-  const { data } = await apiClient.get(`/classes/${classeId}/intervenants`)
-  return data
-}
-
-export async function addIntervenant(classeId, payload) {
-  const { data } = await apiClient.post(`/classes/${classeId}/intervenants`, payload)
-  return data
-}
-
-export async function removeIntervenant(classeId, intervenantId) {
-  await apiClient.delete(`/classes/${classeId}/intervenants/${intervenantId}`)
-}
+// Les intervenants d'une classe passent désormais par la page
+// « Affectation enseignant – classe » (ECONOMAT.T_CORPROFCLASSE).

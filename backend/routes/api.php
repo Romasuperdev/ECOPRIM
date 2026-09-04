@@ -20,11 +20,7 @@ use App\Http\Controllers\Api\V1\SeanceController;
 use App\Http\Controllers\Api\V1\RapportController;
 use App\Http\Controllers\Api\V1\ProgrammeController;
 use App\Http\Controllers\Api\V1\RessourceController;
-use App\Http\Controllers\Api\V1\DocumentController;
-use App\Http\Controllers\Api\V1\DocumentEtablissementController;
 use App\Http\Controllers\Api\V1\InscriptionController;
-use App\Http\Controllers\Api\V1\MessageController;
-use App\Http\Controllers\Api\V1\AnnonceController;
 use App\Http\Controllers\Api\V1\ConseilClasseController;
 use App\Http\Controllers\Api\V1\DeliberationController;
 use App\Http\Controllers\Api\V1\BulletinController;
@@ -43,7 +39,6 @@ use App\Http\Controllers\Api\V1\Parametres\SmsConfigController;
 use App\Http\Controllers\Api\V1\TracabiliteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
-use App\Http\Controllers\Api\V1\JournalActiviteController;
 
 // Routes API ECOPRIM - v1
 Route::prefix('v1')->group(function () {
@@ -151,23 +146,6 @@ Route::prefix('v1')->group(function () {
         Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update']);
         Route::get('inscriptions/{inscription}/photo', [InscriptionController::class, 'photo']);
         Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto']);
-
-        // Documents
-        Route::get('documents', [DocumentController::class, 'index']);
-        Route::post('documents', [DocumentController::class, 'store']);
-        Route::get('documents/{document}/telecharger', [DocumentController::class, 'download']);
-        Route::delete('documents/{document}', [DocumentController::class, 'destroy']);
-        Route::get('documents-etablissement', [DocumentEtablissementController::class, 'index']);
-        Route::post('documents-etablissement', [DocumentEtablissementController::class, 'store']);
-        Route::get('documents-etablissement/{document}/telecharger', [DocumentEtablissementController::class, 'download']);
-        Route::delete('documents-etablissement/{document}', [DocumentEtablissementController::class, 'destroy']);
-
-        // Communication
-        Route::get('messages', [MessageController::class, 'index']);
-        Route::post('messages', [MessageController::class, 'store']);
-        Route::post('messages/{message}/lire', [MessageController::class, 'markAsRead']);
-        Route::get('destinataires', [MessageController::class, 'destinataires']);
-        Route::apiResource('annonces', AnnonceController::class)->only(['index', 'store', 'destroy']);
 
         // Conseil de classe
         Route::apiResource('conseils-classe', ConseilClasseController::class)
