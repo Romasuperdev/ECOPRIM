@@ -10,22 +10,14 @@ use App\Http\Controllers\Api\V1\EmploiDuTempsController;
 use App\Http\Controllers\Api\V1\ImpressionController;
 use App\Http\Controllers\Api\V1\NiveauController;
 use App\Http\Controllers\Api\V1\AnneeScolaireController;
-use App\Http\Controllers\Api\V1\PeriodeController;
 use App\Http\Controllers\Api\V1\EnseignantController;
 use App\Http\Controllers\Api\V1\MatiereController;
 use App\Http\Controllers\Api\V1\AbsenceController;
-use App\Http\Controllers\Api\V1\SanctionController;
 use App\Http\Controllers\Api\V1\ParentController;
-use App\Http\Controllers\Api\V1\SeanceController;
 use App\Http\Controllers\Api\V1\RapportController;
-use App\Http\Controllers\Api\V1\ProgrammeController;
-use App\Http\Controllers\Api\V1\RessourceController;
 use App\Http\Controllers\Api\V1\InscriptionController;
-use App\Http\Controllers\Api\V1\ConseilClasseController;
-use App\Http\Controllers\Api\V1\DeliberationController;
 use App\Http\Controllers\Api\V1\BulletinController;
 use App\Http\Controllers\Api\V1\CycleController;
-use App\Http\Controllers\Api\V1\CoefficientController;
 use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
@@ -96,11 +88,9 @@ Route::prefix('v1')->group(function () {
         Route::post('absences', [AbsenceController::class, 'store']);
         Route::put('absences/{absence}', [AbsenceController::class, 'update']);
         Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
-        Route::apiResource('sanctions', SanctionController::class);
         // Parents / tuteurs : annuaire DÉRIVÉ des fiches élèves, en lecture seule.
         // Les coordonnées se corrigent dans Inscriptions, seule porte d'écriture de T_ETUDIANT.
         Route::get('parents', [ParentController::class, 'index']);
-        Route::apiResource('seances', SeanceController::class);
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
         Route::post('niveaux', [NiveauController::class, 'store']);
@@ -118,10 +108,6 @@ Route::prefix('v1')->group(function () {
         Route::post('annees-scolaires', [AnneeScolaireController::class, 'store']);
         Route::put('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'update']);
         Route::delete('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'destroy']);
-        Route::get('coefficients', [CoefficientController::class, 'index']);
-        Route::post('coefficients', [CoefficientController::class, 'store']);
-        Route::delete('coefficients/{coefficient}', [CoefficientController::class, 'destroy']);
-        Route::get('periodes', [PeriodeController::class, 'index']);
         Route::get('classes/{classe}/moyennes', [RapportController::class, 'moyennesClasse']);
         Route::get('classes/{classe}/assiduite', [RapportController::class, 'assiduiteClasse']);
         Route::get('evaluations', [RapportController::class, 'evaluations']);
@@ -134,10 +120,6 @@ Route::prefix('v1')->group(function () {
         Route::get('eleves/{eleve}/bulletin', [BulletinController::class, 'show']);
         Route::get('dashboard/stats', [DashboardController::class, 'index']);
 
-        // Pédagogie / Enseignement
-        Route::apiResource('programmes', ProgrammeController::class);
-        Route::apiResource('ressources', RessourceController::class);
-
         // Scolarité
         // Inscriptions = saisie d'un élève dans T_ETUDIANT. Pas de suppression : table partagée.
         Route::get('inscriptions', [InscriptionController::class, 'index']);
@@ -146,12 +128,6 @@ Route::prefix('v1')->group(function () {
         Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update']);
         Route::get('inscriptions/{inscription}/photo', [InscriptionController::class, 'photo']);
         Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto']);
-
-        // Conseil de classe
-        Route::apiResource('conseils-classe', ConseilClasseController::class)
-            ->parameters(['conseils-classe' => 'conseil']);
-        Route::post('conseils-classe/{conseil}/deliberations', [DeliberationController::class, 'store']);
-        Route::delete('conseils-classe/{conseil}/deliberations/{deliberation}', [DeliberationController::class, 'destroy']);
 
         // Console Administrative — gestion (base propre ECOPRIM). Réservée au Super Admin.
         // Paramètres (ECONOMAT) : documents élèves, passerelle SMS, messagerie SMTP.

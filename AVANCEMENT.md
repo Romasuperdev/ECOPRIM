@@ -1521,3 +1521,34 @@ n'est pas renseigné, portée par année et filtre par classe, recherche sur les
 lecture seule. Le regroupement a été vérifié par mutation.
 Suite : **236 tests, 1027 assertions verts**. Build et lint propres, écran rendu à blanc,
 et aucun appel du front sans route serveur.
+
+## Retrait des pages d'avant le pivot
+
+Décision prise après constat : sur les sept endpoints qui répondaient 500, **un seul est
+conservé au programme** — le Cahier de textes — et les autres sont retirés.
+
+Retirés : **Cours** (programmes), **Ressources pédagogiques**, **Conseils &
+délibérations**, **Périodes** et **Coefficients**, plus **Sanctions** dont les écrans
+n'avaient jamais été routés. Tous reposaient sur le schéma local d'avant le pivot, avec des
+clés étrangères vers des tables (`niveaux`, `classes`, `eleves`, `periodes`) qui n'existent
+plus. Les réparer aurait voulu dire reconstruire cinq tables et leurs formulaires ; le menu
+ne promet plus ce qui ne répond pas.
+
+Ce que ça retire, en volume : 8 contrôleurs, 9 modèles, **34 FormRequest** (aucune n'était
+plus type-hintée par un contrôleur vivant), 14 fichiers React et 5 entrées de menu — tout
+dans `_retires/`, rien d'effacé. Deux d'entre elles avaient un équivalent ECONOMAT déjà
+identifié dans le mapping (`T_SESSION` pour les périodes, `T_CORMATNIVEAUCOEFF` pour les
+coefficients) : elles pourront revenir sur cette base, avec la structure réelle sous les
+yeux.
+
+**Cahier de textes reste à faire**, sur `ECONOMAT.T_ENTETE_JOURNAL` / `T_CAHIER_JOURNAL`.
+Je ne l'ai pas reconstruit à l'aveugle : contrairement à la traçabilité, il faut y **écrire**
+(le titulaire consigne ce qui a été enseigné), et une liste blanche de colonnes suppose de
+connaître les colonnes. Deux `SELECT TOP 5 *` suffisent à le débloquer.
+
+**Trois contrôles ajoutés à la validation**, en plus des tests : les appels
+`apiClient.<verbe>()` du front comparés aux routes déclarées, les entrées de menu comparées
+aux routes React, et les pages routées vérifiées présentes sur le disque. Les trois sont à
+zéro. Le code retiré est exclu du lint (`ignorePatterns` sur `**/_retires/**`), qui ne
+laisse plus qu'un avertissement connu sur `ErrorBoundary`.
+Suite : **236 tests, 1027 assertions verts** — 65 fichiers retirés sans qu'un test bouge.

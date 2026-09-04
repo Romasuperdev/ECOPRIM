@@ -11,6 +11,9 @@ import { ROLES } from '../../lib/constants'
 // supprimées ; Communication passe par l'envoi SMS/Mail.
 // Le groupe « Affectation » a été retiré : sa seule entrée renvoyait vers /classes, déjà
 // listée sous Paramètre, et l'affectation enseignant-classe a désormais sa vraie page.
+// Cours, Cahier de textes, Ressources, Conseils et Sanctions ont été retirés : ils
+// reposaient sur le schéma local d'avant le pivot et répondaient 500. Le Cahier de textes
+// reste au programme, à reconstruire sur ECONOMAT.T_CAHIER_JOURNAL.
 const GROUPS = [
   {
     label: '⚙️ Paramètre',
@@ -38,9 +41,6 @@ const GROUPS = [
     items: [
       { to: '/affectations-enseignants', label: 'Affectation enseignant – classe' },
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
-      { to: '/programmes', label: 'Cours' },
-      { to: '/seances', label: 'Cahier de textes' },
-      { to: '/ressources', label: 'Ressources pédagogiques' },
     ],
   },
   {
@@ -49,7 +49,6 @@ const GROUPS = [
       { to: '/evaluations', label: 'Évaluations' },
       { to: '/notes', label: 'Saisie des notes' },
       { to: '/moyennes', label: 'Résultats & bulletins' },
-      { to: '/conseils-classe', label: 'Conseils & délibérations' },
       { to: '/assiduite', label: 'Assiduité' },
     ],
   },

@@ -21,13 +21,6 @@ export async function fetchMatieres() {
   return data.data
 }
 
-export async function fetchPeriodes(anneeScolaireId) {
-  const { data } = await apiClient.get('/periodes', {
-    params: anneeScolaireId ? { annee_scolaire_id: anneeScolaireId } : {},
-  })
-  return data
-}
-
 export async function fetchAllEleves() {
   const { data } = await apiClient.get('/eleves', { params: { per_page: 200 } })
   return data.data

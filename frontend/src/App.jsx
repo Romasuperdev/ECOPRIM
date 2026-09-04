@@ -20,19 +20,12 @@ const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage')
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
 const ParentListPage = lazy(() => import('./features/parents/ParentListPage'))
-const SeanceListPage = lazy(() => import('./features/seances/SeanceListPage'))
-const SeanceFormPage = lazy(() => import('./features/seances/SeanceFormPage'))
 const NiveauListPage = lazy(() => import('./features/niveaux/NiveauListPage'))
 const AnneeScolaireListPage = lazy(() => import('./features/annees-scolaires/AnneeScolaireListPage'))
 const MoyennesPage = lazy(() => import('./features/rapports/MoyennesPage'))
 const AssiduitePage = lazy(() => import('./features/rapports/AssiduitePage'))
 const EvaluationListPage = lazy(() => import('./features/rapports/EvaluationListPage'))
-const ProgrammeListPage = lazy(() => import('./features/programmes/ProgrammeListPage'))
-const ProgrammeFormPage = lazy(() => import('./features/programmes/ProgrammeFormPage'))
-const RessourceListPage = lazy(() => import('./features/ressources/RessourceListPage'))
 const InscriptionListPage = lazy(() => import('./features/inscriptions/InscriptionListPage'))
-const ConseilListPage = lazy(() => import('./features/conseils/ConseilListPage'))
-const ConseilDetailPage = lazy(() => import('./features/conseils/ConseilDetailPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
@@ -150,25 +143,12 @@ export default function App() {
 
               <Route path="/parents" element={<ParentListPage />} />
 
-              <Route path="/seances" element={<SeanceListPage />} />
-              <Route path="/seances/nouvelle" element={<SeanceFormPage />} />
-              <Route path="/seances/:id/modifier" element={<SeanceFormPage />} />
 
               <Route path="/assiduite" element={<AssiduitePage />} />
               <Route path="/evaluations" element={<EvaluationListPage />} />
 
-              <Route path="/programmes" element={<ProgrammeListPage />} />
-              <Route path="/programmes/nouveau" element={<ProgrammeFormPage />} />
-              <Route path="/programmes/:id/modifier" element={<ProgrammeFormPage />} />
-
-              <Route path="/ressources" element={<RessourceListPage />} />
-
 
               <Route path="/inscriptions" element={<InscriptionListPage />} />
-
-
-              <Route path="/conseils-classe" element={<ConseilListPage />} />
-              <Route path="/conseils-classe/:id" element={<ConseilDetailPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
