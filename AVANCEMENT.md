@@ -1490,3 +1490,34 @@ inexistantes (`fetchIntervenants`, `archiverClasse`, `deleteSociete`,
 nettoyage : aucun appel orphelin. La suite reste à **229 tests, 1007 assertions verts** —
 22 fichiers et 36 migrations retirés sans qu'un seul test bouge, ce qui confirme qu'ils
 étaient bien morts.
+
+## Parents / Tuteurs : un annuaire, pas une table
+
+Premier des sept endpoints morts remis en service — et pas de la façon prévue. En cherchant
+comment reconstruire la table `parents`, j'ai constaté que **la donnée existe déjà** :
+`NomPereTuteur`, `TelephoneMere`, `ProfessionPereTuteur`… sont des colonnes de `T_ETUDIANT`,
+saisies par les étapes « Père / Tuteur » et « Mère » du formulaire d'inscription.
+
+Une table de parents aurait donc dupliqué ces colonnes, avec la synchronisation à tenir —
+pour un résultat moins fiable que la source. La page devient un **annuaire dérivé** : une
+ligne par parent, ses coordonnées, ses enfants inscrits, filtrable par classe et par lien,
+recherchable par nom, téléphone ou email. En **lecture seule** : on corrige une coordonnée
+là où elle vit, dans Inscriptions. C'est la règle déjà retenue pour la page Élèves — une
+seule porte d'écriture sur le dossier élève.
+
+**Le regroupement, et ce qu'il refuse de faire.** La clé est nom + prénom + téléphone. Deux
+parents homonymes sans téléphone restent donc **deux lignes** : on préfère scinder à tort
+que fusionner deux familles. Inversement, deux enfants d'un même parent donnent une seule
+ligne, et une coordonnée absente d'une fiche est reprise de l'autre. Un même adulte père
+d'un élève et tuteur d'un autre garde les deux libellés.
+
+Retirés au passage : `ParentFormPage` et `ParentElevesPanel`, qui écrivaient dans la table
+disparue, ainsi que les routes `POST/PUT/DELETE parents` et l'attachement d'élève — ce
+dernier validait `exists:eleves,id` contre une table locale vide, donc refusait toujours.
+
+Tests `ParentsAnnuaireTest` (7 cas) : fusion des fratries, refus de fusionner deux
+homonymes sans téléphone, père et mère tous deux listés, pas de ligne vide quand le parent
+n'est pas renseigné, portée par année et filtre par classe, recherche sur les trois champs,
+lecture seule. Le regroupement a été vérifié par mutation.
+Suite : **236 tests, 1027 assertions verts**. Build et lint propres, écran rendu à blanc,
+et aucun appel du front sans route serveur.

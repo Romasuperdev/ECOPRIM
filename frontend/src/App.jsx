@@ -20,7 +20,6 @@ const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage')
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
 const ParentListPage = lazy(() => import('./features/parents/ParentListPage'))
-const ParentFormPage = lazy(() => import('./features/parents/ParentFormPage'))
 const SeanceListPage = lazy(() => import('./features/seances/SeanceListPage'))
 const SeanceFormPage = lazy(() => import('./features/seances/SeanceFormPage'))
 const NiveauListPage = lazy(() => import('./features/niveaux/NiveauListPage'))
@@ -150,8 +149,6 @@ export default function App() {
               <Route path="/moyennes" element={<MoyennesPage />} />
 
               <Route path="/parents" element={<ParentListPage />} />
-              <Route path="/parents/nouveau" element={<ParentFormPage />} />
-              <Route path="/parents/:id/modifier" element={<ParentFormPage />} />
 
               <Route path="/seances" element={<SeanceListPage />} />
               <Route path="/seances/nouvelle" element={<SeanceFormPage />} />

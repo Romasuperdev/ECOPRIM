@@ -97,9 +97,9 @@ Route::prefix('v1')->group(function () {
         Route::put('absences/{absence}', [AbsenceController::class, 'update']);
         Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
         Route::apiResource('sanctions', SanctionController::class);
-        Route::apiResource('parents', ParentController::class);
-        Route::post('parents/{parent}/eleves', [ParentController::class, 'attachEleve']);
-        Route::delete('parents/{parent}/eleves/{eleve}', [ParentController::class, 'detachEleve']);
+        // Parents / tuteurs : annuaire DÉRIVÉ des fiches élèves, en lecture seule.
+        // Les coordonnées se corrigent dans Inscriptions, seule porte d'écriture de T_ETUDIANT.
+        Route::get('parents', [ParentController::class, 'index']);
         Route::apiResource('seances', SeanceController::class);
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
