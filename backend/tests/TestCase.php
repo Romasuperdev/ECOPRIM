@@ -405,5 +405,28 @@ abstract class TestCase extends BaseTestCase
             $t->string('CodeAnnee')->nullable();
             $t->boolean('Passage')->nullable();
         });
+
+        Schema::connection('economat')->create('T_ENTETE_JOURNAL', function ($t) {
+            $t->integer('CodeEntete');
+            $t->string('Annee')->nullable();
+            $t->string('Mois')->nullable();
+            $t->string('Semaine')->nullable();
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeNiveau')->nullable();
+            $t->string('Prof')->nullable();
+            $t->integer('NumSem')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_CAHIER_JOURNAL', function ($t) {
+            $t->integer('Num');
+            $t->string('Lundi')->nullable();
+            $t->string('Mardi')->nullable();
+            $t->string('Mercredi')->nullable();
+            $t->string('Jeudi')->nullable();
+            $t->string('Vendredi')->nullable();
+            $t->string('Matiere')->nullable();
+            $t->integer('CodeEntete')->nullable();
+            $t->integer('NumSem')->nullable();
+        });
     }
 }

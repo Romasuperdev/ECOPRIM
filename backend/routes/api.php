@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
 use App\Http\Controllers\Api\V1\AffectationEnseignantController;
+use App\Http\Controllers\Api\V1\CahierTextesController;
 use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ConsoleContexteController;
 use App\Http\Controllers\Api\V1\ContexteController;
@@ -70,6 +71,15 @@ Route::prefix('v1')->group(function () {
         Route::post('affectations-enseignants', [AffectationEnseignantController::class, 'store']);
         Route::put('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'update']);
         Route::delete('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'destroy']);
+
+        // Cahier de textes : une semaine par classe, une ligne par matière affectée.
+        Route::get('cahier-textes/referentiels', [CahierTextesController::class, 'referentiels']);
+        Route::get('cahier-textes', [CahierTextesController::class, 'index']);
+        Route::post('cahier-textes', [CahierTextesController::class, 'store']);
+        Route::put('cahier-textes/{entete}', [CahierTextesController::class, 'update']);
+        Route::delete('cahier-textes/{entete}', [CahierTextesController::class, 'destroy']);
+        Route::put('cahier-textes/{entete}/lignes', [CahierTextesController::class, 'enregistrerLigne']);
+        Route::delete('cahier-textes/{entete}/lignes/{matiere}', [CahierTextesController::class, 'supprimerLigne']);
 
         Route::get('notes', [NoteController::class, 'index']);
         Route::get('enseignants', [EnseignantController::class, 'index']);

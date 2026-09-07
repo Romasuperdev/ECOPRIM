@@ -1651,3 +1651,48 @@ sur `US_SOCIETE` ; le champ `source` disparaît de la réponse, désormais inuti
 tri déjà fait côté serveur.
 Test ajouté : une société ECOPRIM sans ligne US_SOCIETE n'apparaît plus dans `GET /societes`.
 Suite : **248 tests, 1089 assertions** (246 verts ; mêmes 2 échecs préexistants).
+
+## Cahier de textes : dernière page manquante du programme
+
+Seul écran resté « à faire » depuis le retrait des pages d'avant le pivot (§ précédentes) :
+il fallait d'abord voir les vraies colonnes de `T_ENTETE_JOURNAL` et `T_CAHIER_JOURNAL`, plutôt
+que de les inventer. Un `SELECT TOP 5` sur les deux tables (schéma déjà introspecté) a montré
+la structure réelle : une semaine par classe (`T_ENTETE_JOURNAL`), une ligne par matière avec
+ce qui a été vu chaque jour (`T_CAHIER_JOURNAL` : `Lundi`…`Vendredi`, `Matiere`, liée par
+`CodeEntete`).
+
+- **Une ligne par matière affectée à la classe**, jamais une saisie libre : la liste vient de
+  `T_CORPROFCLASSE` (comme pour l'emploi du temps et l'affectation enseignant-classe), donc on
+  ne consigne pas une matière qui n'est pas enseignée là. Une ligne déjà écrite reste
+  modifiable même si l'affectation est retirée après coup — la donnée passée n'est jamais
+  invalidée par un changement d'organisation ultérieur.
+- **Enregistrer une ligne est un upsert** : une seule ligne par (semaine, matière), on ne
+  duplique jamais en resaisissant.
+- **`NumSem`** (rang de la semaine dans le mois, pour la classe) est **calculé**, pas saisi :
+  compté à partir des cahiers déjà enregistrés ce mois-là pour cette classe. Un doublon
+  classe + mois + semaine est refusé, en le nommant.
+- **QUATRIÈME exception assumée** à la règle « jamais de DELETE », après les emplois du temps,
+  l'affectation enseignant-classe et les absences : rien ne dépend en aval d'une semaine ou
+  d'une matière du cahier de textes, et une saisie mal placée n'a pas d'autre voie de
+  correction. Supprimer une semaine efface aussi ses lignes. Le verrou porte sur l'année de la
+  semaine elle-même, pas sur l'année actuellement affichée dans l'en-tête — même principe que
+  partout ailleurs.
+- Champ **Prof** de l'entête laissé simple (liste des enseignants affectés à la classe,
+  optionnel) : aucun usage historique dans les données réelles (`Prof` toujours vide), et rien
+  n'associe aujourd'hui un compte RH_USER à une fiche `T_PROFESSEUR` pour le déduire de la
+  connexion — noté ici au cas où ce rapprochement deviendrait possible plus tard.
+- Front : classe → semaine (menu déroulant des cahiers déjà créés, plus récente par défaut) →
+  grille matière × jours, une cellule texte par jour (50 caractères, comme la colonne),
+  bouton Enregistrer par ligne (n'apparaît actif que si la ligne a changé) et retrait par ligne.
+  Ajouté sous 📚 Programme, à la suite d'Emplois du temps.
+- Pas d'impression ajoutée cette fois (les quatre PDF existants n'ont pas été touchés) : à
+  faire si le besoin se confirme, sur le même patron que les autres documents.
+
+Tests `CahierTextesTest` (13 cas) : référentiels bornés à la classe (matières affectées
+seulement), création avec niveau déduit et `NumSem` calculé, doublon classe/mois/semaine,
+upsert d'une ligne (pas de duplication), matière non affectée refusée à la création d'une
+ligne, ligne déjà écrite modifiable après retrait de l'affectation, retrait réel d'une ligne,
+suppression d'une semaine et de ses lignes, modification de l'entête, verrou de clôture sur la
+création et sur les lignes d'une semaine déjà clôturée, cloisonnement par année.
+Suite : **262 tests, 1143 assertions** (260 verts ; mêmes 2 échecs préexistants et sans rapport,
+upload de photo). Build et lint frontend propres.
