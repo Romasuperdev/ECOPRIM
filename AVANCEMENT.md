@@ -1614,3 +1614,28 @@ rôle — exactement l'inverse de la décision prise), 6 tests ajoutés pour l'A
 refus de conférer Admin Société).
 Suite : **249 tests** (247 verts, 1093 assertions ; 2 échecs préexistants et sans rapport,
 upload de photo, confirmés par `git stash`).
+
+## Sociétés : la création ne fait plus qu'à partir de US_SOCIETE
+
+`/admin/societes` fusionnait déjà toutes les sociétés de US_SOCIETE (reprises ou non), mais
+le formulaire « + Nouvelle société » laissait taper un code inédit — auquel cas ECOPRIM
+l'INSERTait dans US_SOCIETE, table partagée avec les autres applications. Décision : US_SOCIETE
+reste la seule source, gérée ailleurs ; ECOPRIM n'en écrit jamais de nouvelle ligne, il ne
+fait que **reprendre** (surcouche `console_societes`) une société qui y existe déjà.
+
+`UsSocieteCreateur` (le service qui faisait cet INSERT, avec sa gestion du NUMAUTO
+IDENTITY-ou-compteur-manuel) est retiré : plus aucun appelant. `SocieteController::store()`
+exige désormais que `code` existe dans `master.US_SOCIETE` (`Rule::exists`), et ne fait plus
+que `Societe::create()` — la branche « créer aussi dans US_SOCIETE » a disparu avec sa
+distinction `cree_dans_us_societe`. Les champs `pays` et `nombase` disparaissent du
+formulaire : ils n'ont jamais été persistés que pour cette INSERT désormais impossible.
+
+Écran : le champ Code devient un menu déroulant des sociétés de US_SOCIETE pas encore
+reprises (nom, ville, adresse… préremplis au choix) — impossible d'inventer un code. Le
+bouton « Reprendre » par ligne, déjà là, couvre le même besoin depuis la liste.
+
+`ConsoleCrudTest` : le test qui vérifiait la création dans US_SOCIETE est remplacé par son
+inverse (code absent de US_SOCIETE → refusé), le test du calcul de NUMAUTO disparaît avec le
+code qu'il couvrait, `test_code_societe_unique` insère désormais la ligne US_SOCIETE pour
+tester la seule règle qu'il prétend tester.
+Suite : **248 tests** (246 verts ; les 2 mêmes échecs préexistants, sans rapport).

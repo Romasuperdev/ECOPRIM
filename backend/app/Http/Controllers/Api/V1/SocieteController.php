@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Console\Societe;
-use App\Services\UsSocieteCreateur;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 /**
@@ -17,9 +17,24 @@ use Throwable;
  *     les sociétés créées uniquement dans ECOPRIM.
  * La page affiche donc les vraies sociétés même si la surcouche est vide ou si les
  * tables Console ne sont pas encore migrées.
+ *
+ * ECOPRIM n'invente jamais de société : toute création se fait EN REPRENANT un code déjà
+ * présent dans US_SOCIETE (géré par l'application maîtresse). Créer une société, ici,
+ * c'est donc toujours choisir dans US_SOCIETE — jamais taper un code inédit.
  */
 class SocieteController extends Controller
 {
+    /** Largeurs alignées sur les colonnes réelles de US_SOCIETE (sinon la reprise s'incohère). */
+    private const LARGEURS = [
+        'code' => 17,          // CODESOCIETE
+        'nom' => 50,           // NOMSOCIETE
+        'adresse' => 50,       // AD1SOCIETE
+        'ville' => 50,         // VILLESOCIETE
+        'telephone' => 20,     // TELSOCIETE
+        'email' => 255,        // EMAILSOCIETE
+        'representant' => 150, // NOMPRENOMREPRESENTANT
+    ];
+
     public function index(Request $request)
     {
         $recherche = trim((string) $request->input('q', ''));
@@ -38,7 +53,7 @@ class SocieteController extends Controller
             $lignes->push($this->fusionner($code, $l, $surcouche->get($code)));
         }
 
-        // 2) Les sociétés existant uniquement dans ECOPRIM (créées ici).
+        // 2) Les sociétés existant uniquement dans ECOPRIM (créées ici avant ce cloisonnement).
         foreach ($surcouche as $code => $s) {
             if (! in_array($code, $vus, true)) {
                 $lignes->push($this->fusionner($code, null, $s));
@@ -131,55 +146,40 @@ class SocieteController extends Controller
         return $societe->loadCount('etablissements');
     }
 
-    /** Largeurs alignées sur les colonnes réelles de US_SOCIETE (sinon l'INSERT échoue). */
-    private function regles(?int $id = null): array
+    private function regles(bool $creation, ?int $id = null): array
     {
-        $l = UsSocieteCreateur::LARGEURS;
+        $l = self::LARGEURS;
 
         return [
-            'code' => ['required', 'string', 'max:'.$l['code'], 'unique:ecoprim.console_societes,code'.($id ? ','.$id : '')],
+            'code' => [
+                'required', 'string', 'max:'.$l['code'],
+                // On ne crée qu'en reprenant une société qui existe déjà dans US_SOCIETE :
+                // jamais un code inédit inventé depuis ECOPRIM.
+                ...($creation ? [Rule::exists('master.US_SOCIETE', 'CODESOCIETE')] : []),
+                Rule::unique('ecoprim.console_societes', 'code')->ignore($id),
+            ],
             'nom' => ['required', 'string', 'max:'.$l['nom']],
             'ville' => ['nullable', 'string', 'max:'.$l['ville']],
             'adresse' => ['nullable', 'string', 'max:'.$l['adresse']],
-            'pays' => ['nullable', 'string', 'max:'.$l['pays']],
             'telephone' => ['nullable', 'string', 'max:'.$l['telephone']],
             'email' => ['nullable', 'email', 'max:'.$l['email']],
             'representant' => ['nullable', 'string', 'max:'.$l['representant']],
-            'nombase' => ['nullable', 'string', 'max:'.$l['nombase']],
         ];
     }
 
-    /**
-     * Enregistre une société côté ECOPRIM.
-     *  - Code inconnu de US_SOCIETE  -> nouvelle société : INSERT dans US_SOCIETE puis surcouche.
-     *  - Code déjà dans US_SOCIETE   -> simple « reprise » : on crée seulement la surcouche,
-     *                                   la ligne partagée n'est jamais modifiée.
-     */
-    public function store(Request $request, UsSocieteCreateur $maitre)
+    /** Reprend une société de US_SOCIETE dans ECOPRIM : n'écrit jamais dans US_SOCIETE. */
+    public function store(Request $request)
     {
-        $data = $request->validate($this->regles());
+        $data = $request->validate($this->regles(true));
 
-        $dejaDansSource = $maitre->existe($data['code']);
+        $societe = Societe::create($data);
 
-        if (! $dejaDansSource) {
-            $maitre->creer($data);   // INSERT seul dans la table maîtresse
-        }
-
-        $societe = Societe::create(collect($data)->except('nombase', 'pays')->all());
-
-        return response()->json([
-            'societe' => $societe,
-            'cree_dans_us_societe' => ! $dejaDansSource,
-            'message' => $dejaDansSource
-                ? "Société {$data['code']} reprise dans ECOPRIM (US_SOCIETE inchangée)."
-                : "Société {$data['code']} créée dans US_SOCIETE et dans ECOPRIM.",
-        ], 201);
+        return response()->json($societe, 201);
     }
 
     public function update(Request $request, Societe $societe)
     {
-        // nombase/pays appartiennent à US_SOCIETE : jamais réécrits depuis ECOPRIM.
-        $societe->update(collect($request->validate($this->regles($societe->id)))->except('nombase', 'pays')->all());
+        $societe->update($request->validate($this->regles(false, $societe->id)));
 
         return response()->json($societe);
     }

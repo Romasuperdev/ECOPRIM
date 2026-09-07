@@ -2,16 +2,18 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import Select from '../../components/ui/Select'
 import {
   activerSociete,
   createSociete,
   desactiverSociete,
+  fetchAllSocietes,
   fetchSocietes,
   importerSocietes,
   updateSociete,
 } from './adminApi'
 
-const VIDE = { code: '', nom: '', ville: '', pays: '', adresse: '', telephone: '', email: '', representant: '', nombase: '' }
+const VIDE = { code: '', nom: '', ville: '', adresse: '', telephone: '', email: '', representant: '' }
 
 export default function SocieteListPage() {
   const [page, setPage] = useState(1)
@@ -20,6 +22,11 @@ export default function SocieteListPage() {
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({ queryKey: ['societes', page], queryFn: () => fetchSocietes(page) })
+
+  // Sociétés de US_SOCIETE pas encore reprises dans ECOPRIM : c'est la seule source de
+  // création — jamais un code tapé à la main, toujours un code déjà réel dans US_SOCIETE.
+  const { data: toutes } = useQuery({ queryKey: ['societes-toutes'], queryFn: fetchAllSocietes, enabled: !!form && !form.id })
+  const aReprendre = (toutes ?? []).filter((s) => !s.repris)
 
   const invalider = () => qc.invalidateQueries({ queryKey: ['societes'] })
 
@@ -56,7 +63,7 @@ export default function SocieteListPage() {
           <Button variant="outline" disabled={importer.isPending} onClick={() => importer.mutate()}>
             {importer.isPending ? 'Import…' : 'Importer depuis US_SOCIETE'}
           </Button>
-          <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvelle société</Button>
+          <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Reprendre une société</Button>
         </div>
       </div>
 
@@ -116,27 +123,50 @@ export default function SocieteListPage() {
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code} dans ECOPRIM` : 'Nouvelle société')}</h2>
+            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code} dans ECOPRIM` : 'Reprendre une société')}</h2>
             <form
               onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
               className="space-y-3"
             >
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Code *" value={form.code ?? ''} onChange={(e) => champ('code', e.target.value)} error={erreurs.code?.[0]} disabled={!!form.id} />
+                {form.id ? (
+                  <Input label="Code" value={form.code ?? ''} disabled onChange={() => {}} />
+                ) : (
+                  <Select
+                    label="Société (US_SOCIETE) *"
+                    value={form.code ?? ''}
+                    error={erreurs.code?.[0]}
+                    onChange={(e) => {
+                      const s = aReprendre.find((x) => x.code === e.target.value)
+                      setForm((f) => ({
+                        ...f,
+                        code: s?.code ?? '',
+                        nom: s?.nom ?? '',
+                        ville: s?.ville ?? '',
+                        adresse: s?.adresse ?? '',
+                        telephone: s?.telephone ?? '',
+                        email: s?.email ?? '',
+                        representant: s?.representant ?? '',
+                      }))
+                    }}
+                  >
+                    <option value="">— Choisir dans US_SOCIETE —</option>
+                    {aReprendre.map((s) => (
+                      <option key={s.code} value={s.code}>{s.nom} ({s.code})</option>
+                    ))}
+                  </Select>
+                )}
                 <Input label="Nom *" value={form.nom ?? ''} onChange={(e) => champ('nom', e.target.value)} error={erreurs.nom?.[0]} />
                 <Input label="Ville" value={form.ville ?? ''} onChange={(e) => champ('ville', e.target.value)} error={erreurs.ville?.[0]} />
                 <Input label="Téléphone" value={form.telephone ?? ''} onChange={(e) => champ('telephone', e.target.value)} error={erreurs.telephone?.[0]} />
                 <Input label="Email" value={form.email ?? ''} onChange={(e) => champ('email', e.target.value)} error={erreurs.email?.[0]} />
                 <Input label="Représentant" value={form.representant ?? ''} onChange={(e) => champ('representant', e.target.value)} error={erreurs.representant?.[0]} />
-                <Input label="Pays" value={form.pays ?? ''} onChange={(e) => champ('pays', e.target.value)} error={erreurs.pays?.[0]} />
-                <Input label="Base ECONOMAT (NOMBASE)" value={form.nombase ?? ''} onChange={(e) => champ('nombase', e.target.value)} error={erreurs.nombase?.[0]} disabled={!!form.repris || !!form.id} />
               </div>
               <Input label="Adresse" value={form.adresse ?? ''} onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]} />
               {!form.id && (
                 <p className="text-xs text-slate-400">
-                  {form.repris
-                    ? 'Reprise : seule la copie ECOPRIM est créée, US_SOCIETE reste inchangée.'
-                    : 'Nouvelle société : elle sera enregistrée dans US_SOCIETE (création uniquement) puis dans ECOPRIM.'}
+                  Reprise : seule la copie ECOPRIM est créée, US_SOCIETE reste inchangée. ECOPRIM
+                  n'invente jamais de société — la liste ci-dessus vient exclusivement de US_SOCIETE.
                 </p>
               )}
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
