@@ -75,23 +75,19 @@ export default function SocieteListPage() {
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Ville</th>
               <th className="px-4 py-3 font-medium">Établissements</th>
-              <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
-            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucune société.</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune société.</td></tr>}
             {data?.data?.map((s) => (
               <tr key={s.code} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-800">{s.code}</td>
                 <td className="px-4 py-3 text-slate-600">{s.nom}</td>
                 <td className="px-4 py-3 text-slate-600">{s.ville ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{s.etablissements_count ?? s.nb_etab ?? 0}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.repris ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'}`}>{s.source}</span>
-                </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.actif ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{s.actif ? 'actif' : 'inactif'}</span>
                 </td>

@@ -11,12 +11,12 @@ use Illuminate\Validation\Rule;
 use Throwable;
 
 /**
- * Sociétés — vue fusionnée :
+ * Sociétés — vue fusionnée, restreinte aux sociétés réelles :
  *   - source de vérité : dbmasterbacou.US_SOCIETE (LECTURE SEULE, jamais modifiée)
- *   - surcouche ECOPRIM : console_societes (écrivable) pour les compléments et
- *     les sociétés créées uniquement dans ECOPRIM.
- * La page affiche donc les vraies sociétés même si la surcouche est vide ou si les
- * tables Console ne sont pas encore migrées.
+ *   - surcouche ECOPRIM : console_societes (écrivable) pour les compléments.
+ * Seules les lignes présentes dans US_SOCIETE sont listées — jamais une société qui
+ * n'existerait que côté ECOPRIM. La page affiche donc les vraies sociétés même si la
+ * surcouche est vide ou si les tables Console ne sont pas encore migrées.
  *
  * ECOPRIM n'invente jamais de société : toute création se fait EN REPRENANT un code déjà
  * présent dans US_SOCIETE (géré par l'application maîtresse). Créer une société, ici,
@@ -41,23 +41,15 @@ class SocieteController extends Controller
 
         $surcouche = $this->surcouche();          // code => modèle Console\Societe
         $lignes = collect();
-        $vus = [];
 
-        // 1) Les sociétés réelles, lues en direct dans US_SOCIETE.
+        // Uniquement les sociétés réelles de US_SOCIETE — jamais une ligne qui n'existerait
+        // que dans la surcouche ECOPRIM.
         foreach ($this->sourceUsSociete() as $l) {
             $code = trim((string) ($l->CODESOCIETE ?? ''));
             if ($code === '') {
                 continue;
             }
-            $vus[] = $code;
             $lignes->push($this->fusionner($code, $l, $surcouche->get($code)));
-        }
-
-        // 2) Les sociétés existant uniquement dans ECOPRIM (créées ici avant ce cloisonnement).
-        foreach ($surcouche as $code => $s) {
-            if (! in_array($code, $vus, true)) {
-                $lignes->push($this->fusionner($code, null, $s));
-            }
         }
 
         if ($recherche !== '') {
@@ -84,7 +76,6 @@ class SocieteController extends Controller
             'email' => $eco->email ?? $depuisSource('EMAILSOCIETE'),
             'representant' => $eco->representant ?? $depuisSource('NOMPRENOMREPRESENTANT', 'REPRESENTANT'),
             'actif' => $eco ? (bool) $eco->actif : true,
-            'source' => $eco ? ($src ? 'US_SOCIETE + ECOPRIM' : 'ECOPRIM') : 'US_SOCIETE',
             'repris' => (bool) $eco,
             'etablissements_count' => $eco->etablissements_count ?? null,
             'nb_etab' => $src->NB_ETAB ?? null,

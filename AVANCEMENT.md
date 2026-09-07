@@ -1639,3 +1639,15 @@ inverse (code absent de US_SOCIETE → refusé), le test du calcul de NUMAUTO di
 code qu'il couvrait, `test_code_societe_unique` insère désormais la ligne US_SOCIETE pour
 tester la seule règle qu'il prétend tester.
 Suite : **248 tests** (246 verts ; les 2 mêmes échecs préexistants, sans rapport).
+
+## Sociétés : plus de colonne Source, et la liste exclut les orphelines ECOPRIM
+
+Deux demandes liées à l'écran `/admin/societes` : retirer la colonne « Source » (devenue
+sans intérêt une fois la création restreinte à US_SOCIETE), et ne plus lister que les
+sociétés qui existent réellement dans `US_SOCIETE` — jamais une ligne qui ne vivrait que
+dans la surcouche `console_societes` (résidu possible d'avant la restriction du commit
+précédent, ou base de test mal nettoyée). `SocieteController::index()` ne boucle plus que
+sur `US_SOCIETE` ; le champ `source` disparaît de la réponse, désormais inutile hors de ce
+tri déjà fait côté serveur.
+Test ajouté : une société ECOPRIM sans ligne US_SOCIETE n'apparaît plus dans `GET /societes`.
+Suite : **248 tests, 1089 assertions** (246 verts ; mêmes 2 échecs préexistants).

@@ -280,7 +280,7 @@ class ConsoleCrudTest extends TestCase
 
         // Aucune société dans console_societes : la page doit tout de même les afficher.
         $this->getJson('/api/v1/societes')->assertOk()
-            ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Abidjan Nord', 'source' => 'US_SOCIETE', 'repris' => false]);
+            ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Abidjan Nord', 'repris' => false]);
     }
 
     public function test_liste_fusionne_surcouche_ecoprim(): void
@@ -293,6 +293,20 @@ class ConsoleCrudTest extends TestCase
         // La surcouche ECOPRIM prend le dessus sur les valeurs de US_SOCIETE.
         $this->getJson('/api/v1/societes')->assertOk()
             ->assertJsonFragment(['code' => 'ABN', 'nom' => 'Nom ECOPRIM', 'ville' => 'Bouaké', 'repris' => true]);
+    }
+
+    public function test_une_societe_absente_de_us_societe_n_apparait_pas_dans_la_liste(): void
+    {
+        DB::connection('master')->table('US_SOCIETE')->insert([
+            ['CODESOCIETE' => 'ABN', 'NOMSOCIETE' => 'Abidjan Nord'],
+        ]);
+        // Résidu d'avant la restriction : une ligne côté ECOPRIM sans équivalent US_SOCIETE.
+        Societe::create(['code' => 'FANTOME', 'nom' => 'Société orpheline']);
+
+        $codes = collect($this->getJson('/api/v1/societes')->assertOk()->json('data'))
+            ->pluck('code')->all();
+
+        $this->assertSame(['ABN'], $codes);
     }
 
     public function test_creer_un_utilisateur_dans_rh_user(): void
