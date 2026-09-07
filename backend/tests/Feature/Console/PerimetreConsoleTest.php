@@ -91,6 +91,21 @@ class PerimetreConsoleTest extends TestCase
         return $rh;
     }
 
+    private function adminEtablissement(string $societe, string $etab, int $id = 30, string $login = 'affecte'): RhUser
+    {
+        $eco = fn (string $t) => DB::connection('ecoprim')->table($t);
+        $roleId = $eco('console_roles')->where('code', 'admin-etablissement')->value('id');
+        if (! $roleId) {
+            $roleId = $eco('console_roles')->insertGetId(['code' => 'admin-etablissement', 'nom' => 'Admin Établissement']);
+        }
+
+        $rh = $this->compte($id, $login);
+        $this->affecter($id, $societe, $etab, $roleId);
+        $this->actingAs($rh, 'sanctum');
+
+        return $rh;
+    }
+
     // --- Qui est quoi ---
 
     public function test_le_super_admin_administre_toutes_les_societes(): void
@@ -145,9 +160,6 @@ class PerimetreConsoleTest extends TestCase
 
         $this->getJson('/api/v1/societes')->assertForbidden();
         $this->postJson('/api/v1/societes', ['code' => 'X', 'nom' => 'X'])->assertForbidden();
-        // Le catalogue de rôles se lit (il en a besoin pour affecter) mais ne se modifie pas :
-        // c'est vérifié à part, dans test_l_admin_societe_lit_le_catalogue_de_roles…
-        $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
     }
 
     public function test_la_console_generale_reste_ouverte_au_super_admin(): void
@@ -355,16 +367,40 @@ class PerimetreConsoleTest extends TestCase
             ->assertJsonPath('etablissements', 1);
     }
 
-    public function test_l_admin_societe_lit_le_catalogue_de_roles_mais_ne_le_modifie_pas(): void
+    public function test_l_admin_societe_gere_ses_propres_roles_mais_pas_le_catalogue_general(): void
     {
         $this->adminSociete('ABN');
 
-        // Il doit pouvoir nommer les rôles qu'il affecte…
+        // Il voit le catalogue général (2 rôles : admin-societe, direction)…
         $this->getJson('/api/v1/roles')->assertOk()->assertJsonCount(2);
 
-        // …sans pouvoir toucher au catalogue, qui est commun à toutes les sociétés.
-        $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
+        // … peut créer et supprimer un rôle propre à sa société…
+        $cree = $this->postJson('/api/v1/roles', ['code' => 'coordinateur', 'nom' => 'Coordinateur'])
+            ->assertCreated()
+            ->assertJsonPath('societe_code', 'ABN');
+
+        $this->getJson('/api/v1/roles')->assertOk()->assertJsonCount(3);
+
+        $this->deleteJson('/api/v1/roles/'.$cree->json('id'))->assertNoContent();
+
+        // … mais ne peut pas toucher au catalogue général, commun à toutes les sociétés.
         $this->deleteJson('/api/v1/roles/2')->assertForbidden();
+    }
+
+    public function test_le_super_admin_cree_un_role_general_en_vue_generale_et_scope_dans_une_societe(): void
+    {
+        $this->superAdmin();
+
+        // Vue générale (aucune société choisie) : rôle du catalogue général.
+        $this->postJson('/api/v1/roles', ['code' => 'g1', 'nom' => 'Général 1'])
+            ->assertCreated()
+            ->assertJsonPath('societe_code', null);
+
+        // Une fois une société choisie, le rôle créé lui est propre.
+        $this->postJson('/api/v1/console/societe', ['societe_code' => 'ABN'])->assertOk();
+        $this->postJson('/api/v1/roles', ['code' => 's1', 'nom' => 'Propre à ABN'])
+            ->assertCreated()
+            ->assertJsonPath('societe_code', 'ABN');
     }
 
     // --- Page de connexion ---
@@ -401,5 +437,90 @@ class PerimetreConsoleTest extends TestCase
         $this->postJson('/api/v1/affectations', [
             'rh_user_id' => 13, 'etablissement_code' => 'E-ABN', 'role_id' => 2,
         ])->assertCreated();
+    }
+
+    // --- Admin Établissement : un cran en dessous de l'Admin Société ---
+
+    public function test_l_admin_etablissement_n_administre_que_son_etablissement(): void
+    {
+        $rh = $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->assertFalse($rh->isSuperAdmin());
+        $this->assertFalse($rh->estAdminSociete());
+        $this->assertTrue($rh->estAdminEtablissement());
+        $this->assertSame(['E-ABN'], $rh->etablissementsAdministres());
+        $this->assertTrue($rh->peutAdministrerEtablissement('E-ABN'));
+        $this->assertFalse($rh->peutAdministrerEtablissement('E-SUD'));
+        $this->assertTrue($rh->peutAccederConsole());
+    }
+
+    public function test_l_admin_etablissement_n_a_pas_acces_au_niveau_societe(): void
+    {
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        // Il peut lire son propre établissement (pour le formulaire d'affectation)…
+        $r = $this->getJson('/api/v1/etablissements')->assertOk();
+        $this->assertSame(['E-ABN'], collect($r->json('data'))->pluck('code')->all());
+        $this->getJson('/api/v1/etablissements/E-ABN')->assertOk();
+
+        // … mais la gestion (CRUD des établissements), la traçabilité, la création de
+        // comptes et le catalogue de rôles restent au niveau société.
+        $this->postJson('/api/v1/etablissements', [
+            'code' => 'E-NEW', 'intitule' => 'Nouvelle', 'adresse' => 'Rue 1', 'pays' => 'CI', 'societe_code' => 'ABN',
+        ])->assertForbidden();
+        $this->getJson('/api/v1/tracabilite')->assertForbidden();
+        $this->postJson('/api/v1/utilisateurs', ['login' => 'x', 'mot_de_passe' => 'secret1', 'nom' => 'X'])
+            ->assertForbidden();
+        $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
+    }
+
+    public function test_l_admin_etablissement_lit_le_catalogue_et_les_utilisateurs_de_son_etablissement_seul(): void
+    {
+        DB::connection('ecoprim')->table('console_etablissements')->insert(
+            ['id' => 3, 'code' => 'E-NEW', 'intitule' => 'Autre école', 'societe_code' => 'ABN', 'actif' => true]
+        );
+        $this->compte(10, 'chezabn');
+        $this->affecter(10, 'ABN', 'E-ABN', 2);
+        $this->compte(11, 'ailleursdanslasociete');
+        $this->affecter(11, 'ABN', 'E-NEW', 2);
+
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->getJson('/api/v1/roles')->assertOk();
+
+        $logins = collect($this->getJson('/api/v1/utilisateurs')->assertOk()->json('data'))
+            ->pluck('login')->sort()->values()->all();
+
+        // Lui-même et l'utilisateur de E-ABN ; jamais celui de E-NEW, même société.
+        $this->assertSame(['affecte', 'chezabn'], $logins);
+    }
+
+    public function test_l_admin_etablissement_affecte_un_role_dans_son_etablissement_seulement(): void
+    {
+        DB::connection('ecoprim')->table('console_etablissements')->insert(
+            ['id' => 3, 'code' => 'E-NEW', 'intitule' => 'Autre école', 'societe_code' => 'ABN', 'actif' => true]
+        );
+        $this->compte(13, 'cible');
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->postJson('/api/v1/affectations', [
+            'rh_user_id' => 13, 'etablissement_code' => 'E-NEW', 'role_id' => 2,
+        ])->assertForbidden();
+
+        $r = $this->postJson('/api/v1/affectations', [
+            'rh_user_id' => 13, 'etablissement_code' => 'E-ABN', 'role_id' => 2,
+        ])->assertCreated();
+
+        $this->deleteJson('/api/v1/affectations/'.$r->json('id'))->assertNoContent();
+    }
+
+    public function test_l_admin_etablissement_ne_peut_pas_conferer_le_role_admin_societe(): void
+    {
+        $this->compte(13, 'cible');
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->postJson('/api/v1/affectations', [
+            'rh_user_id' => 13, 'etablissement_code' => 'E-ABN', 'role_id' => 1, // admin-societe
+        ])->assertForbidden();
     }
 }

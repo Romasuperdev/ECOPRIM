@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Console\Etablissement;
 use App\Models\Console\Societe;
 use App\Models\RhUser;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,11 @@ class PerimetreConsole
 
         $autorises = $user->societesAdministrees();
         if ($autorises === []) {
+            // Pas Admin Société : peut-être Admin Établissement — la société courante se
+            // déduit alors des établissements qu'il administre.
+            $autorises = self::societesDesEtablissements($user->etablissementsAdministres());
+        }
+        if ($autorises === []) {
             return null;
         }
 
@@ -79,6 +85,40 @@ class PerimetreConsole
 
         if (! $user || ! $user->peutAdministrerSociete($code)) {
             throw new HttpException(403, "Cette société n'est pas dans votre périmètre d'administration.");
+        }
+    }
+
+    /**
+     * Refuse l'accès à un établissement hors périmètre — au sens large : autorisé si
+     * l'utilisateur administre la société de cet établissement, ou l'établissement
+     * lui-même (Admin Établissement).
+     */
+    public static function assertAutoriseeEtablissement(?string $etablissementCode, ?string $societeCode = null): void
+    {
+        $user = auth()->user();
+
+        if (! $user || ! $user->peutAdministrerEtablissement($etablissementCode, $societeCode)) {
+            throw new HttpException(403, "Cet établissement n'est pas dans votre périmètre d'administration.");
+        }
+    }
+
+    /** Codes sociétés distincts de ces établissements (surcouche console_etablissements). */
+    private static function societesDesEtablissements(array $etablissementCodes): array
+    {
+        if ($etablissementCodes === []) {
+            return [];
+        }
+
+        try {
+            return Etablissement::whereIn('code', $etablissementCodes)
+                ->pluck('societe_code')
+                ->map(fn ($c) => trim((string) $c))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        } catch (Throwable $e) {
+            return [];
         }
     }
 

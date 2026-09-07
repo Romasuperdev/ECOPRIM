@@ -76,7 +76,7 @@ class EtablissementController extends Controller
         abort_if(! $src && ! $eco, 404, 'Établissement introuvable.');
 
         $ligne = $this->fusionner($code, $src, $eco);
-        PerimetreConsole::assertAutorisee($ligne['societe_code']);
+        PerimetreConsole::assertAutoriseeEtablissement($code, $ligne['societe_code']);
         $ligne['societe'] = Societe::where('code', $ligne['societe_code'])->first();
 
         return $ligne;
@@ -119,10 +119,20 @@ class EtablissementController extends Controller
                 : $lignes->filter(fn ($r) => $r['societe_code'] === $courant);
         }
 
-        // Fail closed : hors Super Admin, sans société courante on ne montre rien.
-        return $courant === null
-            ? $lignes->take(0)
-            : $lignes->filter(fn ($r) => $r['societe_code'] === $courant);
+        // Fail closed : sans société courante on ne montre rien.
+        if ($courant === null) {
+            return $lignes->take(0);
+        }
+
+        // Un Admin Établissement (sans le niveau société) est borné à son ou ses
+        // établissements administrés, pas à toute la société.
+        if ($user && ! $user->peutAccederNiveauSociete()) {
+            $etabs = $user->etablissementsAdministres();
+
+            return $lignes->filter(fn ($r) => in_array($r['code'], $etabs, true));
+        }
+
+        return $lignes->filter(fn ($r) => $r['societe_code'] === $courant);
     }
 
     private function surcouche()

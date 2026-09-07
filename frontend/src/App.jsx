@@ -85,16 +85,31 @@ export default function App() {
                 path="/admin/societes"
                 element={<ProtectedRoute exigeSuperAdmin><SocieteListPage /></ProtectedRoute>}
               />
-              <Route path="/admin/etablissements" element={<EtablissementListPage />} />
-              <Route path="/admin/etablissements/:code" element={<EtablissementDetailPage />} />
+              {/* Établissements et traçabilité : niveau société — un Admin Établissement
+                  n'y a pas accès, seulement à Utilisateurs & Accès (pour affecter un rôle
+                  dans son propre établissement) et à Rôles (en lecture, pour les nommer). */}
+              <Route
+                path="/admin/etablissements"
+                element={<ProtectedRoute exigeNiveauSociete><EtablissementListPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/etablissements/:code"
+                element={<ProtectedRoute exigeNiveauSociete><EtablissementDetailPage /></ProtectedRoute>}
+              />
               <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
               {/* Traçabilité : la liste générale, et celle d'un compte depuis sa fiche. */}
-              <Route path="/admin/tracabilite" element={<TracabilitePage />} />
-              <Route path="/admin/utilisateurs/:id/tracabilite" element={<TracabilitePage />} />
+              <Route
+                path="/admin/tracabilite"
+                element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/utilisateurs/:id/tracabilite"
+                element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
+              />
               <Route
                 path="/admin/roles"
-                element={<ProtectedRoute exigeSuperAdmin><RoleListPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeNiveauSociete><RoleListPage /></ProtectedRoute>}
               />
               </Route>
 

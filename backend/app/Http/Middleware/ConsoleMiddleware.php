@@ -7,14 +7,19 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Porte d'entrée de la Console Administrative, en deux niveaux :
+ * Porte d'entrée de la Console Administrative, en trois niveaux :
  *
- *   console:generale  — la console générale : sociétés, rôles, journal. Super Admin seul.
- *   console:societe    — la console d'une société : ses établissements, ses utilisateurs,
- *                        leurs affectations. Ouverte au Super Admin (sur n'importe quelle
- *                        société) et à l'Admin Société (sur la sienne seulement).
+ *   console:generale     — la console générale : sociétés, catalogue de rôles global,
+ *                          journal. Super Admin seul.
+ *   console:societe       — la console d'une société : ses établissements, ses
+ *                          utilisateurs, ses rôles propres. Ouverte au Super Admin (sur
+ *                          n'importe quelle société) et à l'Admin Société (sur la sienne
+ *                          seulement).
+ *   console:etablissement — le minimum commun : lire le catalogue de rôles, lister les
+ *                          utilisateurs, poser/retirer une affectation. Ouvert en plus à
+ *                          l'Admin Établissement, borné à son ou ses établissements.
  *
- * Le cloisonnement par société lui-même est appliqué dans les contrôleurs via
+ * Le cloisonnement fin (société, établissement) est appliqué dans les contrôleurs via
  * PerimetreConsole : ce middleware ne décide que du droit d'entrer.
  */
 class ConsoleMiddleware
@@ -25,9 +30,16 @@ class ConsoleMiddleware
 
         abort_if(! $user, 401);
 
-        if ($niveau === 'societe') {
+        if ($niveau === 'etablissement') {
             abort_unless($user->peutAccederConsole(), 403,
                 "Vous n'avez pas accès à la console d'administration.");
+
+            return $next($request);
+        }
+
+        if ($niveau === 'societe') {
+            abort_unless($user->peutAccederNiveauSociete(), 403,
+                "Vous n'avez pas accès à la console d'une société.");
 
             return $next($request);
         }

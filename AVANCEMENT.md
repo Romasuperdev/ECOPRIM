@@ -1570,3 +1570,47 @@ Deux erreurs de ma part corrigées en route, toutes deux dans le test et non dan
 le piège SQLite des colonnes hétérogènes dans un insert groupé, déjà rencontré en début de
 projet, et la clé `matiere_code` que j'avais écrite `code`.
 Suite : **243 tests, 1066 assertions verts**.
+
+## Rôles & permissions : un troisième niveau d'admin, et gérables sans passer par le Super Admin
+
+Jusqu'ici la console n'avait que deux niveaux (Super Admin / Admin Société), et le
+catalogue de rôles (`console_roles`) ne se modifiait que depuis la console générale — donc
+en pratique par personne d'autre que le Super Admin, malgré une API `console:societe` déjà
+prête à en laisser lire le contenu. Décision : les rôles et leur affectation doivent se
+gérer **dans l'application**, par l'Admin Société ou l'Admin Établissement, pas seulement
+par le Super Admin.
+
+**`console_roles` gagne un `societe_code` nullable** : NULL = catalogue général (Super
+Admin, vue générale), renseigné = rôle propre à une société, que son Admin Société crée et
+supprime lui-même (`RoleController`). La lecture suit `PerimetreConsole::codeCourant()` :
+vue générale = tout le catalogue, société choisie = le général plus le propre à cette
+société — même logique que partout ailleurs dans la console, aucune nouvelle branche.
+
+**Troisième niveau : Admin Établissement**, un cran sous l'Admin Société — borné à un ou
+plusieurs établissements précis (`console_affectations` avec le rôle `admin-etablissement`),
+pas à toute une société. `RhUser::etablissementsAdministres()` / `estAdminEtablissement()`
+/ `peutAdministrerEtablissement()` complètent le trio déjà en place pour la société.
+`PerimetreConsole::codeCourant()` sait maintenant déduire la société courante depuis les
+établissements administrés, pour qu'un Admin Établissement profite des mêmes filtres que le
+reste de la console sans code dupliqué. `ConsoleMiddleware` gagne le niveau `etablissement`
+(le socle commun aux trois : lire les rôles, lister ses utilisateurs, poser/retirer une
+affectation), gardé sous `console:societe` pour tout ce qui reste du ressort de l'Admin
+Société (établissements en écriture, comptes, traçabilité, catalogue).
+
+Un Admin Établissement ne peut ni créer de compte ni conférer le rôle Admin Société à
+quelqu'un — il assigne un rôle existant à un utilisateur déjà connu, dans son propre
+établissement, et rien de plus (`AffectationController`, garde-fou explicite sur le rôle
+Admin Société).
+
+Côté écran : `/admin/roles` s'ouvre à l'Admin Société (`exigeNiveauSociete` remplace
+`exigeSuperAdmin`), `/admin/etablissements` et `/admin/tracabilite` restent au niveau
+société, et `UtilisateurListPage` masque création/édition/désactivation de compte pour qui
+n'a que le niveau établissement — l'affectation de rôle se fait depuis la fiche utilisateur
+(`UtilisateurDetailPage`, déjà là, inchangée).
+
+`PerimetreConsoleTest` : 2 tests réécrits (l'ancien interdit à l'Admin Société de créer un
+rôle — exactement l'inverse de la décision prise), 6 tests ajoutés pour l'Admin
+Établissement (périmètre, lecture cloisonnée, affectation dans son seul établissement,
+refus de conférer Admin Société).
+Suite : **249 tests** (247 verts, 1093 assertions ; 2 échecs préexistants et sans rapport,
+upload de photo, confirmés par `git stash`).

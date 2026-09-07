@@ -41,13 +41,14 @@ export default function RoleListPage() {
             <tr>
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Nom</th>
+              <th className="px-4 py-3 font-medium">Société</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
             {!isLoading && roles?.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">
                 Aucun rôle. Créez-en un, ou lancez <code>php artisan console:importer</code> pour semer le catalogue par défaut.
               </td></tr>
             )}
@@ -55,6 +56,9 @@ export default function RoleListPage() {
               <tr key={r.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-800">{r.code}</td>
                 <td className="px-4 py-3 font-medium text-slate-700">{r.nom}</td>
+                <td className="px-4 py-3 text-slate-500">
+                  {r.societe_code ?? <span className="italic text-slate-400">Général</span>}
+                </td>
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => supprimer.mutate(r.id)}

@@ -110,14 +110,23 @@ class UserController extends Controller
             return;
         }
 
+        // Un Admin Établissement (sans le niveau société) ne voit que les comptes affectés
+        // dans son ou ses établissements, pas toute la société.
+        if ($user && ! $user->peutAccederNiveauSociete()) {
+            $query->whereIn('Id', $this->idsAffectes($courant, $user->etablissementsAdministres()));
+
+            return;
+        }
+
         $query->whereIn('Id', $this->idsAffectes($courant));
     }
 
-    /** Identifiants RH_USER ayant une affectation dans cette société. */
-    private function idsAffectes(string $societeCode): array
+    /** Identifiants RH_USER ayant une affectation dans cette société (et cet établissement, le cas échéant). */
+    private function idsAffectes(string $societeCode, ?array $etablissementCodes = null): array
     {
         try {
             return Affectation::where('societe_code', $societeCode)
+                ->when($etablissementCodes !== null, fn ($q) => $q->whereIn('etablissement_code', $etablissementCodes))
                 ->pluck('rh_user_id')->unique()->values()->all();
         } catch (\Throwable $e) {
             return [];

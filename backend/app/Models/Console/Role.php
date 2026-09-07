@@ -10,5 +10,5 @@ class Role extends Model
     protected $connection = 'ecoprim';
     protected $table = 'console_roles';
 
-    protected $fillable = ['code', 'nom'];
+    protected $fillable = ['code', 'nom', 'societe_code'];
 }

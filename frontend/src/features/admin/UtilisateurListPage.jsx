@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import { useAuthStore } from '../../store/authStore'
 import {
   activerUtilisateur,
   createUtilisateur,
@@ -19,6 +20,9 @@ const VIDE = {
 }
 
 export default function UtilisateurListPage() {
+  // Un Admin Établissement ne crée ni ne modifie de compte : il n'affecte que des rôles
+  // existants aux utilisateurs de son établissement, depuis leur fiche.
+  const niveauSociete = useAuthStore((s) => s.niveauSociete)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null)
@@ -60,7 +64,9 @@ export default function UtilisateurListPage() {
             impossible : un compte retiré est désactivé.
           </p>
         </div>
-        <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
+        {niveauSociete && (
+          <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
+        )}
       </div>
 
       <div className="mb-4 max-w-sm">
@@ -106,16 +112,22 @@ export default function UtilisateurListPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" className="!px-3 !py-1"
-                            onClick={() => { setErreurs({}); setForm({ ...VIDE, ...u, mot_de_passe: '' }) }}>
-                      Éditer
-                    </Button>
-                    <Button variant="outline" className="!px-3 !py-1" disabled={basculer.isPending}
-                            onClick={() => basculer.mutate({ id: u.id, actif: u.actif })}>
-                      {u.actif ? 'Désactiver' : 'Réactiver'}
-                    </Button>
-                  </div>
+                  {niveauSociete ? (
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" className="!px-3 !py-1"
+                              onClick={() => { setErreurs({}); setForm({ ...VIDE, ...u, mot_de_passe: '' }) }}>
+                        Éditer
+                      </Button>
+                      <Button variant="outline" className="!px-3 !py-1" disabled={basculer.isPending}
+                              onClick={() => basculer.mutate({ id: u.id, actif: u.actif })}>
+                        {u.actif ? 'Désactiver' : 'Réactiver'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Link to={`/admin/utilisateurs/${u.id}`} className="text-sm text-primary-700 hover:underline">
+                      Rôles
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

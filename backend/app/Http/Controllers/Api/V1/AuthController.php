@@ -100,6 +100,7 @@ class AuthController extends Controller
             // décidée côté serveur : ces indicateurs ne sont qu'un affichage.
             'super_admin' => $rhUser->isSuperAdmin(),
             'admin_societe' => $rhUser->estAdminSociete(),
+            'admin_etablissement' => $rhUser->estAdminEtablissement(),
             'peut_console' => $rhUser->peutAccederConsole(),
         ];
     }

@@ -152,7 +152,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('contexte/etablissement', [ContexteController::class, 'destroy']);
         Route::post('contexte/annee', [ContexteController::class, 'definirAnnee']);
 
-        // Console générale — Super Admin seul : le catalogue des sociétés et des rôles.
+        // Console générale — Super Admin seul : le catalogue des sociétés.
         Route::middleware('console:generale')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
             Route::post('societes', [SocieteController::class, 'store']);
@@ -161,12 +161,6 @@ Route::prefix('v1')->group(function () {
             Route::put('societes/{societe}', [SocieteController::class, 'update']);
             Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
-
-            // Le catalogue de rôles se MODIFIE depuis la console générale seulement ; sa
-            // lecture est plus bas, car un Admin Société doit pouvoir nommer les rôles
-            // qu'il affecte.
-            Route::post('roles', [RoleController::class, 'store']);
-            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
         });
 
         // Console d'une société — Super Admin sur n'importe laquelle, Admin Société sur la
@@ -176,18 +170,19 @@ Route::prefix('v1')->group(function () {
             Route::get('console/tableau-de-bord', [ConsoleContexteController::class, 'tableauDeBord']);
             Route::post('console/societe', [ConsoleContexteController::class, 'definirSociete']);
 
-            Route::get('roles', [RoleController::class, 'index']);
+            // Le catalogue de rôles se MODIFIE au niveau société : un rôle du catalogue
+            // général (Super Admin en vue générale) ou un rôle propre à la société
+            // courante (Admin Société). Sa lecture est plus bas, ouverte jusqu'à l'Admin
+            // Établissement, qui doit pouvoir nommer les rôles qu'il affecte.
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
 
-            Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::post('etablissements', [EtablissementController::class, 'store']);
-            Route::get('etablissements/{code}', [EtablissementController::class, 'show']);
             Route::put('etablissements/{etablissement}', [EtablissementController::class, 'update']);
             Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
             Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);
 
-            Route::get('utilisateurs', [UserController::class, 'index']);
             Route::post('utilisateurs', [UserController::class, 'store']);
-            Route::get('utilisateurs/{user}', [UserController::class, 'show']);
             Route::put('utilisateurs/{user}', [UserController::class, 'update']);
             Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
             Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
@@ -195,6 +190,19 @@ Route::prefix('v1')->group(function () {
             // Traçabilité (ECONOMAT.T_TRACABILITE) — lecture seule, cloisonnée par société.
             Route::get('tracabilite', [TracabiliteController::class, 'index']);
             Route::get('tracabilite/utilisateurs/{user}', [TracabiliteController::class, 'utilisateur']);
+        });
+
+        // Le socle commun aux trois niveaux d'administrateur — jusqu'à l'Admin
+        // Établissement, borné à son ou ses établissements dans les contrôleurs : lire le
+        // catalogue de rôles, lister ses utilisateurs, poser ou retirer une affectation.
+        Route::middleware('console:etablissement')->group(function () {
+            Route::get('roles', [RoleController::class, 'index']);
+
+            Route::get('etablissements', [EtablissementController::class, 'index']);
+            Route::get('etablissements/{code}', [EtablissementController::class, 'show']);
+
+            Route::get('utilisateurs', [UserController::class, 'index']);
+            Route::get('utilisateurs/{user}', [UserController::class, 'show']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);

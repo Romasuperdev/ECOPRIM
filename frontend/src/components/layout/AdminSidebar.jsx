@@ -3,22 +3,24 @@ import Logo from '../ui/Logo'
 import { LayoutDashboard, Building2, School, Users, ShieldCheck, History, ArrowLeftCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
-// « generale » : réservé au Super Admin. Le reste est la console d'une société, ouverte
-// aussi à l'Admin Société. On masque plutôt que de laisser cliquer vers un 403.
+// « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
+// Société, pas l'Admin Établissement. Le reste est commun aux trois niveaux d'admin.
+// On masque plutôt que de laisser cliquer vers un 403.
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
-  { to: '/admin/etablissements', icon: School, label: 'Établissements' },
+  { to: '/admin/etablissements', icon: School, label: 'Établissements', niveauSociete: true },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
-  { to: '/admin/tracabilite', icon: History, label: 'Traçabilité' },
-  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions', generale: true },
+  { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
+  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions', niveauSociete: true },
 ]
 
 const A_VENIR = ['Applications & licences', 'Abonnements']
 
 export default function AdminSidebar() {
   const superAdmin = useAuthStore((s) => s.superAdmin)
-  const items = ITEMS.filter((i) => !i.generale || superAdmin)
+  const niveauSociete = useAuthStore((s) => s.niveauSociete)
+  const items = ITEMS.filter((i) => (!i.generale || superAdmin) && (!i.niveauSociete || niveauSociete))
 
   return (
     <aside

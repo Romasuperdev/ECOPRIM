@@ -125,8 +125,9 @@ class RhUser extends Model implements AuthenticatableContract
 
     // --- Console : les deux sortes d'administrateur ---
 
-    /** Code du rôle « Admin Société » au catalogue console_roles. */
+    /** Codes des rôles d'administration au catalogue console_roles. */
     public const ROLE_ADMIN_SOCIETE = 'admin-societe';
+    public const ROLE_ADMIN_ETABLISSEMENT = 'admin-etablissement';
 
     /**
      * Codes des sociétés que l'utilisateur administre, lus dans les affectations propres
@@ -169,10 +170,53 @@ class RhUser extends Model implements AuthenticatableContract
         return ! $this->isSuperAdmin() && $this->societesAdministrees() !== [];
     }
 
-    /** Accès à la console, à quelque titre que ce soit. */
+    /**
+     * Codes des établissements que l'utilisateur administre à titre d'Admin
+     * Établissement — un cran en dessous de l'Admin Société : borné à un ou plusieurs
+     * établissements précis, pas à toute une société. Même logique fail-closed que
+     * societesAdministrees().
+     */
+    public function etablissementsAdministres(): array
+    {
+        try {
+            return DB::connection('ecoprim')
+                ->table('console_affectations as a')
+                ->join('console_roles as r', 'r.id', '=', 'a.role_id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')
+                    ->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->where(fn ($q) => $q->where('r.code', self::ROLE_ADMIN_ETABLISSEMENT)
+                    ->orWhere('r.nom', 'Admin Établissement'))
+                ->whereNotNull('a.etablissement_code')
+                ->pluck('a.etablissement_code')
+                ->map(fn ($c) => trim((string) $c))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function estAdminEtablissement(): bool
+    {
+        return ! $this->isSuperAdmin() && ! $this->estAdminSociete() && $this->etablissementsAdministres() !== [];
+    }
+
+    /** Accès à la console, à quelque titre que ce soit (les trois niveaux d'admin). */
     public function peutAccederConsole(): bool
     {
-        return $this->isSuperAdmin() || $this->societesAdministrees() !== [];
+        return $this->isSuperAdmin()
+            || $this->societesAdministrees() !== []
+            || $this->etablissementsAdministres() !== [];
+    }
+
+    /** Accès au niveau « société » de la console (pas le simple Admin Établissement). */
+    public function peutAccederNiveauSociete(): bool
+    {
+        return $this->isSuperAdmin() || $this->estAdminSociete();
     }
 
     /** Droit d'administrer une société donnée. Le Super Admin les administre toutes. */
@@ -185,5 +229,21 @@ class RhUser extends Model implements AuthenticatableContract
         $code = trim((string) $code);
 
         return $code !== '' && in_array($code, $this->societesAdministrees(), true);
+    }
+
+    /**
+     * Droit d'administrer un établissement donné : le Super Admin et l'Admin Société
+     * (sur sa société) l'ont de plein droit ; l'Admin Établissement seulement sur ceux
+     * qui lui sont affectés.
+     */
+    public function peutAdministrerEtablissement(?string $etablissementCode, ?string $societeCode = null): bool
+    {
+        if ($this->isSuperAdmin() || $this->peutAdministrerSociete($societeCode)) {
+            return true;
+        }
+
+        $code = trim((string) $etablissementCode);
+
+        return $code !== '' && in_array($code, $this->etablissementsAdministres(), true);
     }
 }
