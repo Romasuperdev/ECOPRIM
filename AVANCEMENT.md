@@ -1984,3 +1984,33 @@ plus atteignable que par un clic explicite sur le bouton « Enregistrer », qui 
 `type="submit"`. Les zones de texte multiligne (`<textarea>`, s'il y en avait) sont
 explicitement épargnées pour ne pas empêcher un retour à la ligne.
 Vérifié par `npm run build` et `npm run lint` (propres).
+
+## Correctif : le matricule obligatoire bloquait la modification des fiches enseignant existantes
+
+Retour de l'utilisateur : « ici on ne peut enregistrer pas » sur `/enseignants`. Le
+correctif précédent (matricule obligatoire) avait été rendu obligatoire **sans distinguer
+création et modification** — `EnseignantController::regles()` était partagée telle quelle
+entre `store()` et `update()`. Conséquence : toute fiche déjà présente dans
+`T_PROFESSEUR` **sans matricule** (les comptes enseignants antérieurs à cette règle, très
+plausibles vu que ce champ n'a jamais été suivi rigoureusement côté personnel,
+contrairement aux élèves) devenait impossible à modifier — le moindre changement, même sans
+toucher au matricule, se heurtait à un 422 silencieux pour l'utilisateur. Reproduit
+directement en rejouant l'exact payload envoyé par le formulaire contre le serveur (succès
+en création), puis en modification sur une fiche sans matricule (échec confirmé).
+
+- `EnseignantController::regles(bool $creation = true)` : le matricule reste `required` à
+  la création, redevient `nullable` en modification (`update()` appelle désormais
+  `regles(creation: false)`). L'unicité, elle, continue de s'appliquer dès qu'un matricule
+  est fourni, à la création comme en modification.
+- Front `EnseignantFormPage.jsx` : `REQUIS` de l'étape 0 n'exige `matricule` qu'en création
+  (`!enEdition`) — modifier une fiche existante sans matricule n'est plus bloqué à l'étape
+  « Suivant ».
+- Les inscriptions ne sont PAS concernées : leur matricule obligatoire est une règle plus
+  ancienne, déjà partagée entre création et modification avant cette session — non touchée,
+  aucun signalement dessus.
+
+Test ajouté : une fiche `T_PROFESSEUR` sans matricule (simulant un compte antérieur à la
+règle) reste modifiable — vérifié en changeant un autre champ sans jamais fournir de
+matricule, la valeur `null` en base n'est pas altérée.
+Suite : **288 tests, 1195 assertions** (286 verts ; mêmes 2 échecs de longue date, sans
+rapport). Build et lint frontend propres.

@@ -199,6 +199,23 @@ class SaisieEconomatTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors('matricule');
     }
 
+    /**
+     * Le matricule n'est exigé qu'à la création : une fiche déjà présente dans T_PROFESSEUR
+     * sans matricule (comptes antérieurs à cette règle) doit rester modifiable.
+     */
+    public function test_une_fiche_enseignant_sans_matricule_reste_modifiable(): void
+    {
+        $code = 500;
+        DB::connection('economat')->table('T_PROFESSEUR')->insert([
+            'Code' => $code, 'NomProfesseur' => 'Ancien', 'PrenomProfesseur' => 'X', 'MatriculeProfesseur' => null,
+        ]);
+
+        $this->putJson("/api/v1/enseignants/{$code}", ['nom' => 'Ancien', 'prenom' => 'Corrigé'])
+            ->assertOk()->assertJsonPath('prenom', 'Corrigé');
+
+        $this->assertDatabaseHas('T_PROFESSEUR', ['Code' => $code, 'MatriculeProfesseur' => null], 'economat');
+    }
+
     // --- Photo de l'élève (dossier partagé + T_ETUDIANT.Photo) ---
 
     private function dossierPhotos(): string

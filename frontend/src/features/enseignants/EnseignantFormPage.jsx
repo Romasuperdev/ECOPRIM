@@ -29,7 +29,6 @@ const SITUATIONS = [
 // Étapes de l'assistant. « Départ » n'apparaît qu'en modification : on ne renseigne
 // pas le départ d'un enseignant qu'on est en train de recruter.
 const ETAPES_BASE = ['État civil', 'Coordonnées', 'Carrière', 'Administration']
-const REQUIS = [['matricule', 'nom', 'prenom'], [], [], [], []]
 
 export default function EnseignantFormPage() {
   const { id } = useParams()
@@ -44,6 +43,9 @@ export default function EnseignantFormPage() {
   const [erreurs, setErreurs] = useState({})
 
   const etapes = enEdition ? [...ETAPES_BASE, 'Départ'] : ETAPES_BASE
+  // Le matricule n'est exigé qu'à la création : le rendre obligatoire en modification
+  // bloquerait toute fiche déjà existante sans matricule (comptes antérieurs à cette règle).
+  const REQUIS = [enEdition ? ['nom', 'prenom'] : ['matricule', 'nom', 'prenom'], [], [], [], []]
 
   const { data: enseignant } = useQuery({
     queryKey: ['enseignants', id],

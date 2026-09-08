@@ -38,13 +38,19 @@ class EnseignantController extends Controller
         return $enseignant;
     }
 
-    private function regles(): array
+    /**
+     * @param  bool  $creation  Le matricule est exigé à la création. En modification, il
+     *                          reste facultatif : le rendre obligatoire aurait bloqué la
+     *                          modification de toute fiche existante qui n'en avait pas
+     *                          encore un (comptes T_PROFESSEUR antérieurs à cette règle).
+     */
+    private function regles(bool $creation = true): array
     {
         $l = ProfesseurEcrivain::LARGEURS;
 
         return [
             // État civil
-            'matricule' => ['required', 'string', 'max:'.$l['matricule']],
+            'matricule' => [$creation ? 'required' : 'nullable', 'string', 'max:'.$l['matricule']],
             'nom' => ['required', 'string', 'max:'.$l['nom']],
             'prenom' => ['required', 'string', 'max:'.$l['prenom']],
             'sexe' => ['nullable', 'in:M,F'],
@@ -105,7 +111,7 @@ class EnseignantController extends Controller
 
     public function update(Request $request, Enseignant $enseignant)
     {
-        $data = $request->validate($this->regles());
+        $data = $request->validate($this->regles(creation: false));
         $code = (int) $enseignant->getKey();
 
         AnneeScolaireGuard::assertModifiable($enseignant->annee_code ?? null, 'La modification de cette fiche');
