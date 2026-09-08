@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import SelecteurEleves from './SelecteurEleves'
 import { useAuthStore } from '../../store/authStore'
 import {
   activerUtilisateur,
   createUtilisateur,
   desactiverUtilisateur,
   fetchAllEtablissements,
+  fetchRoles,
   fetchUtilisateurs,
   updateUtilisateur,
 } from './adminApi'
@@ -17,15 +19,21 @@ import {
 const VIDE = {
   login: '', mot_de_passe: '', nom: '', prenom: '', email: '',
   matricule: '', etab: '', contact: '', profil: '', code_app: '', super_admin: false,
+  // Rôle & affectation — posés dans le même geste que la création (voir
+  // UserController::store). C'est ici qu'on fait d'un compte un Enseignant ou un Parent :
+  // sans ce rôle, le compte garde l'accès complet à l'application.
+  etablissement_code: '', role_id: '',
 }
 
 export default function UtilisateurListPage() {
   // Un Admin Établissement ne crée ni ne modifie de compte : il n'affecte que des rôles
   // existants aux utilisateurs de son établissement, depuis leur fiche.
   const niveauSociete = useAuthStore((s) => s.niveauSociete)
+  const superAdmin = useAuthStore((s) => s.superAdmin)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null)
+  const [enfants, setEnfants] = useState([])
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
 
@@ -39,11 +47,17 @@ export default function UtilisateurListPage() {
     queryFn: () => fetchAllEtablissements(),
   })
 
+  const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
+  const roleChoisi = roles?.find((r) => String(r.id) === String(form?.role_id))
+  const estRoleParent = roleChoisi?.code === 'parent'
+
   const invalider = () => qc.invalidateQueries({ queryKey: ['utilisateurs'] })
 
   const enregistrer = useMutation({
-    mutationFn: (v) => (v.id ? updateUtilisateur(v.id, v) : createUtilisateur(v)),
-    onSuccess: () => { invalider(); setForm(null); setErreurs({}) },
+    mutationFn: (v) => (v.id
+      ? updateUtilisateur(v.id, v)
+      : createUtilisateur({ ...v, eleves: estRoleParent ? enfants.map((e) => e.matricule) : undefined })),
+    onSuccess: () => { invalider(); setForm(null); setEnfants([]); setErreurs({}) },
     onError: (e) => setErreurs(e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }),
   })
 
@@ -65,7 +79,7 @@ export default function UtilisateurListPage() {
           </p>
         </div>
         {niveauSociete && (
-          <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
+          <Button onClick={() => { setErreurs({}); setEnfants([]); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
         )}
       </div>
 
@@ -189,6 +203,44 @@ export default function UtilisateurListPage() {
                 Super Admin (accès complet à la console)
               </label>
 
+              {!form.id && (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Rôle (Enseignant, Parent, Secrétaire…)
+                  </p>
+                  <p className="-mt-2 text-xs text-slate-400">
+                    C'est ce rôle qui décide de l'écran que verra ce compte : un compte affecté
+                    du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
+                    restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
+                    l'application complète.
+                    {niveauSociete && !superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      label={niveauSociete && !superAdmin ? 'Établissement *' : 'Établissement'}
+                      value={form.etablissement_code ?? ''} error={erreurs.etablissement_code?.[0]}
+                      onChange={(ev) => champ('etablissement_code', ev.target.value)}
+                    >
+                      <option value="">— Choisir —</option>
+                      {etablissements?.map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
+                    </Select>
+                    <Select
+                      label={niveauSociete && !superAdmin ? 'Rôle *' : 'Rôle'}
+                      value={form.role_id ?? ''} error={erreurs.role_id?.[0]}
+                      onChange={(ev) => champ('role_id', ev.target.value)}
+                    >
+                      <option value="">— Choisir —</option>
+                      {roles?.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
+                    </Select>
+                  </div>
+                  {estRoleParent && (
+                    <div className="max-w-md">
+                      <SelecteurEleves selection={enfants} onChange={setEnfants} />
+                    </div>
+                  )}
+                </>
+              )}
+
               <p className="text-xs text-slate-400">
                 Le compte est enregistré dans RH_USER, partagée avec les autres applications de la suite.
                 Le mot de passe est haché (bcrypt).
@@ -197,7 +249,13 @@ export default function UtilisateurListPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                <Button type="submit" disabled={enregistrer.isPending}>{enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}</Button>
+                <Button
+                  type="submit"
+                  disabled={enregistrer.isPending
+                    || (!form.id && niveauSociete && !superAdmin && (!form.etablissement_code || !form.role_id))}
+                >
+                  {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
+                </Button>
               </div>
             </form>
           </div>

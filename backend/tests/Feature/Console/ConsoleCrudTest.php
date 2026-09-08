@@ -324,6 +324,27 @@ class ConsoleCrudTest extends TestCase
         $this->assertTrue(Hash::check('secret123', $mdp));
     }
 
+    public function test_creer_un_utilisateur_pose_son_role_et_ses_enfants_dans_le_meme_geste(): void
+    {
+        DB::connection('ecoprim')->table('console_societes')->insert(['id' => 1, 'code' => 'S1', 'nom' => 'Société', 'actif' => true]);
+        DB::connection('ecoprim')->table('console_etablissements')
+            ->insert(['id' => 1, 'code' => 'E1', 'intitule' => 'École', 'societe_code' => 'S1', 'actif' => true]);
+        $roleId = DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'parent', 'nom' => 'Parent']);
+        DB::connection('economat')->table('T_ETUDIANT')->insert([
+            ['Code' => 1, 'Matricule' => 'EL1', 'Nom' => 'Koné', 'Prenom' => 'Awa'],
+        ]);
+
+        $r = $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'parent1', 'mot_de_passe' => 'secret123', 'nom' => 'Koné',
+            'etablissement_code' => 'E1', 'role_id' => $roleId, 'eleves' => ['EL1'],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('RH_USER', ['Login' => 'parent1'], 'master');
+        $id = DB::connection('master')->table('RH_USER')->where('Login', 'parent1')->value('Id');
+        $this->assertDatabaseHas('console_affectations', ['rh_user_id' => $id, 'etablissement_code' => 'E1', 'role_id' => $roleId], 'ecoprim');
+        $this->assertDatabaseHas('console_affectation_eleves', ['eleve_matricule' => 'EL1'], 'ecoprim');
+    }
+
     public function test_login_utilisateur_doit_etre_unique(): void
     {
         $this->postJson('/api/v1/utilisateurs', ['login' => 'boss', 'mot_de_passe' => 'secret123', 'nom' => 'Doublon'])

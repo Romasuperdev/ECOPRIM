@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
+use App\Models\Console\AffectationEleve;
+use App\Models\Console\Role;
 use App\Models\RhUser;
 use App\Models\Console\Etablissement;
 use App\Services\RhUserEcrivain;
@@ -89,6 +91,10 @@ class UserController extends Controller
                 $creation && ! $this->estSuperAdmin() ? 'required' : 'nullable',
                 Rule::exists('ecoprim.console_roles', 'id'),
             ],
+            // Matricules d'élèves à rattacher — pertinent seulement pour le rôle Parent,
+            // ignoré silencieusement pour tout autre rôle (voir AffectationController).
+            'eleves' => ['nullable', 'array'],
+            'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
         ];
     }
 
@@ -165,13 +171,20 @@ class UserController extends Controller
         // L'affectation suit immédiatement la création, pour que le compte apparaisse
         // dans la liste de celui qui vient de le créer.
         if (! empty($data['etablissement_code']) && ! empty($data['role_id'])) {
-            Affectation::create([
+            $affectation = Affectation::create([
                 'rh_user_id' => $id,
                 'societe_code' => $etab->societe_code,
                 'etablissement_code' => $etab->code,
                 'role_id' => $data['role_id'],
                 'actif' => true,
             ]);
+
+            $role = Role::find($data['role_id']);
+            if ($role && $role->code === RhUser::ROLE_PARENT && ! empty($data['eleves'])) {
+                foreach (collect($data['eleves'])->map(fn ($m) => trim((string) $m))->filter()->unique() as $matricule) {
+                    AffectationEleve::create(['affectation_id' => $affectation->id, 'eleve_matricule' => $matricule]);
+                }
+            }
         }
 
         return response()->json($this->ligne(RhUser::findOrFail($id)), 201);

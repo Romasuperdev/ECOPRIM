@@ -1799,3 +1799,33 @@ Reste ouvert, noté pour plus tard : pas de saisie de notes dans le portail Ense
 saisie des notes elle-même reste en lecture seule pour tout le monde, cf. plus haut) ; un
 compte cumulant Enseignant ET Parent tombe côté portail Enseignant plutôt que de proposer
 les deux — cas non rencontré en pratique, à revoir s'il se présente.
+
+## Correctif : le rôle ne se posait nulle part à la création d'un compte
+
+Signalé par l'utilisateur : « je ne vois pas la page sur laquelle l'admin doit créer ces
+comptes ». En regardant l'écran, le trou était réel — `UserController::store` accepte déjà
+`etablissement_code` + `role_id` dans la MÊME requête que la création (obligatoire pour un
+Admin Société, l'affectation le rend visible dans sa propre liste), mais le formulaire
+« Nouvel utilisateur » (`UtilisateurListPage`) ne les proposait tout simplement pas : il ne
+posait que l'identité et le champ `Etab` de RH_USER (un texte informatif, sans rapport avec
+l'affectation Console). Seule la fiche utilisateur, une fois le compte déjà créé, permettait
+d'ajouter un rôle — un détour peu visible, et carrément bloquant pour un Admin Société
+puisque ces deux champs lui étaient obligatoires sans jamais lui être proposés : la création
+d'un compte par quiconque n'est pas Super Admin échouait donc systématiquement en 422 avant
+ce correctif, sans lien avec les portails de cette session.
+
+- Le formulaire de création affiche désormais une section « Rôle (Enseignant, Parent,
+  Secrétaire…) » — Établissement + Rôle, posés dans le même geste que le compte — suivie du
+  sélecteur d'élèves (`SelecteurEleves`, extrait de la fiche utilisateur pour être partagé)
+  quand le rôle choisi est Parent. Le bouton Enregistrer se désactive tant qu'un Admin
+  Société/Établissement n'a pas rempli les deux, pour ne plus découvrir l'erreur après coup.
+- `UserController::store` gagne le même traitement `eleves` qu'`AffectationController::store`
+  (le rôle Parent seul en tient compte) : la création pose le compte, son affectation ET ses
+  enfants en une seule requête.
+- Cette section reste masquée en modification : corriger le rôle ou les enfants d'un compte
+  déjà créé continue de se faire depuis sa fiche, où c'était déjà possible.
+
+Test ajouté (`ConsoleCrudTest`) : créer un utilisateur avec établissement + rôle Parent +
+élèves en un seul appel pose bien le compte RH_USER, son affectation et ses enfants.
+Suite : **281 tests, 1180 assertions** (279 verts ; mêmes 2 échecs préexistants et sans
+rapport). Build et lint frontend propres.
