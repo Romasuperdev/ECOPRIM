@@ -1896,3 +1896,30 @@ société (résolue depuis son établissement, sans jamais toucher au catalogue 
 refus d'un rôle appartenant à une AUTRE société.
 Suite : **286 tests, 1189 assertions** (284 verts ; mêmes 2 échecs préexistants et sans
 rapport). Build et lint frontend propres.
+
+## Correctif : l'étape Photo de l'assistant Inscriptions était invisible
+
+Signalé par l'utilisateur : « dans le formulaire d'inscription je ne peux pas ajouter de
+photo ». Cause trouvée dans `InscriptionListPage.jsx` : le `<div>` de l'étape « Mère »
+(`visible(4)`) n'avait jamais sa balise fermante — l'étape « Photo » (`visible(5)`) se
+retrouvait donc **imbriquée à l'intérieur** du bloc Mère au lieu d'en être la sœur suivante.
+Tant qu'on est sur l'étape Mère, ça ne se voit pas (les deux sont visibles ensemble). Mais
+en avançant sur l'étape Photo, l'étape Mère redevient masquée (`hidden`, donc
+`display:none`) — et comme Photo vit maintenant DANS ce bloc, elle disparaissait avec lui,
+quelle que soit sa propre classe `visible(5)`. L'utilisateur atterrissait sur une étape
+vide : rien à cliquer, aucune erreur, juste rien.
+
+Les deux tests d'upload de photo qui échouaient depuis plusieurs sessions
+(`SaisieEconomatTest::test_une_nouvelle_photo_remplace_la_precedente` et
+`test_la_photo_est_servie_et_404_si_absente`, classés « préexistants et sans rapport » à
+chaque fois faute de temps pour creuser) sont en réalité un symptôme de fuite d'état entre
+tests (ils passent seuls, échouent dans la suite complète) — **sans lien avec ce bug-ci**,
+qui est purement un défaut de balisage JSX invisible aux tests (ils appellent l'API
+directement, jamais le rendu du formulaire). Cette fuite d'état reste donc ouverte, à
+reprendre séparément.
+
+Correctif : la balise fermante manquante est ajoutée à la fin de l'étape Mère, et la
+fermeture surnuméraire qu'elle laissait à la fin de l'étape Photo est retirée en
+contrepartie — six étapes, désormais six blocs frères comme partout ailleurs dans
+l'assistant. Vérifié par `npm run build` (JSX rééquilibré, aucune erreur de parsing) et
+`npm run lint` (propre, même avertissement connu sur `ErrorBoundary`).

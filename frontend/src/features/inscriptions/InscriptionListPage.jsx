@@ -446,6 +446,7 @@ export default function InscriptionListPage() {
                   <Input label="Téléphone" value={form.mere_telephone} onChange={(e) => champ('mere_telephone', e.target.value)} error={err('mere_telephone')} />
                   <Input label="Email" value={form.mere_email} onChange={(e) => champ('mere_email', e.target.value)} error={err('mere_email')} />
                 </div>
+              </div>
 
               <div className={visible(5) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Photo</p>
@@ -497,7 +498,6 @@ export default function InscriptionListPage() {
                     )}
                   </div>
                 </div>
-              </div>
               </div>
 
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
