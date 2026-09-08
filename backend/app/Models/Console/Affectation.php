@@ -4,6 +4,7 @@ namespace App\Models\Console;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Rôle d'un utilisateur (RH_USER.Id) dans un établissement.
@@ -26,5 +27,11 @@ class Affectation extends Model
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /** Enfants rattachés — n'a de sens que pour une affectation du rôle Parent. */
+    public function eleves(): HasMany
+    {
+        return $this->hasMany(AffectationEleve::class);
     }
 }

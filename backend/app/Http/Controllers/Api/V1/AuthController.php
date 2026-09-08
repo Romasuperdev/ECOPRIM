@@ -102,6 +102,9 @@ class AuthController extends Controller
             'admin_societe' => $rhUser->estAdminSociete(),
             'admin_etablissement' => $rhUser->estAdminEtablissement(),
             'peut_console' => $rhUser->peutAccederConsole(),
+            // 'staff' (application complète) ou 'enseignant'/'parent' (portail restreint) —
+            // affichage seulement, l'accès réel est décidé par PortailMiddleware côté serveur.
+            'type_portail' => $rhUser->typePortail(),
         ];
     }
 

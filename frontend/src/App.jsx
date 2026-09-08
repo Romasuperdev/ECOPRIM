@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProtectedRoute from './routes/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/layout/AdminLayout'
+import PortailLayout from './components/layout/PortailLayout'
 import { useAuthStore } from './store/authStore'
 import { fetchMe } from './features/auth/authApi'
 
@@ -43,11 +44,22 @@ const EtablissementListPage = lazy(() => import('./features/admin/EtablissementL
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
 const UtilisateurDetailPage = lazy(() => import('./features/admin/UtilisateurDetailPage'))
+const EnseignantAccueilPage = lazy(() => import('./features/portail-enseignant/EnseignantAccueilPage'))
+const EnseignantClassePage = lazy(() => import('./features/portail-enseignant/EnseignantClassePage'))
+const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAccueilPage'))
+const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfantPage'))
 
 const queryClient = new QueryClient()
 
 function PageLoader() {
   return <div className="flex min-h-[40vh] items-center justify-center text-slate-400">Chargement…</div>
+}
+
+// Accueil de /mon-espace : le portail dépend du type de compte, pas de la route.
+function MonEspaceIndex() {
+  const typePortail = useAuthStore((state) => state.typePortail)
+
+  return typePortail === 'parent' ? <ParentAccueilPage /> : <EnseignantAccueilPage />
 }
 
 // Squelette de routage principal — à compléter au fur et à mesure des modules
@@ -114,9 +126,24 @@ export default function App() {
               />
               </Route>
 
+            {/* Portails restreints — un compte affecté du SEUL rôle Enseignant ou Parent
+                (RhUser::typePortail()) n'atteint jamais l'application complète ci-dessous :
+                ProtectedRoute l'y renvoie, et le serveur la refuserait de toute façon. */}
             <Route
               element={
-                <ProtectedRoute>
+                <ProtectedRoute portailAutorise={['enseignant', 'parent']}>
+                  <PortailLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/mon-espace" element={<MonEspaceIndex />} />
+              <Route path="/mon-espace/classes/:classe" element={<EnseignantClassePage />} />
+              <Route path="/mon-espace/enfants/:matricule" element={<ParentEnfantPage />} />
+            </Route>
+
+            <Route
+              element={
+                <ProtectedRoute portailAutorise={['staff']}>
                   <Layout />
                 </ProtectedRoute>
               }

@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\V1\Parametres\SmsConfigController;
 use App\Http\Controllers\Api\V1\TracabiliteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\PortailEnseignantController;
+use App\Http\Controllers\Api\V1\PortailParentController;
 
 // Routes API ECOPRIM - v1
 Route::prefix('v1')->group(function () {
@@ -47,6 +49,11 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        // Application complète — réservée aux comptes 'staff' (RhUser::typePortail()) :
+        // un compte affecté du SEUL rôle Enseignant ou Parent est renvoyé sur son portail
+        // restreint (voir plus bas, routes mon-espace/*), jamais sur ces routes-ci.
+        Route::middleware('portail:staff')->group(function () {
 
         Route::get('eleves', [EleveController::class, 'index']);
         Route::get('eleves/{eleve}', [EleveController::class, 'show']);
@@ -162,6 +169,44 @@ Route::prefix('v1')->group(function () {
         Route::delete('contexte/etablissement', [ContexteController::class, 'destroy']);
         Route::post('contexte/annee', [ContexteController::class, 'definirAnnee']);
 
+        }); // fin portail:staff
+
+        // Portail Enseignant — un compte affecté du seul rôle Enseignant : ses classes
+        // (déduites de T_PROFESSEUR.LOGIN puis T_CORPROFCLASSE), rien d'autre. Les actions
+        // d'écriture délèguent aux contrôleurs existants après vérification que la classe
+        // visée est bien la sienne (PortailEnseignantController::assertClasseAutorisee).
+        Route::middleware('portail:enseignant')->prefix('mon-espace/enseignant')->group(function () {
+            Route::get('classes', [PortailEnseignantController::class, 'classes']);
+            Route::get('classes/{classe}/eleves', [PortailEnseignantController::class, 'eleves']);
+
+            Route::get('cahier-textes/referentiels', [PortailEnseignantController::class, 'cahierReferentiels']);
+            Route::get('cahier-textes', [PortailEnseignantController::class, 'cahierIndex']);
+            Route::post('cahier-textes', [PortailEnseignantController::class, 'cahierStore']);
+            Route::put('cahier-textes/{entete}', [PortailEnseignantController::class, 'cahierUpdate']);
+            Route::delete('cahier-textes/{entete}', [PortailEnseignantController::class, 'cahierDestroy']);
+            Route::put('cahier-textes/{entete}/lignes', [PortailEnseignantController::class, 'cahierLigne']);
+            Route::delete('cahier-textes/{entete}/lignes/{matiere}', [PortailEnseignantController::class, 'cahierLigneSupprimer']);
+
+            Route::get('emplois-du-temps/referentiels', [PortailEnseignantController::class, 'emploiReferentiels']);
+            Route::get('emplois-du-temps', [PortailEnseignantController::class, 'emploiIndex']);
+
+            Route::get('absences', [PortailEnseignantController::class, 'absencesIndex']);
+            Route::post('absences', [PortailEnseignantController::class, 'absencesStore']);
+            Route::put('absences/{absence}', [PortailEnseignantController::class, 'absencesUpdate']);
+            Route::delete('absences/{absence}', [PortailEnseignantController::class, 'absencesDestroy']);
+        });
+
+        // Portail Parent — un compte affecté du seul rôle Parent : uniquement les enfants
+        // qui lui sont explicitement rattachés (console_affectation_eleves), en lecture.
+        Route::middleware('portail:parent')->prefix('mon-espace/parent')->group(function () {
+            Route::get('enfants', [PortailParentController::class, 'enfants']);
+            Route::get('enfants/{matricule}', [PortailParentController::class, 'enfant']);
+            Route::get('enfants/{matricule}/absences', [PortailParentController::class, 'absences']);
+            Route::get('enfants/{matricule}/cahier-textes', [PortailParentController::class, 'cahierTextes']);
+            Route::get('enfants/{matricule}/moyennes', [PortailParentController::class, 'moyennes']);
+            Route::get('enfants/{matricule}/bulletin', [PortailParentController::class, 'bulletin']);
+        });
+
         // Console générale — Super Admin seul : le catalogue des sociétés.
         Route::middleware('console:generale')->group(function () {
             Route::get('societes', [SocieteController::class, 'index']);
@@ -215,6 +260,7 @@ Route::prefix('v1')->group(function () {
             Route::get('utilisateurs/{user}', [UserController::class, 'show']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
+            Route::put('affectations/{affectation}/eleves', [AffectationController::class, 'definirEnfants']);
             Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);
         });
     });

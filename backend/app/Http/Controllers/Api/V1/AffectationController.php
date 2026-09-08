@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
+use App\Models\Console\AffectationEleve;
 use App\Models\Console\Etablissement;
 use App\Models\Console\Role;
 use App\Models\RhUser;
@@ -19,6 +20,10 @@ use Illuminate\Validation\ValidationException;
  * peut affecter que dans sa propre société, un Admin Établissement seulement dans le ou
  * les établissements qui lui sont propres — sans quoi l'un ou l'autre se donnerait un
  * accès hors de son périmètre.
+ *
+ * Rôle Parent : le portail restreint (voir PortailParentController) ne montre QUE les
+ * enfants explicitement rattachés ici (console_affectation_eleves) — jamais un
+ * rapprochement automatique par email/téléphone, trop fragile pour ce que ça expose.
  */
 class AffectationController extends Controller
 {
@@ -28,6 +33,10 @@ class AffectationController extends Controller
             'rh_user_id' => ['required', 'integer'],
             'etablissement_code' => ['required', 'string', Rule::exists('ecoprim.console_etablissements', 'code')],
             'role_id' => ['required', Rule::exists('ecoprim.console_roles', 'id')],
+            // Matricules d'élèves à rattacher — pertinent seulement pour le rôle Parent,
+            // ignoré silencieusement pour tout autre rôle.
+            'eleves' => ['nullable', 'array'],
+            'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
         ]);
 
         // L'utilisateur doit exister dans RH_USER (lecture seule).
@@ -69,7 +78,12 @@ class AffectationController extends Controller
             'role_id' => $data['role_id'],
         ]);
 
-        return response()->json($affectation->load(['etablissement', 'role']), 201);
+        $role = Role::find($data['role_id']);
+        if ($role && $role->code === RhUser::ROLE_PARENT) {
+            $this->synchroniserEnfants($affectation, $data['eleves'] ?? []);
+        }
+
+        return response()->json($affectation->load(['etablissement', 'role', 'eleves']), 201);
     }
 
     public function destroy(Affectation $affectation)
@@ -78,5 +92,41 @@ class AffectationController extends Controller
         $affectation->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Remplace la liste des enfants rattachés à une affectation « Parent » — la fiche
+     * utilisateur envoie la liste complète voulue, pas une addition/un retrait unitaire.
+     */
+    public function definirEnfants(Request $request, Affectation $affectation)
+    {
+        PerimetreConsole::assertAutoriseeEtablissement($affectation->etablissement_code, $affectation->societe_code);
+
+        $role = $affectation->role;
+        abort_unless($role && $role->code === RhUser::ROLE_PARENT, 422,
+            "Seule une affectation du rôle Parent peut être rattachée à des élèves.");
+
+        $data = $request->validate([
+            'eleves' => ['present', 'array'],
+            'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
+        ]);
+
+        $this->synchroniserEnfants($affectation, $data['eleves']);
+
+        return response()->json($affectation->load(['etablissement', 'role', 'eleves']));
+    }
+
+    private function synchroniserEnfants(Affectation $affectation, array $matricules): void
+    {
+        $matricules = collect($matricules)->map(fn ($m) => trim((string) $m))->filter()->unique()->values();
+
+        $affectation->eleves()->whereNotIn('eleve_matricule', $matricules)->delete();
+
+        foreach ($matricules as $matricule) {
+            AffectationEleve::firstOrCreate([
+                'affectation_id' => $affectation->id,
+                'eleve_matricule' => $matricule,
+            ]);
+        }
     }
 }

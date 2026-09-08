@@ -219,6 +219,93 @@ class RhUser extends Model implements AuthenticatableContract
         return $this->isSuperAdmin() || $this->estAdminSociete();
     }
 
+    // --- Portails restreints : Enseignant et Parent ---
+
+    public const ROLE_ENSEIGNANT = 'enseignant';
+
+    public const ROLE_PARENT = 'parent';
+
+    /** Rôles considérés comme un portail restreint plutôt que l'application complète. */
+    private const ROLES_PORTAIL = [self::ROLE_ENSEIGNANT, self::ROLE_PARENT];
+
+    /**
+     * Codes des rôles console actifs et non échus de l'utilisateur, tous niveaux et
+     * toutes sociétés confondus — même condition « actif + non échu » que
+     * societesAdministrees()/etablissementsAdministres().
+     */
+    public function rolesConsoleActifs(): Collection
+    {
+        try {
+            return DB::connection('ecoprim')
+                ->table('console_affectations as a')
+                ->join('console_roles as r', 'r.id', '=', 'a.role_id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')
+                    ->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->pluck('r.code')
+                ->map(fn ($c) => trim((string) $c))
+                ->filter()
+                ->unique()
+                ->values();
+        } catch (\Throwable $e) {
+            return collect();
+        }
+    }
+
+    /**
+     * Type de portail : 'staff' (application complète, comportement historique
+     * inchangé) ou 'enseignant'/'parent' pour un compte dont TOUS les rôles actifs
+     * sont EXACTEMENT ce rôle restreint.
+     *
+     * Au moindre rôle hors de {enseignant, parent} — ou en l'absence de toute
+     * affectation console, le cas de tous les comptes historiques jamais repris dans
+     * la console — l'accès complet est conservé : rien ne se restreint sans un geste
+     * explicite de l'administrateur (affecter EXCLUSIVEMENT ce rôle).
+     */
+    public function typePortail(): string
+    {
+        if ($this->isSuperAdmin()) {
+            return 'staff';
+        }
+
+        $roles = $this->rolesConsoleActifs();
+        if ($roles->isEmpty() || $roles->diff(self::ROLES_PORTAIL)->isNotEmpty()) {
+            return 'staff';
+        }
+
+        return $roles->contains(self::ROLE_ENSEIGNANT) ? 'enseignant' : 'parent';
+    }
+
+    /**
+     * Matricules des enfants rattachés à ce compte (rôle Parent), lus dans
+     * console_affectation_eleves via ses affectations actives et non échues.
+     * Fail closed : aucune affectation Parent résolue = aucun enfant, jamais un repli
+     * « si vide, tout montrer ».
+     */
+    public function enfantsMatricules(): array
+    {
+        try {
+            return DB::connection('ecoprim')
+                ->table('console_affectations as a')
+                ->join('console_roles as r', 'r.id', '=', 'a.role_id')
+                ->join('console_affectation_eleves as e', 'e.affectation_id', '=', 'a.id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')
+                    ->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->where('r.code', self::ROLE_PARENT)
+                ->pluck('e.eleve_matricule')
+                ->map(fn ($m) => trim((string) $m))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     /** Droit d'administrer une société donnée. Le Super Admin les administre toutes. */
     public function peutAdministrerSociete(?string $code): bool
     {

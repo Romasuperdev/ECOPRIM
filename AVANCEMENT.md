@@ -1696,3 +1696,106 @@ suppression d'une semaine et de ses lignes, modification de l'entête, verrou de
 création et sur les lignes d'une semaine déjà clôturée, cloisonnement par année.
 Suite : **262 tests, 1143 assertions** (260 verts ; mêmes 2 échecs préexistants et sans rapport,
 upload de photo). Build et lint frontend propres.
+
+## Portails restreints Enseignant et Parent
+
+Demande de l'utilisateur : les parents et les enseignants doivent avoir leur propre
+interface, avec des comptes créés par l'administrateur depuis la console — et ces comptes
+doivent être des RH_USER, pas un système à part. Deux choix ont été confirmés avec
+l'utilisateur avant de coder (aucun champ n'existe aujourd'hui pour rattacher un compte
+Parent à un élève, et rien ne restreignait jusqu'ici l'API par rôle) :
+
+1. le rattachement Parent → élève(s) se fait par **affectation explicite de
+   l'administrateur** (pas de rapprochement automatique par email/téléphone, trop fragile
+   et rien ne garantit l'unicité) ;
+2. le cloisonnement est **réel côté serveur**, pas un simple habillage d'écran — sans quoi
+   un compte Enseignant/Parent resterait techniquement capable d'appeler les routes du
+   personnel.
+
+### Le mécanisme retenu : réutiliser les rôles de la Console, pas en inventer un nouveau
+
+La Console avait déjà tout ce qu'il fallait pour « Enseignant » : un catalogue de rôles
+(`console_roles`) et des affectations utilisateur↔établissement↔rôle (`console_affectations`)
+— seul « Parent » manquait au catalogue, ajouté dans `ConsoleImporter::semerRoles()`.
+Aucune nouvelle notion de rôle : create/gérer un compte Parent ou Enseignant se fait
+exactement comme créer un compte Secrétaire ou Direction, depuis `/admin/utilisateurs`.
+
+- `RhUser::typePortail()` : **'staff'** (application complète, comportement historique) sauf
+  si TOUS les rôles actifs de l'utilisateur sont EXACTEMENT `{enseignant}` ou `{parent}` —
+  auquel cas il devient enseignant ou parent respectivement. Un compte sans aucune
+  affectation (tous les comptes historiques du reste de la suite) reste **staff par défaut** :
+  rien ne se restreint sans un geste explicite de l'administrateur, et aucun compte existant
+  n'a pu perdre l'accès qu'il avait déjà.
+- `PortailMiddleware` (`portail:staff`, `portail:enseignant`, `portail:parent`) applique ce
+  verdict : les routes pédagogiques existantes (`eleves`, `classes`, `absences`,
+  `cahier-textes`…) sont maintenant sous `portail:staff`, deux nouveaux groupes
+  `mon-espace/enseignant/*` et `mon-espace/parent/*` sous les deux autres. La Console
+  elle-même n'a rien eu à changer : un compte enseignant/parent n'a par construction aucun
+  rôle admin, donc `peutAccederConsole()` le refuse déjà.
+
+### Portail Enseignant — ses classes, rien d'autre
+
+Les classes d'un enseignant se déduisent de `T_PROFESSEUR.LOGIN = RH_USER.Login` puis de
+`T_CORPROFCLASSE` — exactement ce que fait déjà l'emploi du temps pour en déduire
+l'enseignant d'un créneau. `PortailEnseignantController` ne duplique aucune règle métier :
+il vérifie que la classe visée est la sienne, puis **délègue** aux contrôleurs existants
+(`CahierTextesController`, `AbsenceController`, `EmploiDuTempsController::index`).
+
+- Cahier de textes : lecture et écriture complètes, scopées à ses classes — c'est
+  naturellement lui qui remplit ce qu'il a enseigné.
+- Absences : saisie/correction/retrait sur ses classes. Point de vigilance traité : changer
+  le matricule d'une absence existante pourrait viser un élève d'une AUTRE classe — revérifié
+  explicitement sur la nouvelle valeur, sinon ce champ aurait été une sortie de périmètre.
+- Emploi du temps et liste d'élèves : consultation seule (créer un créneau reste une tâche
+  d'organisation, pas de saisie enseignant).
+- Écran : accueil « Mes classes » (une carte par classe/matière), puis une page par classe à
+  onglets (Cahier de textes / Absences / Élèves / Emploi du temps), sous `/mon-espace`.
+
+### Portail Parent — ses enfants, rien d'autre
+
+`console_affectation_eleves` (nouvelle table, migration `2026_10_03_000001`) : un ou
+plusieurs matricules rattachés à une affectation du rôle Parent — une ligne par enfant,
+pas une colonne sur `console_affectations` (dont la contrainte d'unicité utilisateur +
+établissement + rôle resterait vraie pour un parent de plusieurs enfants dans le même
+établissement). `AffectationController::store` accepte un tableau `eleves` (matricules
+vérifiés dans `T_ETUDIANT`) quand le rôle est Parent ; `PUT affectations/{id}/eleves`
+remplace la liste complète depuis la fiche utilisateur.
+
+- Tout est en **lecture**. Point le plus sensible : les moyennes d'un enfant ne renvoient
+  JAMAIS le classement de sa classe — `PortailParentController::moyennes()` extrait la seule
+  ligne de cet enfant plus des agrégats (rang, effectif), contrairement à
+  `RapportController::moyennesClasse` qui restitue tout le classement pour le personnel.
+  Le bulletin PDF est réutilisé tel quel : il ne porte déjà que sur un seul élève.
+- Le cahier de textes consulté est celui de la CLASSE de l'enfant (pas une donnée
+  personnelle : normal qu'il montre toute la classe, comme un cahier de textes physique).
+- Écran : accueil « Mes enfants » (une carte par enfant), puis une fiche à onglets (Fiche /
+  Absences / Cahier de textes / Résultats avec téléchargement du bulletin), sous
+  `/mon-espace`.
+- Admin (`UtilisateurDetailPage`) : un sélecteur recherche un élève par nom ou matricule
+  (`EleveController::index?q=`) pour composer la liste à la création d'une affectation
+  Parent, et chaque affectation Parent déjà posée affiche ses enfants avec un « Gérer »
+  pour la corriger après coup.
+
+### Nettoyage de dérive trouvé en route
+
+`php artisan migrate --path=database/migrations/console --database=ecoprim` échouait
+(« societe_code déjà présent ») : la migration qui l'ajoute à `console_roles` n'était
+jamais tracée alors que la colonne existait déjà en base — dérive de bookkeeping antérieure
+à cette session, corrigée en insérant la ligne manquante dans `migrations` (aucune donnée
+touchée). Le catalogue de rôles lui-même n'avait jamais été semé sur la vraie base : les 9
+rôles (dont le nouveau Parent) y ont été créés au premier `console:importer --roles-seulement`.
+
+Tests `PortailTest` (18 cas) : détection du type de portail (sans affectation, seul rôle
+enseignant, seul rôle parent, rôle supplémentaire qui annule le portail restreint), portes
+fermées (staff hors de l'app complète — sens interdit dans les deux sens entre les deux
+portails), enseignant borné à ses classes (cahier de textes, absences, y compris le
+changement de matricule vers une classe hors périmètre), parent borné à ses enfants
+rattachés (fiche, absences, cahier de textes de la classe), non-fuite du classement dans les
+moyennes d'un enfant, création d'une affectation Parent avec ses enfants en un seul appel.
+Suite : **280 tests, 1176 assertions** (278 verts ; mêmes 2 échecs préexistants et sans
+rapport, upload de photo). Build et lint frontend propres.
+
+Reste ouvert, noté pour plus tard : pas de saisie de notes dans le portail Enseignant (la
+saisie des notes elle-même reste en lecture seule pour tout le monde, cf. plus haut) ; un
+compte cumulant Enseignant ET Parent tombe côté portail Enseignant plutôt que de proposer
+les deux — cas non rencontré en pratique, à revoir s'il se présente.

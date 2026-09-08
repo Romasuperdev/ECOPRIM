@@ -47,6 +47,7 @@ class ConsoleImporter extends Command
             'admin-etablissement' => 'Admin Établissement',
             'direction' => 'Direction',
             'enseignant' => 'Enseignant',
+            'parent' => 'Parent',
             'secretaire' => 'Secrétaire',
             'surveillant' => 'Surveillant',
             'comptable' => 'Comptable',

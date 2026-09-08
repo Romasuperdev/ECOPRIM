@@ -49,7 +49,9 @@ class UserController extends Controller
     public function show(string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
-        $affectations = Affectation::with(['etablissement', 'role'])
+        // 'eleves' : enfants rattachés, pertinent seulement pour une affectation du rôle
+        // Parent — chargé pour toutes, la fiche utilisateur les affiche pour celles-là.
+        $affectations = Affectation::with(['etablissement', 'role', 'eleves'])
             ->where('rh_user_id', $rh->Id)->orderBy('etablissement_code')->get();
 
         return array_merge($this->ligne($rh), [

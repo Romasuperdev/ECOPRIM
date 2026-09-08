@@ -285,6 +285,7 @@ abstract class TestCase extends BaseTestCase
         Schema::connection('economat')->create('T_PROFESSEUR', function ($t) {
             $t->integer('Code');
             $t->string('MatriculeProfesseur')->nullable();
+            $t->string('LOGIN')->nullable();
             $t->string('NomProfesseur')->nullable();
             $t->string('PrenomProfesseur')->nullable();
             $t->string('NomComplet')->nullable();

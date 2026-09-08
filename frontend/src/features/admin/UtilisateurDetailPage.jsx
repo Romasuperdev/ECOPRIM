@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, History, Trash2, X } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
+import Input from '../../components/ui/Input'
 import {
   createAffectation,
+  definirEnfantsAffectation,
   fetchAllEtablissements,
   fetchRoles,
   fetchUtilisateur,
+  rechercherEleves,
   terminerAffectation,
 } from './adminApi'
 
@@ -21,11 +24,109 @@ function Champ({ label, value }) {
   )
 }
 
+/**
+ * Recherche et sélection d'un ou plusieurs élèves — utilisé pour rattacher les enfants
+ * d'un compte du rôle Parent. Recherche par nom ou matricule (EleveController::index).
+ */
+function SelecteurEleves({ selection, onChange }) {
+  const [recherche, setRecherche] = useState('')
+  const { data: resultats } = useQuery({
+    queryKey: ['recherche-eleves', recherche],
+    queryFn: () => rechercherEleves(recherche),
+    enabled: recherche.trim().length >= 2,
+  })
+
+  const ajouter = (eleve) => {
+    if (! selection.some((e) => e.matricule === eleve.matricule)) {
+      onChange([...selection, eleve])
+    }
+    setRecherche('')
+  }
+  const retirer = (matricule) => onChange(selection.filter((e) => e.matricule !== matricule))
+
+  return (
+    <div>
+      <Input
+        label="Élèves rattachés"
+        placeholder="Rechercher par nom ou matricule…"
+        value={recherche}
+        onChange={(e) => setRecherche(e.target.value)}
+      />
+      {resultats?.length > 0 && (
+        <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+          {resultats.map((e) => (
+            <button
+              key={e.matricule} type="button" onClick={() => ajouter(e)}
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+            >
+              {e.prenom} {e.nom} <span className="text-slate-400">({e.matricule})</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {selection.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selection.map((e) => (
+            <span key={e.matricule} className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
+              {`${e.prenom ?? ''} ${e.nom ?? ''}`.trim() || e.matricule}
+              <button type="button" onClick={() => retirer(e.matricule)} className="text-slate-400 hover:text-red-500">
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Chips + édition des enfants d'une affectation déjà créée (rôle Parent). */
+function EnfantsAffectation({ affectation, onSaved }) {
+  const [edition, setEdition] = useState(false)
+  const [selection, setSelection] = useState(
+    (affectation.eleves ?? []).map((e) => ({ matricule: e.eleve_matricule }))
+  )
+
+  const enregistrer = useMutation({
+    mutationFn: () => definirEnfantsAffectation(affectation.id, selection.map((e) => e.matricule)),
+    onSuccess: () => { setEdition(false); onSaved() },
+  })
+
+  if (! edition) {
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        {(affectation.eleves ?? []).length === 0 && <span className="text-xs text-slate-400">Aucun enfant rattaché.</span>}
+        {(affectation.eleves ?? []).map((e) => (
+          <span key={e.eleve_matricule} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+            {e.eleve_matricule}
+          </span>
+        ))}
+        <button type="button" onClick={() => setEdition(true)} className="text-xs text-primary-600 underline">
+          Gérer
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <SelecteurEleves selection={selection} onChange={setSelection} />
+      <div className="mt-2 flex justify-end gap-2">
+        <Button variant="outline" className="!px-3 !py-1 text-xs" onClick={() => setEdition(false)}>Annuler</Button>
+        <Button className="!px-3 !py-1 text-xs" disabled={enregistrer.isPending} onClick={() => enregistrer.mutate()}>
+          {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function UtilisateurDetailPage() {
   const { id } = useParams()
   const qc = useQueryClient()
   const [nouvelEtab, setNouvelEtab] = useState('')
   const [nouveauRole, setNouveauRole] = useState('')
+  const [enfants, setEnfants] = useState([])
   const [erreur, setErreur] = useState(null)
 
   const { data: user, isLoading } = useQuery({ queryKey: ['utilisateurs', id], queryFn: () => fetchUtilisateur(id) })
@@ -33,11 +134,17 @@ export default function UtilisateurDetailPage() {
   const { data: etabs } = useQuery({ queryKey: ['etabs-affectation', societeCode], queryFn: () => fetchAllEtablissements(societeCode), enabled: !!user })
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
 
+  const roleChoisi = roles?.find((r) => String(r.id) === String(nouveauRole))
+  const estRoleParent = roleChoisi?.code === 'parent'
+
   const invalider = () => qc.invalidateQueries({ queryKey: ['utilisateurs', id] })
 
   const ajouter = useMutation({
-    mutationFn: () => createAffectation({ rh_user_id: Number(id), etablissement_code: nouvelEtab, role_id: Number(nouveauRole) }),
-    onSuccess: () => { invalider(); setNouvelEtab(''); setNouveauRole(''); setErreur(null) },
+    mutationFn: () => createAffectation({
+      rh_user_id: Number(id), etablissement_code: nouvelEtab, role_id: Number(nouveauRole),
+      eleves: estRoleParent ? enfants.map((e) => e.matricule) : undefined,
+    }),
+    onSuccess: () => { invalider(); setNouvelEtab(''); setNouveauRole(''); setEnfants([]); setErreur(null) },
     onError: (e) => {
       const err = e?.response?.data?.errors
       setErreur(err ? Object.values(err).flat()[0] : (e?.response?.data?.message ?? 'Erreur'))
@@ -83,6 +190,11 @@ export default function UtilisateurDetailPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">Rôles par établissement</h2>
         </div>
+        <p className="mb-4 text-xs text-slate-400">
+          Un compte affecté du SEUL rôle Enseignant ou Parent est dirigé vers son portail
+          restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
+          l'application complète.
+        </p>
 
         {affectations.length ? (
           <table className="w-full text-left text-sm">
@@ -97,10 +209,15 @@ export default function UtilisateurDetailPage() {
             <tbody className="divide-y divide-slate-100">
               {affectations.map((a) => (
                 <tr key={a.id}>
-                  <td className="py-2 text-slate-800">{a.etablissement?.intitule ?? a.etablissement_code}</td>
-                  <td className="py-2 text-slate-600">{a.societe_code}</td>
-                  <td className="py-2 text-slate-600">{a.role?.nom ?? a.role_id}</td>
-                  <td className="py-2 text-right">
+                  <td className="py-2 align-top text-slate-800">{a.etablissement?.intitule ?? a.etablissement_code}</td>
+                  <td className="py-2 align-top text-slate-600">{a.societe_code}</td>
+                  <td className="py-2 align-top text-slate-600">
+                    {a.role?.nom ?? a.role_id}
+                    {a.role?.code === 'parent' && (
+                      <EnfantsAffectation affectation={a} onSaved={invalider} />
+                    )}
+                  </td>
+                  <td className="py-2 align-top text-right">
                     <button
                       onClick={() => retirer.mutate(a.id)}
                       disabled={retirer.isPending}
@@ -141,6 +258,11 @@ export default function UtilisateurDetailPage() {
               {ajouter.isPending ? 'Ajout…' : 'Ajouter'}
             </Button>
           </div>
+          {estRoleParent && (
+            <div className="mt-3 max-w-md">
+              <SelecteurEleves selection={enfants} onChange={setEnfants} />
+            </div>
+          )}
           {erreur && <p className="mt-2 text-sm text-red-600">{erreur}</p>}
         </div>
       </section>

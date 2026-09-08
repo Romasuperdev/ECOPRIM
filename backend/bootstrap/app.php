@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\ConsoleMiddleware;
+use App\Http\Middleware\PortailMiddleware;
 use App\Http\Middleware\RhRoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => RhRoleMiddleware::class,
             'console' => ConsoleMiddleware::class,
+            'portail' => PortailMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

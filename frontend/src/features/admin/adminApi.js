@@ -136,6 +136,17 @@ export async function terminerAffectation(id) {
   return data
 }
 
+// Enfants rattachés à une affectation du rôle Parent (console_affectation_eleves).
+export async function definirEnfantsAffectation(affectationId, matricules) {
+  const { data } = await apiClient.put(`/affectations/${affectationId}/eleves`, { eleves: matricules })
+  return data
+}
+
+export async function rechercherEleves(q) {
+  const { data } = await apiClient.get('/eleves', { params: { q, per_page: 20 } })
+  return data?.data ?? data ?? []
+}
+
 // Journal d'activité (lecture seule, immuable)
 
 // Sociétés et établissements ne se suppriment pas : ils se désactivent

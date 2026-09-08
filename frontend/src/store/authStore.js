@@ -15,6 +15,10 @@ const VIDE = {
   // catalogue de rôles. L'Admin Établissement (niveauSociete = false) ne fait qu'affecter
   // un rôle existant à un utilisateur de son établissement.
   niveauSociete: false,
+  // 'staff' (application complète, comportement historique) ou 'enseignant'/'parent'
+  // (portail restreint) — affichage/routage seulement, l'accès réel est décidé par le
+  // serveur (PortailMiddleware) à chaque appel.
+  typePortail: 'staff',
 }
 
 export const useAuthStore = create((set) => ({
@@ -29,6 +33,7 @@ export const useAuthStore = create((set) => ({
       adminSociete: Boolean(user?.admin_societe),
       adminEtablissement: Boolean(user?.admin_etablissement),
       niveauSociete: Boolean(user?.super_admin || user?.admin_societe),
+      typePortail: user?.type_portail ?? 'staff',
     }),
   logout: () => set({ ...VIDE }),
 }))
