@@ -20,10 +20,14 @@ use Illuminate\Validation\ValidationException;
  * désactivé (Supprimer = 1). Les affectations (société/établissements/rôles) restent
  * gérées dans la base propre ECOPRIM.
  *
- * Cloisonnement : dès qu'une société est courante, la liste se limite aux comptes qui y
- * ont une affectation. Un Admin Société ne voit donc que les utilisateurs de sa société,
- * et ne peut pas en créer un qui lui serait invisible : l'établissement et le rôle sont
- * exigés à la création, l'affectation est posée dans le même geste.
+ * Ouvert aux TROIS niveaux d'administrateur — c'est le quotidien d'un établissement de
+ * créer ses propres comptes (Enseignant, Parent...) sans dépendre d'un admin de société.
+ * Cloisonnement : dès qu'une société ou un établissement est courant, la liste se limite
+ * aux comptes qui y ont une affectation, et on ne peut pas en créer un qui serait hors de
+ * son propre périmètre — l'établissement et le rôle sont exigés à la création (sauf pour
+ * le Super Admin), l'affectation est posée dans le même geste. Un Admin Établissement ne
+ * peut pas conférer le rôle Admin Société, même à la création : même garde-fou que
+ * AffectationController::store.
  */
 class UserController extends Controller
 {
@@ -163,7 +167,19 @@ class UserController extends Controller
 
         if (! empty($data['etablissement_code'])) {
             $etab = Etablissement::where('code', $data['etablissement_code'])->firstOrFail();
-            PerimetreConsole::assertAutorisee($etab->societe_code);
+            // Autorisé si l'appelant administre la société de cet établissement (Super
+            // Admin, Admin Société) OU l'établissement lui-même (Admin Établissement) —
+            // même règle que pour poser une affectation.
+            PerimetreConsole::assertAutoriseeEtablissement($etab->code, $etab->societe_code);
+        }
+
+        // Un Admin Établissement (sans le niveau société) ne peut pas conférer le rôle
+        // Admin Société, pas même à la création : il se donnerait un accès qui dépasse
+        // son propre périmètre.
+        if (! empty($data['role_id']) && ! auth()->user()->peutAccederNiveauSociete()) {
+            $role = Role::find($data['role_id']);
+            $estRoleAdminSociete = $role && ($role->code === RhUser::ROLE_ADMIN_SOCIETE || $role->nom === 'Admin Société');
+            abort_if($estRoleAdminSociete, 403, "Vous ne pouvez pas attribuer le rôle Admin Société.");
         }
 
         $id = $this->ecrivain->creer($data);

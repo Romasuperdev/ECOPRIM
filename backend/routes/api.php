@@ -237,19 +237,15 @@ Route::prefix('v1')->group(function () {
             Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
             Route::post('etablissements/{etablissement}/desactiver', [EtablissementController::class, 'desactiver']);
 
-            Route::post('utilisateurs', [UserController::class, 'store']);
-            Route::put('utilisateurs/{user}', [UserController::class, 'update']);
-            Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
-            Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
-
             // Traçabilité (ECONOMAT.T_TRACABILITE) — lecture seule, cloisonnée par société.
             Route::get('tracabilite', [TracabiliteController::class, 'index']);
             Route::get('tracabilite/utilisateurs/{user}', [TracabiliteController::class, 'utilisateur']);
         });
 
         // Le socle commun aux trois niveaux d'administrateur — jusqu'à l'Admin
-        // Établissement, borné à son ou ses établissements dans les contrôleurs : lire le
-        // catalogue de rôles, lister ses utilisateurs, poser ou retirer une affectation.
+        // Établissement, borné à son ou ses établissements dans les contrôleurs. C'est le
+        // quotidien d'un établissement : créer et gérer SES comptes (Enseignant, Parent...)
+        // et leurs affectations, sans devoir passer par un admin de société ou général.
         Route::middleware('console:etablissement')->group(function () {
             Route::get('roles', [RoleController::class, 'index']);
 
@@ -258,6 +254,10 @@ Route::prefix('v1')->group(function () {
 
             Route::get('utilisateurs', [UserController::class, 'index']);
             Route::get('utilisateurs/{user}', [UserController::class, 'show']);
+            Route::post('utilisateurs', [UserController::class, 'store']);
+            Route::put('utilisateurs/{user}', [UserController::class, 'update']);
+            Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
+            Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::put('affectations/{affectation}/eleves', [AffectationController::class, 'definirEnfants']);

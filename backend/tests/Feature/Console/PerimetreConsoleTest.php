@@ -463,15 +463,53 @@ class PerimetreConsoleTest extends TestCase
         $this->assertSame(['E-ABN'], collect($r->json('data'))->pluck('code')->all());
         $this->getJson('/api/v1/etablissements/E-ABN')->assertOk();
 
-        // … mais la gestion (CRUD des établissements), la traçabilité, la création de
-        // comptes et le catalogue de rôles restent au niveau société.
+        // … mais la gestion (CRUD des établissements), la traçabilité et le catalogue de
+        // rôles restent au niveau société. Créer un compte, en revanche, est de son
+        // ressort (voir test_l_admin_etablissement_cree_un_compte_dans_son_etablissement) :
+        // c'est le quotidien d'un établissement, pas une prérogative de société.
         $this->postJson('/api/v1/etablissements', [
             'code' => 'E-NEW', 'intitule' => 'Nouvelle', 'adresse' => 'Rue 1', 'pays' => 'CI', 'societe_code' => 'ABN',
         ])->assertForbidden();
         $this->getJson('/api/v1/tracabilite')->assertForbidden();
-        $this->postJson('/api/v1/utilisateurs', ['login' => 'x', 'mot_de_passe' => 'secret1', 'nom' => 'X'])
-            ->assertForbidden();
         $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
+    }
+
+    public function test_l_admin_etablissement_cree_un_compte_dans_son_etablissement(): void
+    {
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $r = $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'nouveauprof', 'mot_de_passe' => 'secret123', 'nom' => 'Diallo',
+            'etablissement_code' => 'E-ABN', 'role_id' => 2, // direction
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('RH_USER', ['Login' => 'nouveauprof'], 'master');
+        $this->assertDatabaseHas('console_affectations', [
+            'rh_user_id' => $r->json('id'), 'etablissement_code' => 'E-ABN', 'role_id' => 2,
+        ], 'ecoprim');
+    }
+
+    public function test_l_admin_etablissement_ne_peut_pas_creer_un_compte_hors_de_son_etablissement(): void
+    {
+        DB::connection('ecoprim')->table('console_etablissements')->insert(
+            ['id' => 3, 'code' => 'E-NEW', 'intitule' => 'Autre école', 'societe_code' => 'ABN', 'actif' => true]
+        );
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'ailleurs', 'mot_de_passe' => 'secret123', 'nom' => 'X',
+            'etablissement_code' => 'E-NEW', 'role_id' => 2,
+        ])->assertForbidden();
+    }
+
+    public function test_l_admin_etablissement_ne_peut_pas_creer_un_compte_admin_societe(): void
+    {
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'x', 'mot_de_passe' => 'secret123', 'nom' => 'X',
+            'etablissement_code' => 'E-ABN', 'role_id' => 1, // admin-societe
+        ])->assertForbidden();
     }
 
     public function test_l_admin_etablissement_lit_le_catalogue_et_les_utilisateurs_de_son_etablissement_seul(): void

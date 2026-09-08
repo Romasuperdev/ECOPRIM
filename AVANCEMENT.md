@@ -1829,3 +1829,39 @@ Test ajouté (`ConsoleCrudTest`) : créer un utilisateur avec établissement + r
 élèves en un seul appel pose bien le compte RH_USER, son affectation et ses enfants.
 Suite : **281 tests, 1180 assertions** (279 verts ; mêmes 2 échecs préexistants et sans
 rapport). Build et lint frontend propres.
+
+## Créer un compte Enseignant/Parent est le quotidien d'un établissement, pas de la société
+
+Retour explicite de l'utilisateur après le correctif précédent : « je ne veux pas que la
+console du Super Admin gère ça, c'est l'admin établissement ou société qui doit faire ça ».
+Constat : `POST /utilisateurs` (création) était réservé à `console:societe` — Super Admin et
+Admin Société seulement. Un **Admin Établissement ne pouvait pas créer de compte du tout**,
+seulement affecter un rôle à un compte déjà créé par quelqu'un au-dessus de lui — une règle
+posée volontairement plus tôt dans le projet, mais qui ne correspond pas à l'usage réel :
+inscrire ses propres enseignants et parents est une tâche d'établissement, pas de société.
+
+- `POST/PUT/activer/desactiver utilisateurs` déplacés de `console:societe` vers
+  `console:etablissement` : les trois niveaux d'administrateur y ont maintenant accès. Le
+  cloisonnement fin reste dans le contrôleur, pas dans le nom du groupe de routes.
+- `UserController::store()` vérifiait l'autorisation avec `PerimetreConsole::assertAutorisee`
+  (société uniquement) — remplacé par `assertAutoriseeEtablissement`, la même vérification
+  élargie déjà utilisée par `AffectationController::store` (autorisé si on administre la
+  société DE cet établissement, ou l'établissement lui-même).
+- **Garde-fou ajouté**, qui n'existait pas du tout à la création : un Admin Établissement ne
+  peut pas se créer un compte affecté du rôle Admin Société, même en un seul geste — même
+  règle que celle déjà posée pour `AffectationController::store`, désormais aussi vérifiée
+  ici (elle ne l'était pas, faute d'y être jamais parvenu avant ce changement).
+- Front (`UtilisateurListPage`) : le bouton « + Nouvel utilisateur », les actions Éditer/
+  Désactiver et le caractère obligatoire des champs Établissement/Rôle à la création
+  passent de la condition `niveauSociete` (Super Admin/Admin Société) à `peutConsole` (les
+  trois niveaux) — l'autorisation réelle reste décidée par le serveur, ceci n'est qu'un
+  affichage cohérent avec ce qui est maintenant permis.
+- Restent au niveau société (inchangé, l'utilisateur ne demandait que la création de
+  comptes) : CRUD des établissements, catalogue général de rôles, traçabilité.
+
+Test `PerimetreConsoleTest` mis à jour (l'ancien attendait un 403 sur la création par un
+Admin Établissement — exactement l'inverse de la décision prise) et deux tests ajoutés : un
+Admin Établissement crée un compte dans SON établissement, et se voit refuser à la fois un
+compte hors de son établissement et un compte avec le rôle Admin Société.
+Suite : **284 tests, 1184 assertions** (282 verts ; mêmes 2 échecs préexistants et sans
+rapport). Build et lint frontend propres.

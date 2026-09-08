@@ -26,9 +26,11 @@ const VIDE = {
 }
 
 export default function UtilisateurListPage() {
-  // Un Admin Établissement ne crée ni ne modifie de compte : il n'affecte que des rôles
-  // existants aux utilisateurs de son établissement, depuis leur fiche.
-  const niveauSociete = useAuthStore((s) => s.niveauSociete)
+  // Les trois niveaux d'administrateur peuvent créer et gérer un compte — c'est le
+  // quotidien d'un établissement d'inscrire ses propres enseignants et parents, pas une
+  // prérogative réservée à la société. Le périmètre (quel établissement, quel rôle) reste
+  // décidé par le serveur à chaque appel.
+  const peutConsole = useAuthStore((s) => s.peutConsole)
   const superAdmin = useAuthStore((s) => s.superAdmin)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
@@ -78,7 +80,7 @@ export default function UtilisateurListPage() {
             impossible : un compte retiré est désactivé.
           </p>
         </div>
-        {niveauSociete && (
+        {peutConsole && (
           <Button onClick={() => { setErreurs({}); setEnfants([]); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
         )}
       </div>
@@ -126,7 +128,7 @@ export default function UtilisateurListPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {niveauSociete ? (
+                  {peutConsole ? (
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" className="!px-3 !py-1"
                               onClick={() => { setErreurs({}); setForm({ ...VIDE, ...u, mot_de_passe: '' }) }}>
@@ -213,11 +215,11 @@ export default function UtilisateurListPage() {
                     du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
                     restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
                     l'application complète.
-                    {niveauSociete && !superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
+                    {!superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <Select
-                      label={niveauSociete && !superAdmin ? 'Établissement *' : 'Établissement'}
+                      label={!superAdmin ? 'Établissement *' : 'Établissement'}
                       value={form.etablissement_code ?? ''} error={erreurs.etablissement_code?.[0]}
                       onChange={(ev) => champ('etablissement_code', ev.target.value)}
                     >
@@ -225,7 +227,7 @@ export default function UtilisateurListPage() {
                       {etablissements?.map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
                     </Select>
                     <Select
-                      label={niveauSociete && !superAdmin ? 'Rôle *' : 'Rôle'}
+                      label={!superAdmin ? 'Rôle *' : 'Rôle'}
                       value={form.role_id ?? ''} error={erreurs.role_id?.[0]}
                       onChange={(ev) => champ('role_id', ev.target.value)}
                     >
@@ -252,7 +254,7 @@ export default function UtilisateurListPage() {
                 <Button
                   type="submit"
                   disabled={enregistrer.isPending
-                    || (!form.id && niveauSociete && !superAdmin && (!form.etablissement_code || !form.role_id))}
+                    || (!form.id && !superAdmin && (!form.etablissement_code || !form.role_id))}
                 >
                   {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
                 </Button>
