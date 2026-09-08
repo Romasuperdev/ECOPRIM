@@ -12,9 +12,10 @@ use Illuminate\Validation\Rule;
  * Rôles — catalogue CRUD (console_roles).
  *
  * Deux catégories : le catalogue général (societe_code NULL), géré par le Super Admin
- * depuis la console générale, et les rôles propres à une société (societe_code renseigné),
- * créés et gérés par son Admin Société — visibles en lecture par tout administrateur de
- * cette société, jusqu'à l'Admin Établissement.
+ * depuis la console générale, et les rôles propres à une société (societe_code renseigné) —
+ * gérés par quiconque administre cette société, Admin Société directement ou Admin
+ * Établissement via la société de son propre établissement (PerimetreConsole::codeCourant()
+ * résout déjà cette société dans les deux cas).
  */
 class RoleController extends Controller
 {
@@ -54,11 +55,17 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $user = auth()->user();
+
         if ($role->societe_code === null) {
-            abort_unless(auth()->user()->isSuperAdmin(), 403,
+            abort_unless($user->isSuperAdmin(), 403,
                 'Seul le Super Administrateur peut retirer un rôle du catalogue général.');
         } else {
-            PerimetreConsole::assertAutorisee($role->societe_code);
+            // assertAutorisee() ne connaît que la société ; un Admin Établissement n'en
+            // administre aucune directement, mais PerimetreConsole::codeCourant() lui en
+            // résout une (celle de son établissement) — c'est elle qu'on compare ici.
+            abort_unless($user->isSuperAdmin() || PerimetreConsole::codeCourant($user) === $role->societe_code, 403,
+                "Ce rôle n'est pas dans votre périmètre.");
         }
 
         $role->delete();

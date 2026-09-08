@@ -4,7 +4,8 @@ import { LayoutDashboard, Building2, School, Users, ShieldCheck, History, ArrowL
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
-// Société, pas l'Admin Établissement. Le reste est commun aux trois niveaux d'admin.
+// Société, pas l'Admin Établissement. Utilisateurs & Accès et Rôles sont, eux, communs
+// aux trois niveaux : créer ses comptes et ses rôles est le quotidien d'un établissement.
 // On masque plutôt que de laisser cliquer vers un 403.
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -12,7 +13,7 @@ const ITEMS = [
   { to: '/admin/etablissements', icon: School, label: 'Établissements', niveauSociete: true },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
   { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
-  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions', niveauSociete: true },
+  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions' },
 ]
 
 const A_VENIR = ['Applications & licences', 'Abonnements']

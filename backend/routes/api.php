@@ -225,13 +225,6 @@ Route::prefix('v1')->group(function () {
             Route::get('console/tableau-de-bord', [ConsoleContexteController::class, 'tableauDeBord']);
             Route::post('console/societe', [ConsoleContexteController::class, 'definirSociete']);
 
-            // Le catalogue de rôles se MODIFIE au niveau société : un rôle du catalogue
-            // général (Super Admin en vue générale) ou un rôle propre à la société
-            // courante (Admin Société). Sa lecture est plus bas, ouverte jusqu'à l'Admin
-            // Établissement, qui doit pouvoir nommer les rôles qu'il affecte.
-            Route::post('roles', [RoleController::class, 'store']);
-            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
-
             Route::post('etablissements', [EtablissementController::class, 'store']);
             Route::put('etablissements/{etablissement}', [EtablissementController::class, 'update']);
             Route::post('etablissements/{etablissement}/activer', [EtablissementController::class, 'activer']);
@@ -247,7 +240,14 @@ Route::prefix('v1')->group(function () {
         // quotidien d'un établissement : créer et gérer SES comptes (Enseignant, Parent...)
         // et leurs affectations, sans devoir passer par un admin de société ou général.
         Route::middleware('console:etablissement')->group(function () {
+            // Le catalogue de rôles se lit ET se modifie jusqu'au niveau établissement :
+            // seul le catalogue général (societe_code NULL) reste réservé au Super Admin
+            // (RoleController le vérifie lui-même). Un rôle propre à une société se gère
+            // par quiconque administre cette société — Admin Société directement, Admin
+            // Établissement via la société de son propre établissement.
             Route::get('roles', [RoleController::class, 'index']);
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::get('etablissements/{code}', [EtablissementController::class, 'show']);

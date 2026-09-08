@@ -1865,3 +1865,34 @@ Admin Établissement crée un compte dans SON établissement, et se voit refuser
 compte hors de son établissement et un compte avec le rôle Admin Société.
 Suite : **284 tests, 1184 assertions** (282 verts ; mêmes 2 échecs préexistants et sans
 rapport). Build et lint frontend propres.
+
+## Le catalogue de rôles suit le même mouvement que les comptes
+
+Question posée par l'utilisateur sur `/admin/roles` (jusque-là fermée à l'Admin
+Établissement, ni en lecture d'écran ni en écriture), puis précisée : « il peut créer des
+utilisateurs, les rôles, permissions, mais tout sauf [le rôle] super admin ». Même logique
+que le correctif précédent, appliquée cette fois au catalogue de rôles plutôt qu'aux comptes :
+
+- `POST/DELETE roles` déplacés de `console:societe` vers `console:etablissement`. `GET roles`
+  y était déjà.
+- `RoleController::store()` n'a eu besoin d'AUCUN changement : il calcule déjà la société du
+  rôle via `PerimetreConsole::codeCourant()`, qui sait depuis le début résoudre la société
+  d'un Admin Établissement à partir de ses propres établissements administrés (c'est ce même
+  mécanisme qui fait déjà fonctionner son accueil de console). Seul `destroy()` vérifiait
+  l'autorisation avec `assertAutorisee()` (société uniquement, donc toujours faux pour un
+  Admin Établissement) — remplacé par une comparaison directe avec `codeCourant()`, qui
+  couvre les deux cas.
+- Le catalogue GÉNÉRAL (`societe_code` NULL — les rôles socles comme Super Admin,
+  Admin Société, Admin Établissement) reste réservé au Super Admin, création et
+  suppression : c'est le « sauf super admin » de la demande, déjà en place et inchangé. Un
+  Admin Établissement ne gère donc que les rôles propres à sa société — les mêmes qu'un
+  Admin Société gérerait, pas un troisième niveau de rôles « établissement » qu'il aurait
+  fallu ajouter au schéma.
+- Front : route `/admin/roles` et entrée de sidebar « Rôles & permissions » n'exigent plus
+  `niveauSociete`, comme `/admin/utilisateurs` déjà.
+
+Tests `PerimetreConsoleTest` : un Admin Établissement crée et retire un rôle de sa propre
+société (résolue depuis son établissement, sans jamais toucher au catalogue général),
+refus d'un rôle appartenant à une AUTRE société.
+Suite : **286 tests, 1189 assertions** (284 verts ; mêmes 2 échecs préexistants et sans
+rapport). Build et lint frontend propres.

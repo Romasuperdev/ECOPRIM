@@ -99,8 +99,9 @@ export default function App() {
                 element={<ProtectedRoute exigeSuperAdmin><SocieteListPage /></ProtectedRoute>}
               />
               {/* Établissements et traçabilité : niveau société — un Admin Établissement
-                  n'y a pas accès, seulement à Utilisateurs & Accès (pour affecter un rôle
-                  dans son propre établissement) et à Rôles (en lecture, pour les nommer). */}
+                  n'y a pas accès. Utilisateurs & Accès et Rôles, en revanche, sont son
+                  quotidien : créer ses comptes (Enseignant, Parent...) et les rôles propres
+                  à sa société, sans dépendre d'un admin de société ou général. */}
               <Route
                 path="/admin/etablissements"
                 element={<ProtectedRoute exigeNiveauSociete><EtablissementListPage /></ProtectedRoute>}
@@ -120,10 +121,7 @@ export default function App() {
                 path="/admin/utilisateurs/:id/tracabilite"
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
               />
-              <Route
-                path="/admin/roles"
-                element={<ProtectedRoute exigeNiveauSociete><RoleListPage /></ProtectedRoute>}
-              />
+              <Route path="/admin/roles" element={<RoleListPage />} />
               </Route>
 
             {/* Portails restreints — un compte affecté du SEUL rôle Enseignant ou Parent

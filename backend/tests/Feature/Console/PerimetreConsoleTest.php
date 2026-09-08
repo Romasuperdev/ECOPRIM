@@ -387,6 +387,32 @@ class PerimetreConsoleTest extends TestCase
         $this->deleteJson('/api/v1/roles/2')->assertForbidden();
     }
 
+    public function test_l_admin_etablissement_gere_aussi_les_roles_de_sa_societe(): void
+    {
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        // Sa société se déduit de son établissement : même capacité qu'un Admin Société.
+        $cree = $this->postJson('/api/v1/roles', ['code' => 'surveillant-abn', 'nom' => 'Surveillant'])
+            ->assertCreated()
+            ->assertJsonPath('societe_code', 'ABN');
+
+        $this->deleteJson('/api/v1/roles/'.$cree->json('id'))->assertNoContent();
+
+        // Ni lui ni un Admin Société d'ABN ne touchent au catalogue général.
+        $this->deleteJson('/api/v1/roles/2')->assertForbidden();
+    }
+
+    public function test_l_admin_etablissement_ne_peut_pas_supprimer_un_role_d_une_autre_societe(): void
+    {
+        // 'SUD' existe déjà (setUp) : un rôle qui lui est propre, hors du périmètre d'un
+        // admin d'ABN.
+        $roleAilleurs = DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'x', 'nom' => 'X', 'societe_code' => 'SUD']);
+
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->deleteJson('/api/v1/roles/'.$roleAilleurs)->assertForbidden();
+    }
+
     public function test_le_super_admin_cree_un_role_general_en_vue_generale_et_scope_dans_une_societe(): void
     {
         $this->superAdmin();
@@ -463,15 +489,15 @@ class PerimetreConsoleTest extends TestCase
         $this->assertSame(['E-ABN'], collect($r->json('data'))->pluck('code')->all());
         $this->getJson('/api/v1/etablissements/E-ABN')->assertOk();
 
-        // … mais la gestion (CRUD des établissements), la traçabilité et le catalogue de
-        // rôles restent au niveau société. Créer un compte, en revanche, est de son
-        // ressort (voir test_l_admin_etablissement_cree_un_compte_dans_son_etablissement) :
-        // c'est le quotidien d'un établissement, pas une prérogative de société.
+        // … mais la gestion (CRUD des établissements) et la traçabilité restent au niveau
+        // société. Créer un compte ou un rôle propre à sa société, en revanche, est de son
+        // ressort (voir test_l_admin_etablissement_cree_un_compte_dans_son_etablissement et
+        // test_l_admin_etablissement_gere_aussi_les_roles_de_sa_societe) : c'est le
+        // quotidien d'un établissement, pas une prérogative de société.
         $this->postJson('/api/v1/etablissements', [
             'code' => 'E-NEW', 'intitule' => 'Nouvelle', 'adresse' => 'Rue 1', 'pays' => 'CI', 'societe_code' => 'ABN',
         ])->assertForbidden();
         $this->getJson('/api/v1/tracabilite')->assertForbidden();
-        $this->postJson('/api/v1/roles', ['code' => 'x', 'nom' => 'X'])->assertForbidden();
     }
 
     public function test_l_admin_etablissement_cree_un_compte_dans_son_etablissement(): void
