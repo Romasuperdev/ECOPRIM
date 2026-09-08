@@ -44,7 +44,7 @@ class EnseignantController extends Controller
 
         return [
             // État civil
-            'matricule' => ['nullable', 'string', 'max:'.$l['matricule']],
+            'matricule' => ['required', 'string', 'max:'.$l['matricule']],
             'nom' => ['required', 'string', 'max:'.$l['nom']],
             'prenom' => ['required', 'string', 'max:'.$l['prenom']],
             'sexe' => ['nullable', 'in:M,F'],

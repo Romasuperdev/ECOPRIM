@@ -153,14 +153,14 @@ class SaisieEconomatTest extends TestCase
 
     public function test_le_salaire_de_l_enseignant_n_est_jamais_ecrit(): void
     {
-        $r = $this->postJson('/api/v1/enseignants', ['nom' => 'Traoré', 'prenom' => 'Moussa'])->assertCreated();
+        $r = $this->postJson('/api/v1/enseignants', ['matricule' => 'P002', 'nom' => 'Traoré', 'prenom' => 'Moussa'])->assertCreated();
         $code = $r->json('id');
 
         DB::connection('economat')->table('T_PROFESSEUR')->where('Code', $code)->update(['SalaireMensuel' => 250000]);
 
         // Même en tentant de le passer, le salaire n'est pas dans la liste blanche.
         $this->putJson("/api/v1/enseignants/{$code}", [
-            'nom' => 'Traoré', 'prenom' => 'Moussa', 'salaire' => 1, 'SalaireMensuel' => 1,
+            'matricule' => 'P002', 'nom' => 'Traoré', 'prenom' => 'Moussa', 'salaire' => 1, 'SalaireMensuel' => 1,
         ])->assertOk();
 
         $this->assertDatabaseHas('T_PROFESSEUR', ['Code' => $code, 'SalaireMensuel' => 250000], 'economat');
@@ -168,11 +168,11 @@ class SaisieEconomatTest extends TestCase
 
     public function test_depart_d_un_enseignant_au_lieu_d_une_suppression(): void
     {
-        $r = $this->postJson('/api/v1/enseignants', ['nom' => 'Traoré', 'prenom' => 'Moussa'])->assertCreated();
+        $r = $this->postJson('/api/v1/enseignants', ['matricule' => 'P003', 'nom' => 'Traoré', 'prenom' => 'Moussa'])->assertCreated();
         $code = $r->json('id');
 
         $this->putJson("/api/v1/enseignants/{$code}", [
-            'nom' => 'Traoré', 'prenom' => 'Moussa',
+            'matricule' => 'P003', 'nom' => 'Traoré', 'prenom' => 'Moussa',
             'date_depart' => '30/06/2026', 'motif_depart' => 'Mutation', 'etab_accueil' => 'EPP Bouaké',
         ])->assertOk();
 
@@ -190,6 +190,12 @@ class SaisieEconomatTest extends TestCase
         $this->postJson('/api/v1/enseignants', ['matricule' => 'P001', 'nom' => 'A', 'prenom' => 'B'])->assertCreated();
 
         $this->postJson('/api/v1/enseignants', ['matricule' => 'P001', 'nom' => 'C', 'prenom' => 'D'])
+            ->assertStatus(422)->assertJsonValidationErrors('matricule');
+    }
+
+    public function test_matricule_enseignant_obligatoire(): void
+    {
+        $this->postJson('/api/v1/enseignants', ['nom' => 'A', 'prenom' => 'B'])
             ->assertStatus(422)->assertJsonValidationErrors('matricule');
     }
 
@@ -307,7 +313,7 @@ class SaisieEconomatTest extends TestCase
 
     public function test_le_volume_horaire_de_l_enseignant_est_borne(): void
     {
-        $this->postJson('/api/v1/enseignants', ['nom' => 'A', 'prenom' => 'B', 'volume_horaire' => 99])
+        $this->postJson('/api/v1/enseignants', ['matricule' => 'P004', 'nom' => 'A', 'prenom' => 'B', 'volume_horaire' => 99])
             ->assertStatus(422)->assertJsonValidationErrors('volume_horaire');
     }
 }

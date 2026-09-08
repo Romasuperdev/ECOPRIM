@@ -29,7 +29,7 @@ const SITUATIONS = [
 // Étapes de l'assistant. « Départ » n'apparaît qu'en modification : on ne renseigne
 // pas le départ d'un enseignant qu'on est en train de recruter.
 const ETAPES_BASE = ['État civil', 'Coordonnées', 'Carrière', 'Administration']
-const REQUIS = [['nom', 'prenom'], [], [], [], []]
+const REQUIS = [['matricule', 'nom', 'prenom'], [], [], [], []]
 
 export default function EnseignantFormPage() {
   const { id } = useParams()
@@ -116,7 +116,7 @@ export default function EnseignantFormPage() {
           <div className={visible(0) ? '' : 'hidden'}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">État civil</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Input label="Matricule" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
+              <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
               <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
               <Input label="Prénom(s) *" value={form.prenom} onChange={(e) => champ('prenom', e.target.value)} error={err('prenom')} />
               <Select label="Sexe" value={form.sexe} onChange={(e) => champ('sexe', e.target.value)} error={err('sexe')}>

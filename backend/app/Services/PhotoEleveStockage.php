@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 
 /**
  * Photos des élèves : écriture dans le dossier partagé lu par ECONOMAT.
@@ -54,9 +55,33 @@ class PhotoEleveStockage
             }
         }
 
-        $fichier->move($dossier, $nomFichier);
+        $this->deplacerAvecReprise($fichier, $dossier, $nomFichier);
 
         return $nomFichier;
+    }
+
+    /**
+     * Déplace le fichier téléversé, avec quelques tentatives en cas d'échec transitoire.
+     *
+     * Sous Windows, un antivirus qui scanne le fichier fraîchement écrit dans le dossier
+     * temporaire peut le verrouiller le temps d'un instant : `rename()` échoue alors avec
+     * « Accès refusé », sans rapport avec la validité de l'upload — retenter quelques
+     * dizaines de millisecondes plus tard suffit presque toujours.
+     */
+    private function deplacerAvecReprise(UploadedFile $fichier, string $dossier, string $nomFichier, int $tentatives = 4): void
+    {
+        for ($essai = 1; $essai <= $tentatives; $essai++) {
+            try {
+                $fichier->move($dossier, $nomFichier);
+
+                return;
+            } catch (FileException $e) {
+                if ($essai === $tentatives) {
+                    throw $e;
+                }
+                usleep(150_000 * $essai); // 150ms, 300ms, 450ms — 900ms cumulés au pire
+            }
+        }
     }
 
     /**

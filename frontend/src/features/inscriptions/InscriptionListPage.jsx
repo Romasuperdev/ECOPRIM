@@ -27,7 +27,7 @@ const MOUVEMENTS = [
 const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère', 'Photo']
 
 // Champs bloquants par étape : « Suivant » ne passe pas s'ils sont vides.
-const REQUIS = [['nom', 'prenom'], [], ['mouvement', 'annee'], [], [], []]
+const REQUIS = [['matricule', 'nom', 'prenom'], [], ['mouvement', 'annee'], [], [], []]
 
 const VIDE = {
   mouvement: 'inscription',

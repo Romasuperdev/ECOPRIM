@@ -1923,3 +1923,40 @@ fermeture surnuméraire qu'elle laissait à la fin de l'étape Photo est retiré
 contrepartie — six étapes, désormais six blocs frères comme partout ailleurs dans
 l'assistant. Vérifié par `npm run build` (JSX rééquilibré, aucune erreur de parsing) et
 `npm run lint` (propre, même avertissement connu sur `ErrorBoundary`).
+
+## Le matricule devient obligatoire pour les enseignants (il l'était déjà à l'inscription)
+
+Demande de l'utilisateur : « le matricule à l'inscription et pour les enseignants sont
+obligatoire ». Vérification faite : côté inscriptions, `matricule` était déjà `required`
+au serveur (`InscriptionController::regles()`) — mais l'assistant ne le faisait pas
+respecter en le passant : le champ porte un `Matricule *` depuis toujours, mais le tableau
+`REQUIS` qui bloque le bouton Suivant à l'étape 0 ne le listait pas, laissant avancer
+jusqu'à l'envoi final avant de se faire refuser par le serveur. Côté enseignants, en
+revanche, `matricule` était réellement `nullable` — un vrai trou.
+
+- `EnseignantController::regles()` : `matricule` passe de `nullable` à `required`, même
+  patron que `InscriptionController`. L'unicité était déjà vérifiée quand un matricule
+  était fourni ; elle s'applique maintenant systématiquement.
+- Front `EnseignantFormPage.jsx` : label `Matricule *`, et `matricule` ajouté au tableau
+  `REQUIS` de l'étape 0 (État civil) — l'assistant bloque désormais avant l'envoi, comme il
+  aurait toujours dû le faire côté inscriptions.
+- Front `InscriptionListPage.jsx` : même correctif du tableau `REQUIS`, pour que le `*`
+  déjà affiché corresponde enfin à un blocage réel plutôt qu'à un refus serveur tardif.
+
+**Trouvaille en creusant l'échec de photo signalé plus haut** : le message d'erreur exact
+est apparu — `rename(...): Accès refusé (code: 5)`, une erreur Windows classique quand un
+antivirus/l'indexeur verrouille brièvement un fichier fraîchement écrit. `PhotoEleveStockage
+::enregistrer()` retentait zéro fois ; il retente maintenant jusqu'à 4 fois avec un délai
+croissant (`deplacerAvecReprise()`) avant d'abandonner — une vraie robustesse pour ce cas
+côté production. Cela n'a cependant pas suffi à stabiliser les deux tests historiquement
+flous : ils échouent encore dans la suite complète (mais jamais isolés), même avec ce délai.
+Le verrou semble donc tenir plus longtemps qu'un simple scan transitoire dans cet
+environnement de test précis — reste ouvert, sans impact sur l'application réelle (le même
+code, exercé isolément ou par un vrai utilisateur, fonctionne).
+
+Tests ajoutés/corrigés : `test_matricule_enseignant_obligatoire` (nouveau) ; matricule
+ajouté aux payloads de `SaisieEconomatTest` et `AnneeClotureeTest` qui créaient un
+enseignant sans en fournir (sans quoi le verrou d'année clôturée qu'ils testent n'aurait
+plus été atteint, masqué par le 422 de validation).
+Suite : **287 tests, 1192 assertions** (285 verts ; mêmes 2 échecs de longue date, cause
+identifiée mais non éliminée). Build et lint frontend propres.

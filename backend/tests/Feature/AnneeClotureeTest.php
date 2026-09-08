@@ -136,7 +136,7 @@ class AnneeClotureeTest extends TestCase
 
     public function test_pas_d_enseignant_rattache_a_une_annee_cloturee(): void
     {
-        $this->postJson('/api/v1/enseignants', ['nom' => 'Traoré', 'prenom' => 'M', 'annee_code' => '2024'])
+        $this->postJson('/api/v1/enseignants', ['matricule' => 'P100', 'nom' => 'Traoré', 'prenom' => 'M', 'annee_code' => '2024'])
             ->assertStatus(423);
 
         $this->assertDatabaseCount('T_PROFESSEUR', 0, 'economat');
@@ -144,12 +144,12 @@ class AnneeClotureeTest extends TestCase
 
     public function test_une_fiche_enseignant_d_annee_cloturee_ne_peut_pas_etre_modifiee(): void
     {
-        $code = $this->postJson('/api/v1/enseignants', ['nom' => 'Traoré', 'prenom' => 'M', 'annee_code' => '2025'])
+        $code = $this->postJson('/api/v1/enseignants', ['matricule' => 'P101', 'nom' => 'Traoré', 'prenom' => 'M', 'annee_code' => '2025'])
             ->assertCreated()->json('id');
         DB::connection('economat')->table('T_PROFESSEUR')->where('Code', $code)
             ->update(['CodeAnnee' => '2024']);
 
-        $this->putJson("/api/v1/enseignants/{$code}", ['nom' => 'Autre', 'prenom' => 'M', 'annee_code' => '2024'])
+        $this->putJson("/api/v1/enseignants/{$code}", ['matricule' => 'P101', 'nom' => 'Autre', 'prenom' => 'M', 'annee_code' => '2024'])
             ->assertStatus(423);
 
         $this->assertDatabaseHas('T_PROFESSEUR', ['Code' => $code, 'NomProfesseur' => 'Traoré'], 'economat');
