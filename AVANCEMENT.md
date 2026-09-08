@@ -1960,3 +1960,27 @@ enseignant sans en fournir (sans quoi le verrou d'année clôturée qu'ils teste
 plus été atteint, masqué par le 422 de validation).
 Suite : **287 tests, 1192 assertions** (285 verts ; mêmes 2 échecs de longue date, cause
 identifiée mais non éliminée). Build et lint frontend propres.
+
+## Correctif : la photo « s'enregistrait automatiquement »
+
+Retour de l'utilisateur juste après le correctif de l'étape masquée : « quand je veux
+mettre la photo elle s'enregistre automatiquement ». Cause : dans les deux assistants
+(Inscriptions, Enseignants), le gestionnaire `onSubmit` du `<form>` avait deux branches —
+« pas la dernière étape → avancer », « dernière étape → enregistrer ». Comme la Photo est
+la DERNIÈRE étape des deux assistants, tout évènement `submit` survenant une fois dessus
+déclenchait l'enregistrement immédiat. Or un évènement `submit` ne vient pas que d'un clic
+sur le bouton : la touche **Entrée**, pressée dans n'importe quel champ du formulaire (ou
+juste après le retour du sélecteur de fichier natif), le déclenche aussi — et sur toutes
+les étapes PRÉCÉDENTES elle se contentait d'avancer, ce qui la rendait anodine. Seule
+l'étape Photo la transformait en enregistrement immédiat, un comportement incohérent avec
+le reste de l'assistant et surprenant : rien n'indiquait que la Photo se comportait
+différemment des cinq étapes avant elle.
+
+Correctif, dans les deux formulaires : la touche Entrée est interceptée en amont
+(`onKeyDown`) et n'a plus jamais le droit de déclencher un `submit` natif — elle avance
+seulement dans l'assistant, quelle que soit l'étape (y compris Photo, où elle ne fait
+maintenant rien). `onSubmit` ne fait plus qu'enregistrer, sans condition d'étape : il n'est
+plus atteignable que par un clic explicite sur le bouton « Enregistrer », qui reste
+`type="submit"`. Les zones de texte multiligne (`<textarea>`, s'il y en avait) sont
+explicitement épargnées pour ne pas empêcher un retour à la ligne.
+Vérifié par `npm run build` et `npm run lint` (propres).

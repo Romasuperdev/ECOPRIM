@@ -106,9 +106,15 @@ export default function EnseignantFormPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (!derniere) return suivant()
             setErreurs({})
             enregistrer.mutate()
+          }}
+          onKeyDown={(e) => {
+            // La touche Entrée ne doit jamais déclencher l'enregistrement : elle avance
+            // seulement dans l'assistant. Seul un clic explicite sur « Enregistrer » sauvegarde.
+            if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA') return
+            e.preventDefault()
+            if (!derniere) suivant()
           }}
           className="space-y-5"
         >

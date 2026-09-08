@@ -340,10 +340,16 @@ export default function InscriptionListPage() {
             <form
               onSubmit={(ev) => {
                 ev.preventDefault()
-                // Entrée au clavier : on avance dans l'assistant au lieu d'enregistrer trop tôt.
-                if (enAssistant && !derniere) return suivant()
                 if (dossierVerrouille) return
                 enregistrer.mutate(form)
+              }}
+              onKeyDown={(ev) => {
+                // La touche Entrée ne doit JAMAIS déclencher l'enregistrement (même sur la
+                // dernière étape, juste après avoir choisi la photo) : elle avance seulement
+                // dans l'assistant. Seul un clic explicite sur « Enregistrer » sauvegarde.
+                if (ev.key !== 'Enter' || ev.target.tagName === 'TEXTAREA') return
+                ev.preventDefault()
+                if (enAssistant && !derniere) suivant()
               }}
               className="space-y-5"
             >
