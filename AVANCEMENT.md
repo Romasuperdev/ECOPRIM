@@ -2076,3 +2076,15 @@ elle-même à l'occasion de cet exercice.
 Aucun changement de code n'a été laissé dans le dépôt (la commande `demo:simuler` a été
 retirée après usage) : cette entrée documente une action sur les données, pas un
 changement applicatif.
+
+### Correctif : les 2 enseignants DEMO n'apparaissaient pas dans la liste
+
+Signalé par l'utilisateur : « je vois pas les enseignants créés » sur `/enseignants`.
+Cause : les deux enseignants DEMO avaient été créés sans `annee_code` (colonne
+`CodeAnnee` restée `NULL`), alors qu'`EnseignantController::index()` — vérification que je
+n'avais pas faite lors de la simulation, contrairement à `EleveController` et aux autres —
+filtre la liste par `ContexteScolaire::appliquer($q, 'CodeAnnee')`, un `whereIn` qui
+n'inclut jamais les lignes `NULL`. Corrigé directement en base : `CodeAnnee` des deux
+comptes DEMO mis à « Année Scolaire 2026-2027 », revérifié en rejouant
+`EnseignantController::index()` — les deux apparaissent maintenant. Pas de changement de
+code : la colonne était simplement restée vide dans les données simulées.
