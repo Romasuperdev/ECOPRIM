@@ -2155,3 +2155,52 @@ qu'attend le serveur — un reste de l'époque d'avant le pivot, jamais raccord�
 Test ajouté : `test_les_donnees_du_bulletin_sont_exposees_en_json` (nouvelle route,
 mêmes chiffres que le PDF). Suite : **289 tests, 1200 assertions** (287 verts ; mêmes 2
 échecs de longue date, sans rapport). Build et lint frontend propres.
+
+## Évaluations : planifier un devoir, avant toute note
+
+Demande de l'utilisateur sur `/evaluations`, avec un exemple précis (titre, classe, matière,
+enseignant, type, date, horaire, coefficient, note maximale). La page n'était jusqu'ici
+qu'une restitution en lecture seule des évaluations DÉJÀ notées (`RapportController::
+evaluations()`, un agrégat de `V_NOTECLASSE`) — rien ne permettait d'en ANNONCER une avant
+que les notes existent. Et ECONOMAT n'a pas de table pour ça : `T_NOTEENTETE` (l'entête
+d'une saisie de notes) ne porte ni titre, ni horaire, ni note maximale, ni enseignant
+explicite — seulement classe, matière, coefficient, date, session.
+
+**Décision d'architecture, dans la continuité de ce qui existe déjà** (`console_*`,
+`console_affectation_eleves`) : une table propre à NEXORA plutôt que de forcer ces champs
+dans une table partagée qui ne les prévoit pas.
+
+- **Migration `evaluations`** dans `database/migrations/console/` (comme toutes les tables
+  propres à NEXORA — ce dossier n'est jamais joué par un `migrate` sans `--database`
+  explicite, la sécurité qui a évité `ECONOMAT` par accident lors du nettoyage
+  post-pivot). `App\Models\Evaluation` (connexion `ecoprim`) : titre, classe_code,
+  matiere_code, enseignant_code, type, date, heure_debut, heure_fin, coefficient,
+  note_maximale, annee. `classe_code`/`matiere_code`/`enseignant_code` pointent vers
+  ECONOMAT en lecture seule (vérifiés par `Rule::exists` à la saisie, faute de contrainte
+  inter-base).
+- **`EvaluationController`** (nouveau, distinct de `RapportController::evaluations()`) :
+  CRUD complet — création, modification, **suppression réelle sans retenue** (donnée
+  propre à NEXORA, rien n'en dépend en aval, contrairement à ce qui vaut pour les tables
+  partagées). Verrou d'année clôturée comme partout : porte sur l'année de l'évaluation
+  elle-même, pas sur l'année de travail affichée. Référentiels (classes, matières,
+  enseignants, types) bornés à l'année comme les autres écrans.
+- Type : liste fermée (Devoir, Devoir surveillé, Interrogation écrite, Interrogation orale,
+  Composition) plutôt qu'un champ libre — cohérent avec ce que l'utilisateur a demandé
+  (« Type : Devoir surveillé » via une liste déroulante).
+- Front : nouvelle section « Évaluations planifiées » en haut de `/evaluations`, avant la
+  restitution existante des notes déjà saisies (renommée « Notes déjà saisies » pour que
+  les deux sections se distinguent clairement) — formulaire complet, tableau avec édition
+  et retrait par ligne.
+
+Vérifié en rejouant le vrai contrôleur avec l'exemple exact de l'utilisateur (CM2 A,
+Mathématiques, Jocelyn Kouassi, Devoir surveillé, 15/10/2026, 08h00–09h00, coefficient 2,
+note maximale 20) contre la vraie base ECONOMAT/ecoprim — créé, retrouvé via la liste,
+libellés classe/matière/enseignant correctement résolus.
+
+Tests `EvaluationTest` (8 cas) : référentiels, création, champs obligatoires, classe/matière
+inconnue refusée, enseignant facultatif, filtre par classe, modification puis suppression,
+verrou d'année clôturée (création bloquée, modification d'une évaluation d'une année non
+clôturée toujours possible même en consultant une autre année).
+Suite : **297 tests, 1249 assertions** (296 verts ; le même échec de longue date, sans
+rapport, apparaît de façon intermittente — 0 à 2 selon l'exécution). Build et lint frontend
+propres. Migration appliquée sur la vraie base `ecoprim`.

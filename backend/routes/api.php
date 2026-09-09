@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\Parametres\SmsConfigController;
 use App\Http\Controllers\Api\V1\TracabiliteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\EvaluationController;
 use App\Http\Controllers\Api\V1\PortailEnseignantController;
 use App\Http\Controllers\Api\V1\PortailParentController;
 
@@ -128,6 +129,13 @@ Route::prefix('v1')->group(function () {
         Route::get('classes/{classe}/moyennes', [RapportController::class, 'moyennesClasse']);
         Route::get('classes/{classe}/assiduite', [RapportController::class, 'assiduiteClasse']);
         Route::get('evaluations', [RapportController::class, 'evaluations']);
+        // Évaluations PLANIFIÉES (avant toute note) : table propre à NEXORA, distincte de
+        // la restitution ci-dessus qui n'agrège que des notes déjà saisies dans ECONOMAT.
+        Route::get('evaluations-planifiees/referentiels', [EvaluationController::class, 'referentiels']);
+        Route::get('evaluations-planifiees', [EvaluationController::class, 'index']);
+        Route::post('evaluations-planifiees', [EvaluationController::class, 'store']);
+        Route::put('evaluations-planifiees/{evaluation}', [EvaluationController::class, 'update']);
+        Route::delete('evaluations-planifiees/{evaluation}', [EvaluationController::class, 'destroy']);
         // Documents imprimables (PDF) — lecture seule, une année clôturée s'imprime.
         Route::get('impressions/eleves/{eleve}', [ImpressionController::class, 'eleve']);
         Route::get('impressions/enseignants/{enseignant}', [ImpressionController::class, 'enseignant']);
