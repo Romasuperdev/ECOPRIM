@@ -2014,3 +2014,65 @@ règle) reste modifiable — vérifié en changeant un autre champ sans jamais f
 matricule, la valeur `null` en base n'est pas altérée.
 Suite : **288 tests, 1195 assertions** (286 verts ; mêmes 2 échecs de longue date, sans
 rapport). Build et lint frontend propres.
+
+## Simulation de bout en bout dans ECONOMAT réel (données DEMO-)
+
+Demande explicite de l'utilisateur, confirmée après l'avoir prévenu de la portée : « fais
+des simulations en créant des élèves, enseignants, des affectations, des emplois du temps,
+des devoirs, des bulletins... qui seront dans la base de données ». Décision assumée avec
+l'utilisateur : dans ECONOMAT/dbmasterbacou **réels** (pas un sandbox), tout préfixé
+`DEMO-` pour rester identifiable — sachant qu'élèves et enseignants ne pourront jamais être
+supprimés ensuite, seulement désactivés, comme le veut la règle du projet.
+
+Reconnaissance d'abord (lecture seule) : année active retenue **« Année Scolaire
+2026-2027 »** (deux années étaient marquées actives dans `T_ANNEEACADEMIQUE`, avec des
+conventions `CodeAnnee` différentes — celle-ci est celle que portent réellement les classes
+CE1 A/CM2 A déjà en place), classes CE1 A et CM2 A vides de tout élève pour cette année,
+2 matières (`MAT`, `Géo`), trame horaire et 1 salle déjà renseignées, 4 enseignants déjà
+réels dans `T_PROFESSEUR`.
+
+Écrit via une commande Artisan à usage unique (`demo:simuler`, retirée une fois le travail
+fait — ce n'était pas une fonctionnalité à garder), en passant par les VRAIS services
+d'écriture de l'application (`EtudiantEcrivain`, `ProfesseurEcrivain`,
+`CorProfClasseEcrivain`) pour tout ce qui est du ressort de NEXORA :
+
+- **2 enseignants** (`DEMO-ENS1` Adjoua KONE, `DEMO-ENS2` Kouadio YAO).
+- **8 élèves**, 4 par classe (CE1 A, CM2 A), avec filiation (père/mère) renseignée.
+- **4 affectations** enseignant↔classe↔matière, croisées entre les deux classes et les
+  deux matières pour exercer réellement la déduction d'enseignant qu'en fait l'emploi du
+  temps.
+- **4 créneaux d'emploi du temps**, sans conflit (classe/salle/enseignant vérifiés par
+  construction), un lundi.
+- **2 cahiers de textes** (un par classe), avec devoirs consignés sur les lignes de
+  matière.
+- **2 absences**, une justifiée, une non justifiée.
+
+**Notes et bulletins : hors du périmètre d'écriture habituel de NEXORA**, signalé comme
+tel. `T_MOYENNECLASSE` (moyenne, rang) n'est normalement jamais calculé par NEXORA — c'est
+le travail propre d'ECONOMAT (aucun trigger SQL ne le fait automatiquement, vérifié : la
+vue `V_MOYENNE_ELEVE_CLASSE` lit directement `T_MOYENNECLASSE`, sans recalcul). Pour que
+les Résultats & bulletins affichent de vrais chiffres, la moyenne et le rang ont donc été
+calculés à la main pour cette simulation et écrits directement (une session `T_SESSION`
+« DEMO Composition 1 » créée pour cette année, des notes dans `T_NOTEENTETE`/
+`T_NOTEDETAILS`, puis moyenne/rang dans `T_MOYENNECLASSE`) — une exception ponctuelle à
+« on ne fait que ce que l'application ferait réellement », faite consciemment pour ce
+besoin de démonstration.
+
+**Point technique rencontré** : `T_NOTEENTETE.CodeAnnee` et `T_NOTEDETAILS.CodeAnnee` sont
+`varchar(20)` — trop étroit pour le libellé complet « Année Scolaire 2026-2027 » (troncature
+SQL Server refusée). Repris avec la forme courte du code d'année (« 2026 », celle de
+`T_ANNEEACADEMIQUE.CodeAnnee`), qui est aussi ce que `ContexteScolaire::variantes()`
+accepterait en plus du libellé — cohérent avec la façon dont l'application filtre déjà par
+année ailleurs.
+
+**Vérifié en rejouant le vrai code de l'application** (pas seulement des requêtes SQL) :
+`EleveController`/`Eleve`, `RapportController::moyennes()`/`notesParMatiere()`,
+`EmploiDuTempsController::index()` (déduit bien Adjoua KONE / Kouadio YAO selon la
+matière), `CahierTextesController::index()`, et un vrai PDF de bulletin généré via
+`BulletinController::show()` (`%PDF-1.7`, classement/moyenne/rang corrects) — tout lit et
+affiche correctement les données simulées, aucune anomalie trouvée dans l'application
+elle-même à l'occasion de cet exercice.
+
+Aucun changement de code n'a été laissé dans le dépôt (la commande `demo:simuler` a été
+retirée après usage) : cette entrée documente une action sur les données, pas un
+changement applicatif.
