@@ -18,8 +18,3 @@ export async function fetchEvaluations(classeId) {
   })
   return data
 }
-
-export function bulletinDownloadUrl(eleveId, periodeId) {
-  const base = `${apiClient.defaults.baseURL}/eleves/${eleveId}/bulletin`
-  return periodeId ? `${base}?periode_id=${periodeId}` : base
-}

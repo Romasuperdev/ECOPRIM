@@ -22,6 +22,29 @@ class BulletinController extends Controller
 
     public function show(Request $request, Eleve $eleve)
     {
+        $d = $this->donneesBulletin($request, $eleve);
+
+        $pdf = Pdf::loadView('pdf.bulletin', $d + [
+            'eleve' => $eleve,
+            // Même mise en page que les trois autres documents (ImpressionController) :
+            // entête NEXORA + établissement du contexte de travail + année.
+            'etablissement' => $request->session()->get('etablissement_nom') ?: ($request->user()->Etab ?? null),
+        ]);
+
+        return $pdf->download('bulletin-'.($eleve->matricule ?: $eleve->getKey()).'.pdf');
+    }
+
+    /**
+     * Les mêmes données que le PDF, en JSON — pour un aperçu à l'écran (fiche élève,
+     * page Résultats) avant impression, sans dupliquer la lecture des vues ECONOMAT.
+     */
+    public function donnees(Request $request, Eleve $eleve)
+    {
+        return $this->donneesBulletin($request, $eleve);
+    }
+
+    private function donneesBulletin(Request $request, Eleve $eleve): array
+    {
         abort_unless($eleve->classe_code, 422, "Cet élève n'est rattaché à aucune classe.");
 
         $session = $request->input('session');
@@ -29,19 +52,13 @@ class BulletinController extends Controller
         $classement = $this->rapports->moyennes($eleve->classe_code, $session);
         $ligne = $classement->firstWhere('matricule', $eleve->matricule);
 
-        $pdf = Pdf::loadView('pdf.bulletin', [
-            'eleve' => $eleve,
-            // Même mise en page que les trois autres documents (ImpressionController) :
-            // entête NEXORA + établissement du contexte de travail + année.
-            'etablissement' => $request->session()->get('etablissement_nom') ?: ($request->user()->Etab ?? null),
+        return [
             'annee' => ContexteScolaire::annee(),
             'session' => $session,
             'moyennesParMatiere' => $this->rapports->notesParMatiere($eleve->matricule, $session),
             'moyenneGenerale' => $ligne['moyenne'] ?? null,
             'rang' => $ligne['rang'] ?? null,
             'effectif' => $classement->count(),
-        ]);
-
-        return $pdf->download('bulletin-'.($eleve->matricule ?: $eleve->getKey()).'.pdf');
+        ];
     }
 }

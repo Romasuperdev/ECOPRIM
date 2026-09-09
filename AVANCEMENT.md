@@ -2121,3 +2121,37 @@ qui ne se mélange pas) n'a nécessité aucune adaptation : il vérifie les donn
 la vue, pas le rendu HTML.
 Suite inchangée : **288 tests, 1195 assertions** (286 verts ; mêmes 2 échecs de longue date,
 sans rapport).
+
+## Bulletin : nulle part où le voir ni l'imprimer depuis l'application — corrigé
+
+Retour de l'utilisateur : « je ne vois pas [...] je veux qu'il ait un champ fiche pour
+pouvoir voir le bulletin et l'imprimer ». Vérification faite, le constat était pire que le
+signalement : **aucune page du personnel n'exposait de bulletin, nulle part**. Le PDF
+retravaillé dans le correctif précédent était correct, mais rien dans l'écran ne permettait
+de le déclencher — seul le portail Parent (construit plus tôt) en avait un. La page
+« Résultats & bulletins » elle-même, qui porte ce nom depuis le début, n'avait pas de
+bouton bulletin ; `rapportsApi.js` gardait une fonction `bulletinDownloadUrl()` jamais
+appelée nulle part, avec un paramètre `periode_id` qui ne correspond même plus au `session`
+qu'attend le serveur — un reste de l'époque d'avant le pivot, jamais raccordé depuis.
+
+- **`BulletinController`** : la construction des données (moyenne générale, rang,
+  effectif, détail par matière) était mélangée à la génération du PDF — extraite dans
+  `donneesBulletin()`, réutilisée par une nouvelle méthode `donnees()` qui renvoie ces
+  mêmes données en JSON, pour un aperçu à l'écran avant impression. Nouvelle route
+  `GET eleves/{eleve}/bulletin/donnees`.
+- **Fiche élève** (`EleveDetailPage.jsx`) — la demande explicite de l'utilisateur : une
+  section « Bulletin » avec moyenne générale, rang et détail par matière (matière, coef.,
+  nombre de notes, moyenne), et un bouton « Imprimer le bulletin » qui télécharge le vrai
+  PDF (même patron blob que les autres impressions — un lien direct perdrait le cookie de
+  session).
+- **Page Résultats & bulletins** (`MoyennesPage.jsx`) — un bouton d'impression par ligne du
+  classement, pour que la page porte enfin ce que son nom promet. Au passage, la clé
+  React de chaque ligne utilisait `row.eleve_id`, un champ qui n'existe pas dans la réponse
+  du serveur (`code_eleve`) — corrigée en même temps, puisque le bouton en avait besoin
+  pour cibler le bon élève.
+- `bulletinDownloadUrl()`, la fonction morte de `rapportsApi.js`, retirée : remplacée par
+  `imprimerBulletin()` dans `elevesApi.js`, réutilisée par les deux écrans.
+
+Test ajouté : `test_les_donnees_du_bulletin_sont_exposees_en_json` (nouvelle route,
+mêmes chiffres que le PDF). Suite : **289 tests, 1200 assertions** (287 verts ; mêmes 2
+échecs de longue date, sans rapport). Build et lint frontend propres.

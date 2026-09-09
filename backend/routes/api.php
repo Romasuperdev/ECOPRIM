@@ -135,6 +135,7 @@ Route::prefix('v1')->group(function () {
         Route::get('impressions/liste-classe', [ImpressionController::class, 'listeClasse']);
 
         Route::get('eleves/{eleve}/bulletin', [BulletinController::class, 'show']);
+        Route::get('eleves/{eleve}/bulletin/donnees', [BulletinController::class, 'donnees']);
         Route::get('dashboard/stats', [DashboardController::class, 'index']);
 
         // Scolarité

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Trophy } from 'lucide-react'
+import { Printer, Trophy } from 'lucide-react'
+import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import { fetchMoyennesClasse } from './rapportsApi'
 import { fetchAllClasses } from '../reference/referenceApi'
+import { imprimerBulletin } from '../eleves/elevesApi'
 
 // Lecture seule : moyennes & classement issus d'ECONOMAT (V_MOYENNE_ELEVE_CLASSE).
 export default function MoyennesPage() {
@@ -51,14 +53,15 @@ export default function MoyennesPage() {
                   <th className="px-4 py-3 font-medium">Élève</th>
                   <th className="px-4 py-3 font-medium">Matricule</th>
                   <th className="px-4 py-3 font-medium">Moyenne</th>
+                  <th className="px-4 py-3 font-medium text-right">Bulletin</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rapport.classement.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Aucune moyenne pour cette classe.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune moyenne pour cette classe.</td></tr>
                 )}
                 {rapport.classement.map((row) => (
-                  <tr key={row.eleve_id ?? `${row.matricule}-${row.rang}`} className="hover:bg-slate-50">
+                  <tr key={row.code_eleve ?? `${row.matricule}-${row.rang}`} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1 font-medium text-slate-700">
                         {Number(row.rang) <= 3 && <Trophy size={14} className="text-secondary-500" />}
@@ -71,6 +74,15 @@ export default function MoyennesPage() {
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${Number(row.moyenne) >= 10 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                         {row.moyenne ?? '—'}/20
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="outline" className="!px-3 !py-1"
+                        title="Imprimer le bulletin de cet élève"
+                        onClick={() => imprimerBulletin(row.code_eleve, row.matricule)}
+                      >
+                        <Printer size={14} />
+                      </Button>
                     </td>
                   </tr>
                 ))}

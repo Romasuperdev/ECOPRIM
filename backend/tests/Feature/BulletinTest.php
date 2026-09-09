@@ -151,6 +151,17 @@ class BulletinTest extends TestCase
         $this->assertNull($vue['rang']);
     }
 
+    /** Aperçu à l'écran (fiche élève, page Résultats) : mêmes données que le PDF, en JSON. */
+    public function test_les_donnees_du_bulletin_sont_exposees_en_json(): void
+    {
+        $r = $this->getJson('/api/v1/eleves/11/bulletin/donnees?session=S1')->assertOk();
+
+        $this->assertSame(2, (int) $r->json('rang'));
+        $this->assertEqualsWithDelta(12.6, (float) $r->json('moyenneGenerale'), 0.01);
+        $this->assertSame(2, $r->json('effectif'));
+        $this->assertSame(['FR', 'MATH'], collect($r->json('moyennesParMatiere'))->pluck('matiere_code')->sort()->values()->all());
+    }
+
     public function test_le_bulletin_suit_l_annee_de_travail(): void
     {
         // Sur l'année précédente, cet élève n'a aucune note : le bulletin reste imprimable
