@@ -2204,3 +2204,21 @@ clôturée toujours possible même en consultant une autre année).
 Suite : **297 tests, 1249 assertions** (296 verts ; le même échec de longue date, sans
 rapport, apparaît de façon intermittente — 0 à 2 selon l'exécution). Build et lint frontend
 propres. Migration appliquée sur la vraie base `ecoprim`.
+
+### Correctif : la fenêtre du formulaire débordait de l'écran
+
+Signalé par l'utilisateur, capture à l'appui, sur le formulaire d'évaluation : « je ne vois
+pas le formulaire ». Cause générale, pas propre à ce formulaire : `ModaleFormulaire.jsx` —
+la coquille commune à sept écrans (années, cycles, niveaux, classes, matières, absences,
+portail Enseignant, et maintenant évaluations) — n'imposait aucune hauteur maximale ni
+défilement à la carte blanche. Elle reste centrée verticalement quel que soit son contenu ;
+tant que le formulaire tenait dans la fenêtre ça ne se voyait pas, mais celui des
+évaluations (8 champs) est le premier assez long pour dépasser la hauteur visible sur un
+petit écran — le bouton « Enregistrer » se retrouvait hors champ, sans aucun moyen de
+défiler jusqu'à lui.
+
+Corrigé une fois pour toutes dans le composant partagé : `max-h-[90vh]` et
+`overflow-y-auto` sur la carte, comme le fait déjà la fenêtre (non partagée) de
+`/admin/utilisateurs`. Purement correctif — aucun changement visuel sur les formulaires
+déjà assez courts pour tenir à l'écran, et les sept écrans qui utilisent cette coquille en
+bénéficient tous sans modification de leur côté.

@@ -18,7 +18,7 @@ export default function ModaleFormulaire({
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-800">{titre}</h2>
         {sousTitre && <p className="mt-1 text-sm text-slate-500">{sousTitre}</p>}
 
