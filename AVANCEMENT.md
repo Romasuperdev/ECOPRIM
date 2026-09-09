@@ -2088,3 +2088,36 @@ n'inclut jamais les lignes `NULL`. Corrigé directement en base : `CodeAnnee` de
 comptes DEMO mis à « Année Scolaire 2026-2027 », revérifié en rejouant
 `EnseignantController::index()` — les deux apparaissent maintenant. Pas de changement de
 code : la colonne était simplement restée vide dans les données simulées.
+
+## Bulletin : mis à la même mise en page que les autres documents, vraiment détaillé
+
+Demande de l'utilisateur : « le bulletin de chaque élève doit pouvoir être imprimé et bien
+détaillé avec les différentes matières ». Deux causes distinctes trouvées en creusant :
+
+1. **La simulation DEMO n'avait de notes que dans UNE matière** (Mathématiques) — le
+   bulletin d'un élève DEMO ne montrait donc qu'une ligne, pas « les différentes
+   matières ». Complété : notes de Géographie ajoutées pour les 8 élèves DEMO, moyennes et
+   rangs recalculés sur les deux matières (coefficient 1 chacune) dans `T_MOYENNECLASSE`.
+2. **Le gabarit `pdf.bulletin.blade.php` était resté un HTML autonome**, jamais aligné sur
+   la mise en page commune (`pdf.layout.blade.php`) introduite plus tard pour les trois
+   autres documents imprimables (fiche élève, fiche enseignant, emploi du temps, liste de
+   classe) — sans l'entête NEXORA/établissement/année ni le pied de page daté qu'ont ces
+   trois-là, et sans appréciation ni zone de signature.
+
+Repris pour étendre `@extends('pdf.layout')` comme les autres, avec un vrai détail par
+matière : matière, coefficient, nombre de notes, moyenne sur 20 **et une appréciation**
+(Très bien / Bien / Assez bien / Passable / Insuffisant, dérivée de la moyenne — purement
+indicative, NEXORA ne juge rien, c'est un repère de lecture) ; une section « Synthèse »
+avec moyenne générale mise en avant et rang/effectif ; deux zones de signature (Direction /
+Parent) pour un document réellement imprimable et remis en main propre.
+`BulletinController::show()` passe désormais `etablissement` à la vue, comme
+`ImpressionController::commun()` le fait déjà pour les trois autres documents.
+
+Aucune donnée ni logique de calcul n'a changé : NEXORA continue de restituer ce
+qu'ECONOMAT calcule (`V_MOYENNE_ELEVE_CLASSE`, `V_NOTECLASSE`), jamais de recalcul propre —
+seuls l'habillage du document et le fait que la démo couvre maintenant deux matières ont
+changé. `BulletinTest` (7 cas, dont les cas limites — élève sans note, sans classe, session
+qui ne se mélange pas) n'a nécessité aucune adaptation : il vérifie les données passées à
+la vue, pas le rendu HTML.
+Suite inchangée : **288 tests, 1195 assertions** (286 verts ; mêmes 2 échecs de longue date,
+sans rapport).

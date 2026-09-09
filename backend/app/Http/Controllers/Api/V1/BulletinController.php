@@ -31,6 +31,9 @@ class BulletinController extends Controller
 
         $pdf = Pdf::loadView('pdf.bulletin', [
             'eleve' => $eleve,
+            // Même mise en page que les trois autres documents (ImpressionController) :
+            // entête NEXORA + établissement du contexte de travail + année.
+            'etablissement' => $request->session()->get('etablissement_nom') ?: ($request->user()->Etab ?? null),
             'annee' => ContexteScolaire::annee(),
             'session' => $session,
             'moyennesParMatiere' => $this->rapports->notesParMatiere($eleve->matricule, $session),
