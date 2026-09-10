@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
 use App\Models\Console\Etablissement;
+use App\Models\RhUser;
 use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
 use Throwable;
@@ -56,9 +57,14 @@ class ConsoleContexteController extends Controller
             'vue_generale' => $general,
             'societes' => $general ? count(PerimetreConsole::disponibles($user)) : null,
             'etablissements' => $this->compter(fn () => PerimetreConsole::appliquer(Etablissement::query())->count()),
-            'utilisateurs' => $this->compter(
-                fn () => PerimetreConsole::appliquer(Affectation::query())
-                    ->distinct()->count('rh_user_id')
+            // En vue générale, /admin/utilisateurs liste tous les comptes RH_USER sans les
+            // borner à une affectation ECOPRIM (voir UserController::cloisonner) — la tuile
+            // doit compter la même chose, sinon elle affiche 0 alors que la liste montre des
+            // comptes réels. Dès qu'une société est courante, les deux se recoupent déjà :
+            // seuls les comptes affectés dans cette société apparaissent.
+            'utilisateurs' => $this->compter(fn () => $general
+                ? RhUser::count()
+                : PerimetreConsole::appliquer(Affectation::query())->distinct()->count('rh_user_id')
             ),
             'affectations' => $this->compter(fn () => PerimetreConsole::appliquer(Affectation::query())->count()),
         ]);
