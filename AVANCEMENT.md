@@ -2286,3 +2286,24 @@ Deux retours successifs de l'utilisateur sur `/admin` :
 
 Vérifié : suite de tests `Console` (64 tests, 260 assertions) toujours verte, build et lint
 frontend propres.
+
+## Correctif : la tuile « Utilisateurs » du tableau de bord affichait 0 alors que de vrais comptes existent
+
+Repéré par l'utilisateur sur une capture d'écran de `/admin` (Super Admin, vue « Toutes les
+sociétés ») : 6 sociétés, 2 établissements, mais **0 utilisateur** — alors que la base réelle
+contient bel et bien 6 comptes dans `dbmasterbacou.RH_USER`.
+
+Cause : la tuile comptait les utilisateurs *distincts ayant une affectation ECOPRIM*
+(`console_affectations`, `count(distinct rh_user_id)`) — 0, car aucune affectation n'existe
+encore dans cette base. Mais `/admin/utilisateurs`, en vue générale, liste *tous* les
+comptes RH_USER sans ce filtre (`UserController::cloisonner` ne filtre que dès qu'une
+société précise est courante) — donc en cliquant sur la tuile (grâce au correctif précédent
+qui l'a rendue cliquable), le Super Admin serait tombé sur 6 comptes après avoir vu « 0 ».
+
+Proposé trois options à l'utilisateur (aligner le chiffre sur la liste, garder le sens actuel
+en le renommant, ou autre chose) — a choisi d'aligner. `ConsoleContexteController::
+tableauDeBord()` compte maintenant `RhUser::count()` en vue générale, comme la liste ; le
+calcul par société (déjà cohérent avec la liste dans ce cas) est inchangé.
+
+Vérifié : suite `PerimetreConsoleTest` + `ContexteTest` (43 tests, 175 assertions) toujours
+verte — aucun test n'attendait l'ancien chiffre en vue générale.
