@@ -109,7 +109,7 @@ export default function LoginPage() {
         className="mx-auto flex w-full max-w-[320px] flex-col gap-4"
         noValidate
       >
-        <div className="mb-1 flex items-center gap-2" style={{ color: isConsole ? 'var(--sidebar)' : 'var(--accent)' }}>
+        <div className="mb-1 flex items-center gap-2" style={{ color: isConsole ? 'var(--sidebar)' : 'var(--brand-accent)' }}>
           {isConsole ? <ShieldCheck size={26} /> : <GraduationCap size={26} />}
           <h2 className="text-2xl font-extrabold text-heading">{isConsole ? 'Console Admin' : 'Établissement'}</h2>
         </div>
@@ -208,7 +208,7 @@ export default function LoginPage() {
             transform: consoleActive ? 'translateX(-100%)' : 'translateX(0)',
             transition: 'transform .6s cubic-bezier(.6,.05,.2,1)',
             background: consoleActive
-              ? 'linear-gradient(135deg, var(--accent), var(--teal))'
+              ? 'linear-gradient(135deg, var(--brand-accent), var(--teal))'
               : 'linear-gradient(135deg, var(--sidebar), var(--sidebar-2))',
           }}
         >
@@ -255,7 +255,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => switchTo('etablissement')}
               className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold"
-              style={!consoleActive ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { color: 'var(--muted)' }}
+              style={!consoleActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--muted-text)' }}
             >
               <GraduationCap size={16} /> Établissement
             </button>
@@ -263,7 +263,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => switchTo('admin')}
               className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold"
-              style={consoleActive ? { background: 'var(--sidebar)', color: '#fff' } : { color: 'var(--muted)' }}
+              style={consoleActive ? { background: 'var(--sidebar)', color: '#fff' } : { color: 'var(--muted-text)' }}
             >
               <ShieldCheck size={16} /> Console
             </button>

@@ -2222,3 +2222,44 @@ Corrigé une fois pour toutes dans le composant partagé : `max-h-[90vh]` et
 `/admin/utilisateurs`. Purement correctif — aucun changement visuel sur les formulaires
 déjà assez courts pour tenir à l'écran, et les sept écrans qui utilisent cette coquille en
 bénéficient tous sans modification de leur côté.
+
+## Installation de shadcn/ui (librairie de composants de design)
+
+Demande explicite de l'utilisateur : « installer une extension de design pour améliorer
+l'application ». Choix retenu parmi plusieurs options proposées : shadcn/ui (composants
+React copiés dans le dépôt, basés sur Radix + Tailwind), plutôt qu'un plugin CSS type
+DaisyUI ou une simple extension d'éditeur — le frontend est déjà React 19 + Vite +
+Tailwind CSS 4, donc l'intégration est native.
+
+Le CLI `shadcn init` a d'abord tenté d'écraser `Button.jsx` (collision de nom insensible
+à la casse sous Windows : `button.jsx` vs `Button.jsx`) et de remplacer plusieurs variables
+CSS de la palette NEXORA (`--muted`, `--accent`, `--border`, police Geist à la place
+d'Inter). Restauré et repris à la main :
+
+- `Button.jsx` existant conservé tel quel (export par défaut, variantes `primary/gold/
+  secondary/danger/outline/ghost`) — non écrasé.
+- Variables historiques renommées pour lever l'ambiguïté sémantique avec les tokens
+  shadcn (mise à jour de tous les usages dans le code : `Button.jsx`, `Sidebar.jsx`,
+  `AdminSidebar.jsx`, `Logo.jsx`, `LoginPage.jsx`, `EnseignantClassePage.jsx`,
+  `ParentEnfantPage.jsx`, `index.css`) :
+  - `--muted` (texte atténué brun `#8a7a6c`) → `--muted-text`.
+  - `--accent`/`--accent-ink` (bouton doré/caramel `#c08a45`) → `--brand-accent`/
+    `--brand-accent-ink`.
+- Nouveaux tokens shadcn (`--background`, `--card`, `--primary`, `--secondary`, `--muted`,
+  `--accent`, `--destructive`, `--input`, `--ring`, `--radius`...) ajoutés dans `index.css`
+  et mappés sur la palette existante (vert sauge, ocre, crème) au lieu des gris génériques
+  du thème par défaut — aucune nouvelle couleur introduite, la police reste Inter.
+- Alias d'import `@/*` → `src/*` ajouté (`jsconfig.json` + `vite.config.js`).
+
+Composants ajoutés (tous nouveaux, aucune collision avec l'existant) : `card`, `dropdown-
+menu`, `tabs`, `badge`, `tooltip`, `table`, `switch`, `checkbox`, `separator`, `avatar`,
+`sonner` (notifications toast), `popover`, `alert`, `label`, dans `src/components/ui/`.
+
+`dialog` et `form` non installés dans cette passe : ces deux composants du registre
+shadcn dépendent de leur propre `button.jsx`, qui entrerait en collision avec le
+`Button.jsx` existant — les ajouter proprement demanderait de fusionner ou renommer le
+bouton maison (impact sur une dizaine de fichiers), ce qui dépasse le cadre de cette
+demande. À reprendre si besoin d'une vraie modale/formulaire shadcn plus tard.
+
+Vérifié : `npm run build` et `npm run lint` propres (mêmes avertissements bénins
+préexistants), serveur `vite dev` démarré sans erreur et sert la bonne page.

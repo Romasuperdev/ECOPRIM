@@ -31,7 +31,7 @@ export default function AdminSidebar() {
       <div className="mb-1 px-2">
         <Logo />
       </div>
-      <div className="mb-4 px-2 text-[10px] font-semibold" style={{ color: 'var(--accent)' }}>
+      <div className="mb-4 px-2 text-[10px] font-semibold" style={{ color: 'var(--brand-accent)' }}>
         CONSOLE ADMINISTRATIVE
       </div>
       <NavLink
@@ -51,7 +51,7 @@ export default function AdminSidebar() {
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
             }
             style={({ isActive }) =>
-              isActive ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { color: 'var(--sidebar-text)' }
+              isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
             }
           >
             <Icon size={19} />

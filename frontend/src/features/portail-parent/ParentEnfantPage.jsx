@@ -42,7 +42,7 @@ export default function ParentEnfantPage() {
           <button
             key={t.cle} type="button" onClick={() => setOnglet(t.cle)}
             className={`px-3 py-2 text-sm font-medium ${
-              onglet === t.cle ? 'border-b-2 border-[var(--accent)] text-heading' : 'text-muted hover:text-heading'
+              onglet === t.cle ? 'border-b-2 border-[var(--brand-accent)] text-heading' : 'text-muted hover:text-heading'
             }`}
           >
             {t.libelle}

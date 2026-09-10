@@ -56,7 +56,7 @@ export default function EnseignantClassePage() {
             onClick={() => setOnglet(t.cle)}
             className={`px-3 py-2 text-sm font-medium ${
               onglet === t.cle
-                ? 'border-b-2 border-[var(--accent)] text-heading'
+                ? 'border-b-2 border-[var(--brand-accent)] text-heading'
                 : 'text-muted hover:text-heading'
             }`}
           >
@@ -401,7 +401,7 @@ function OngletEmploi({ classe }) {
                 return (
                   <td key={j.code} className="border-b p-1.5 align-top" style={{ borderColor: 'var(--border)' }}>
                     {c && (
-                      <div className="rounded-lg bg-[var(--accent)]/10 px-2 py-1.5">
+                      <div className="rounded-lg bg-[var(--brand-accent)]/10 px-2 py-1.5">
                         <div className="text-xs font-semibold text-heading">{c.matiere_libelle}</div>
                         {c.salle_libelle && <div className="text-[11px] text-muted">{c.salle_libelle}</div>}
                       </div>

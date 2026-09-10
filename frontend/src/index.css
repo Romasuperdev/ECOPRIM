@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ==== Design System NEXORA École Primaire ====
    Palette terre/sauge fournie par l'utilisateur (brun taupe, kaki pâle, vert sauge,
@@ -34,15 +35,60 @@
   --surface-2: #f7efdd;
   --text: #3a2f28;
   --heading: #2a211c;
-  --muted: #8a7a6c;
+  --muted-text: #8a7a6c;
   --border: #e5d9c3;
   --sidebar: #5a4c43;
   --sidebar-2: #443a33;
   --sidebar-text: #e8dcc8;
-  --accent: #c08a45;
-  --accent-ink: #2a211c;
+  --brand-accent: #c08a45;
+  --brand-accent-ink: #2a211c;
   --teal: #5c7a56;
   --shadow: 0 1px 3px rgba(58, 47, 40, 0.08), 0 1px 2px rgba(58, 47, 40, 0.05);
+
+  /* ==== Tokens shadcn/ui, alignés sur la palette NEXORA ci-dessus ==== */
+  --background: var(--surface);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--color-primary-500);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--heading);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--muted-text);
+  --accent: color-mix(in srgb, var(--brand-accent) 14%, var(--surface));
+  --accent-foreground: var(--heading);
+  --destructive: #b3432f;
+  --input: var(--border);
+  --ring: var(--brand-accent);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 * {
@@ -70,7 +116,7 @@ body {
   background: var(--surface-2);
 }
 .text-muted {
-  color: var(--muted);
+  color: var(--muted-text);
 }
 .text-heading {
   color: var(--heading);
@@ -88,21 +134,21 @@ body {
   outline: none;
 }
 .field::placeholder {
-  color: var(--muted);
+  color: var(--muted-text);
   font-weight: 400;
 }
 .field:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--brand-accent) 45%, var(--border));
 }
 .field:focus {
-  border-color: var(--accent);
+  border-color: var(--brand-accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 28%, transparent);
 }
 .field:disabled,
 .field[readonly] {
-  background: color-mix(in srgb, var(--muted) 12%, var(--surface));
-  color: var(--muted);
+  background: color-mix(in srgb, var(--muted-text) 12%, var(--surface));
+  color: var(--muted-text);
 }
 
 main table {
@@ -121,10 +167,10 @@ main table thead {
   background: var(--surface-2);
 }
 main table thead th {
-  color: var(--muted);
+  color: var(--muted-text);
 }
 main table tbody tr:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -132,7 +178,7 @@ main table tbody tr:hover {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  background: color-mix(in srgb, var(--muted-text) 40%, transparent);
   border-radius: 8px;
 }
 

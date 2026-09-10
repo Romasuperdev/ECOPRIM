@@ -4,8 +4,8 @@ export default function Button({ children, variant = 'primary', className = '', 
 
   const styles = {
     primary: { background: 'var(--sidebar)', color: '#fff' },
-    gold: { background: 'var(--accent)', color: 'var(--accent-ink)' },
-    secondary: { background: 'var(--accent)', color: 'var(--accent-ink)' },
+    gold: { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' },
+    secondary: { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' },
     danger: { background: '#dc2626', color: '#fff' },
   }
 

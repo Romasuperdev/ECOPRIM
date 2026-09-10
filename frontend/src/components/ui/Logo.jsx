@@ -6,7 +6,7 @@ export default function Logo({ size = 32, variant = 'sidebar', showText = true }
   const couleurTitre = variant === 'sidebar' ? '#fff' : 'var(--heading, #2a211c)'
   const couleurSous = variant === 'sidebar'
     ? 'color-mix(in srgb, var(--sidebar-text) 65%, transparent)'
-    : 'var(--muted, #8a7d72)'
+    : 'var(--muted-text, #8a7d72)'
 
   return (
     <div className="flex items-center gap-2.5">
@@ -15,12 +15,12 @@ export default function Logo({ size = 32, variant = 'sidebar', showText = true }
         <path
           d="M20 47 L20 17 L44 47 L44 17"
           fill="none"
-          stroke="var(--accent, #c08a45)"
+          stroke="var(--brand-accent, #c08a45)"
           strokeWidth="6"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <rect x="20" y="52" width="24" height="3.5" rx="1.75" fill="var(--accent, #c08a45)" opacity="0.55" />
+        <rect x="20" y="52" width="24" height="3.5" rx="1.75" fill="var(--brand-accent, #c08a45)" opacity="0.55" />
       </svg>
 
       {showText && (
