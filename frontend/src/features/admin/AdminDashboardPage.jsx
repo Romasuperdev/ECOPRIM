@@ -1,20 +1,32 @@
 import { useQuery } from '@tanstack/react-query'
-import { Building2, School, Users, UserCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Building2, School, Users, UserCheck, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { fetchConsoleTableauDeBord } from './consoleContexteApi'
 
-function StatCard({ icon: Icon, label, value }) {
-  return (
-    <div className="card flex items-center gap-4 rounded-xl p-5">
+function StatCard({ icon: Icon, label, value, to }) {
+  const contenu = (
+    <>
       <div className="rounded-lg bg-primary-50 p-3 text-primary-700">
         <Icon size={22} />
       </div>
-      <div>
+      <div className="flex-1">
         <p className="text-2xl font-bold text-heading">{value ?? '—'}</p>
         <p className="text-sm text-muted">{label}</p>
       </div>
-    </div>
+      {to && <ChevronRight size={18} className="text-muted" />}
+    </>
   )
+
+  if (to) {
+    return (
+      <Link to={to} className="card flex items-center gap-4 rounded-xl p-5 transition hover:shadow-md">
+        {contenu}
+      </Link>
+    )
+  }
+
+  return <div className="card flex items-center gap-4 rounded-xl p-5">{contenu}</div>
 }
 
 /**
@@ -49,9 +61,9 @@ export default function AdminDashboardPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* Le nombre de sociétés n'a de sens qu'en vue générale. */}
-        {generale && <StatCard icon={Building2} label="Sociétés" value={data?.societes} />}
-        <StatCard icon={School} label="Établissements" value={data?.etablissements} />
-        <StatCard icon={Users} label="Utilisateurs" value={data?.utilisateurs} />
+        {generale && <StatCard icon={Building2} label="Sociétés" value={data?.societes} to="/admin/societes" />}
+        <StatCard icon={School} label="Établissements" value={data?.etablissements} to="/admin/etablissements" />
+        <StatCard icon={Users} label="Utilisateurs" value={data?.utilisateurs} to="/admin/utilisateurs" />
         {!generale && <StatCard icon={UserCheck} label="Affectations" value={data?.affectations} />}
       </div>
 
