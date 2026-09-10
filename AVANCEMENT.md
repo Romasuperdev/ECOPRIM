@@ -2263,3 +2263,26 @@ demande. À reprendre si besoin d'une vraie modale/formulaire shadcn plus tard.
 
 Vérifié : `npm run build` et `npm run lint` propres (mêmes avertissements bénins
 préexistants), serveur `vite dev` démarré sans erreur et sert la bonne page.
+
+## Tableau de bord admin : tuiles cliquables, puis colonne Utilisateurs sur les listes
+
+Deux retours successifs de l'utilisateur sur `/admin` :
+
+1. « Je ne vois pas /admin/utilisateurs dans le tableau de bord » — le lien existait déjà
+   dans la barre latérale, mais les tuiles de `AdminDashboardPage` (Sociétés,
+   Établissements, Utilisateurs) n'étaient que des compteurs, pas des raccourcis. Les trois
+   tuiles qui correspondent à une vraie page (`/admin/societes`, `/admin/etablissements`,
+   `/admin/utilisateurs`) sont maintenant des `Link` avec un chevron ; « Affectations »
+   reste un simple compteur, faute de page dédiée au niveau console.
+
+2. « Comme Société et Établissement, je veux voir le nombre d'utilisateur » — sur les
+   listes `/admin/societes` et `/admin/etablissements`, chaque ligne affiche maintenant une
+   colonne Utilisateurs. Calculé côté back comme le nombre d'utilisateurs ECOPRIM distincts
+   réellement affectés (`console_affectations`, `count(distinct rh_user_id)`, groupé par
+   société ou par établissement) plutôt que le champ `NB_USER` de US_SOCIETE, qui peut être
+   obsolète — cohérent avec le chiffre déjà utilisé pour la tuile « Utilisateurs » du
+   tableau de bord. Un seul aller-retour base par page (pas de N+1), même principe que le
+   `withCount('etablissements')` déjà en place pour les sociétés.
+
+Vérifié : suite de tests `Console` (64 tests, 260 assertions) toujours verte, build et lint
+frontend propres.
