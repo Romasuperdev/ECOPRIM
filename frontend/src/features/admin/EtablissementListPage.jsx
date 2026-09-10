@@ -89,15 +89,16 @@ export default function EtablissementListPage() {
               <th className="px-4 py-3 font-medium">Intitulé & localisation</th>
               <th className="px-4 py-3 font-medium">Société</th>
               <th className="px-4 py-3 font-medium">Contact</th>
+              <th className="px-4 py-3 font-medium">Utilisateurs</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucun établissement.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Aucun établissement.</td></tr>
             )}
             {data?.data?.map((e) => (
               <tr key={e.code} className="hover:bg-slate-50">
@@ -113,6 +114,7 @@ export default function EtablissementListPage() {
                   <div>{e.telephone ?? '—'}</div>
                   <div className="text-slate-400">{e.email ?? ''}</div>
                 </td>
+                <td className="px-4 py-3 text-slate-600">{e.utilisateurs_count ?? 0}</td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${e.repris ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'}`}>
                     {e.source}

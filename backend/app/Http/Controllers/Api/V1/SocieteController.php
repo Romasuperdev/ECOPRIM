@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Console\Affectation;
 use App\Models\Console\Societe;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -40,6 +41,7 @@ class SocieteController extends Controller
         $recherche = trim((string) $request->input('q', ''));
 
         $surcouche = $this->surcouche();          // code => modèle Console\Societe
+        $utilisateurs = $this->utilisateursParSociete(); // code => nb d'utilisateurs distincts
         $lignes = collect();
 
         // Uniquement les sociétés réelles de US_SOCIETE — jamais une ligne qui n'existerait
@@ -49,7 +51,7 @@ class SocieteController extends Controller
             if ($code === '') {
                 continue;
             }
-            $lignes->push($this->fusionner($code, $l, $surcouche->get($code)));
+            $lignes->push($this->fusionner($code, $l, $surcouche->get($code), $utilisateurs->get($code, 0)));
         }
 
         if ($recherche !== '') {
@@ -62,7 +64,7 @@ class SocieteController extends Controller
     }
 
     /** Une ligne d'affichage : valeurs ECOPRIM si présentes, sinon valeurs US_SOCIETE. */
-    private function fusionner(string $code, ?object $src, ?Societe $eco): array
+    private function fusionner(string $code, ?object $src, ?Societe $eco, int $utilisateursCount = 0): array
     {
         $depuisSource = fn (...$cles) => $src ? $this->premier($src, ...$cles) : null;
 
@@ -80,6 +82,9 @@ class SocieteController extends Controller
             'etablissements_count' => $eco->etablissements_count ?? null,
             'nb_etab' => $src->NB_ETAB ?? null,
             'nb_user' => $src->NB_USER ?? null,
+            // Utilisateurs ECOPRIM réellement affectés à la société (compte fiable, à la
+            // différence de NB_USER qui vient de US_SOCIETE et peut être obsolète).
+            'utilisateurs_count' => $utilisateursCount,
             'pays' => $depuisSource('PAYSSOCIETE'),
             'activite' => $depuisSource('ACTIVITESOCIETE'),
             'nombase' => $depuisSource('NOMBASE'),
@@ -113,6 +118,18 @@ class SocieteController extends Controller
     {
         try {
             return Societe::withCount('etablissements')->get()->keyBy('code');
+        } catch (Throwable $e) {
+            return collect();
+        }
+    }
+
+    /** code société => nombre d'utilisateurs ECOPRIM distincts affectés. */
+    private function utilisateursParSociete()
+    {
+        try {
+            return Affectation::selectRaw('societe_code, count(distinct rh_user_id) as total')
+                ->groupBy('societe_code')
+                ->pluck('total', 'societe_code');
         } catch (Throwable $e) {
             return collect();
         }

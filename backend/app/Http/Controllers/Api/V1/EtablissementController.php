@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Console\Affectation;
 use App\Models\Console\Etablissement;
 use App\Models\Console\Societe;
 use App\Services\BEtablissementEcrivain;
@@ -34,6 +35,7 @@ class EtablissementController extends Controller
         $filtreSociete = trim((string) $request->input('societe_code', ''));
 
         $surcouche = $this->surcouche();
+        $utilisateurs = $this->utilisateursParEtablissement();
         $lignes = collect();
         $vus = [];
 
@@ -43,12 +45,12 @@ class EtablissementController extends Controller
                 continue;
             }
             $vus[] = $code;
-            $lignes->push($this->fusionner($code, $l, $surcouche->get($code)));
+            $lignes->push($this->fusionner($code, $l, $surcouche->get($code), $utilisateurs->get($code, 0)));
         }
 
         foreach ($surcouche as $code => $e) {
             if (! in_array($code, $vus, true)) {
-                $lignes->push($this->fusionner($code, null, $e));
+                $lignes->push($this->fusionner($code, null, $e, $utilisateurs->get($code, 0)));
             }
         }
 
@@ -75,14 +77,14 @@ class EtablissementController extends Controller
 
         abort_if(! $src && ! $eco, 404, 'Établissement introuvable.');
 
-        $ligne = $this->fusionner($code, $src, $eco);
+        $ligne = $this->fusionner($code, $src, $eco, $this->utilisateursParEtablissement()->get($code, 0));
         PerimetreConsole::assertAutoriseeEtablissement($code, $ligne['societe_code']);
         $ligne['societe'] = Societe::where('code', $ligne['societe_code'])->first();
 
         return $ligne;
     }
 
-    private function fusionner(string $code, ?object $src, ?Etablissement $eco): array
+    private function fusionner(string $code, ?object $src, ?Etablissement $eco, int $utilisateursCount = 0): array
     {
         $s = fn (string $c) => $src ? (trim((string) ($src->{$c} ?? '')) ?: null) : null;
 
@@ -101,6 +103,7 @@ class EtablissementController extends Controller
             'actif' => $eco ? (bool) $eco->actif : true,
             'source' => $eco ? ($src ? 'BEtablissements + ECOPRIM' : 'ECOPRIM') : 'BEtablissements',
             'repris' => (bool) $eco,
+            'utilisateurs_count' => $utilisateursCount,
         ];
     }
 
@@ -139,6 +142,18 @@ class EtablissementController extends Controller
     {
         try {
             return Etablissement::all()->keyBy('code');
+        } catch (Throwable $e) {
+            return collect();
+        }
+    }
+
+    /** code établissement => nombre d'utilisateurs ECOPRIM distincts affectés. */
+    private function utilisateursParEtablissement()
+    {
+        try {
+            return Affectation::selectRaw('etablissement_code, count(distinct rh_user_id) as total')
+                ->groupBy('etablissement_code')
+                ->pluck('total', 'etablissement_code');
         } catch (Throwable $e) {
             return collect();
         }
