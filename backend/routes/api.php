@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\EleveController;
 use App\Http\Controllers\Api\V1\ClasseController;
 use App\Http\Controllers\Api\V1\NoteController;
+use App\Http\Controllers\Api\V1\SaisieNoteController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EmploiDuTempsController;
 use App\Http\Controllers\Api\V1\ImpressionController;
@@ -89,6 +90,13 @@ Route::prefix('v1')->group(function () {
         Route::delete('cahier-textes/{entete}/lignes/{matiere}', [CahierTextesController::class, 'supprimerLigne']);
 
         Route::get('notes', [NoteController::class, 'index']);
+
+        // Saisie des notes : feuille de classe, dans T_NOTEENTETE + T_NOTEDETAILS.
+        // `structure` expose ce que le serveur a reconnu de ces deux tables — c'est ce qui
+        // permet de vérifier le rapprochement des colonnes sans ouvrir SQL Server.
+        Route::get('notes/structure', [SaisieNoteController::class, 'structure']);
+        Route::get('notes/feuille', [SaisieNoteController::class, 'feuille']);
+        Route::post('notes/feuille', [SaisieNoteController::class, 'enregistrer']);
         Route::get('enseignants', [EnseignantController::class, 'index']);
         Route::post('enseignants', [EnseignantController::class, 'store']);
         Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);

@@ -2367,3 +2367,42 @@ retirant la connexion de `Matiere`, le test échoue **en nommant le modèle faut
 Le repli de `config/database.php` passe en outre de `sqlsrv` à `ecoprim` : si la variable
 d'environnement disparaît, on tombe sur la base propre, jamais sur la production.
 Suite : **294 tests, 1235 assertions verts**.
+
+## Saisie des notes — le blocage est levé
+
+Depuis le début du projet, l'écran « Saisie des notes » ne savait que **lire** : il interroge
+`V_NOTECLASSE`, qui est une **vue** — on n'écrit pas dans une vue. Les vraies tables sont
+`T_NOTEENTETE` et `T_NOTEDETAILS`, et leurs colonnes n'ont jamais pu être relevées. Le
+chantier attendait deux `SELECT`.
+
+Il n'attend plus. NEXORA **découvre la structure à l'exécution**, comme il le fait déjà pour
+`T_TRACABILITE` : il lit la liste réelle des colonnes des deux tables et la rapproche de rôles
+métier (clé, lien entête→détail, élève, note, coefficient, barème…).
+
+- `app/Support/SchemaNotes.php` — la découverte, avec ses garde-fous : l'exact l'emporte sur
+  le partiel, une colonne ne sert qu'à un rôle, les rôles structurants (clé, lien) n'acceptent
+  que l'exact — sans quoi `Code`, `CodeNote` et `Note` se confondraient — et un rôle porteur
+  de valeur refuse toute colonne préfixée `Code`/`Num`.
+- `app/Services/NoteEcrivain.php` — l'écriture : entête retrouvée ou créée, notes posées ou
+  **remplacées** (jamais dupliquées : ECONOMAT compterait deux fois la même note dans la
+  moyenne). Aucune suppression.
+- `app/Http/Controllers/Api/V1/SaisieNoteController.php` — le travail se fait par **feuille**
+  (classe, matière, session, type) et non note par note.
+- `GET /api/v1/notes/structure` — ce que le serveur a vu : colonnes réelles, rôle retenu pour
+  chacune, rôles manquants. **C'est par là qu'on vérifie le rapprochement sans ouvrir SQL
+  Server**, et c'est par là qu'on comprend un refus.
+
+**Fermé par défaut.** Si un rôle indispensable n'est pas reconnu, la saisie est refusée (409)
+avec le détail de ce qui manque — jamais tentée « au cas où ». Écrire à l'aveugle dans une
+table de production partagée est le seul risque qu'on ne prend pas.
+
+Garde-fous de saisie : une note ne peut pas dépasser le barème (25/20 fausserait durablement
+la moyenne d'ECONOMAT) ; on ne note pas un élève d'une autre classe ; un absent n'a pas de
+note ; une année clôturée est en consultation seule (423).
+
+Côté écran : `/notes` est désormais la **saisie** — c'est ce que le menu promettait ; la
+consultation garde son adresse propre, `/notes/consultation`.
+
+16 tests dédiés, éprouvés par mutation (ressaisie qui duplique, absent qui garde sa note,
+fermeture par défaut désactivée, barème non vérifié : les quatre sont détectées). Suite
+complète : **310 tests, 1304 assertions**.

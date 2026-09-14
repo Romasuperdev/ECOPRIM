@@ -19,6 +19,7 @@ const EnseignantFormPage = lazy(() => import('./features/enseignants/EnseignantF
 const MatiereListPage = lazy(() => import('./features/matieres/MatiereListPage'))
 const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage'))
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
+const SaisieNotesPage = lazy(() => import('./features/notes/SaisieNotesPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
 const ParentListPage = lazy(() => import('./features/parents/ParentListPage'))
 const NiveauListPage = lazy(() => import('./features/niveaux/NiveauListPage'))
@@ -175,7 +176,10 @@ export default function App() {
               <Route path="/matieres/nouvelle" element={<MatiereFormPage />} />
               <Route path="/matieres/:id/modifier" element={<MatiereFormPage />} />
 
-              <Route path="/notes" element={<NoteListPage />} />
+              {/* /notes est la SAISIE : c'est ce que le menu promet depuis le début.
+                  La consultation d'ECONOMAT (V_NOTECLASSE) garde sa propre adresse. */}
+              <Route path="/notes" element={<SaisieNotesPage />} />
+              <Route path="/notes/consultation" element={<NoteListPage />} />
 
               <Route path="/absences" element={<AbsenceListPage />} />
 

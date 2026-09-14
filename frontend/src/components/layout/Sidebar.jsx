@@ -49,6 +49,7 @@ const GROUPS = [
     items: [
       { to: '/evaluations', label: 'Évaluations' },
       { to: '/notes', label: 'Saisie des notes' },
+      { to: '/notes/consultation', label: 'Consultation des notes' },
       { to: '/moyennes', label: 'Résultats & bulletins' },
       { to: '/assiduite', label: 'Assiduité' },
     ],

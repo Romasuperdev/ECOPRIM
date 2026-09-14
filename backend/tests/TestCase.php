@@ -119,6 +119,7 @@ abstract class TestCase extends BaseTestCase
             'foreign_key_constraints' => false,
         ]]);
         DB::purge('economat');
+        \App\Support\SchemaNotes::oublier();
 
         Schema::connection('economat')->create('T_ANNEEACADEMIQUE', function ($t) {
             $t->integer('CODE');
@@ -378,6 +379,32 @@ abstract class TestCase extends BaseTestCase
             $t->string('CodeSession')->nullable();
             $t->string('CodeAnnee')->nullable();
             $t->float('Coefficient')->nullable();
+        });
+
+        // Vraies tables de notes : la vue V_NOTECLASSE ci-dessus n'est qu'une restitution.
+        // Les noms reproduisent la convention d'ECONOMAT, car c'est précisément sur eux que
+        // porte la découverte de structure (App\Support\SchemaNotes).
+        Schema::connection('economat')->create('T_NOTEENTETE', function ($t) {
+            $t->integer('Code');
+            $t->string('CodeClasse')->nullable();
+            $t->string('CodeMatiere')->nullable();
+            $t->string('CodeSession')->nullable();
+            $t->string('CodeAnnee')->nullable();
+            $t->string('TypeNote')->nullable();
+            $t->string('Libelle')->nullable();
+            $t->date('DateNote')->nullable();
+            $t->float('Coefficient')->nullable();
+            $t->float('NoteSur')->nullable();
+            $t->string('CodeProf')->nullable();
+        });
+
+        Schema::connection('economat')->create('T_NOTEDETAILS', function ($t) {
+            $t->integer('Code');
+            $t->integer('CodeNote')->nullable();
+            $t->string('Matricule')->nullable();
+            $t->float('Note')->nullable();
+            $t->string('Appreciation')->nullable();
+            $t->boolean('Absent')->nullable();
         });
 
         Schema::connection('economat')->create('T_ABSENCEELEVE', function ($t) {
