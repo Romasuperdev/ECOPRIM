@@ -4,12 +4,10 @@ import { Trash2 } from 'lucide-react'
 import { createMatiere, deleteMatiere, fetchMatieresPage, updateMatiere } from './matieresApi'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import Select from '../../components/ui/Select'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
-import { fetchCycles } from '../niveaux/cyclesApi'
 
-const VIDE = { code: '', libelle: '', type: '', cycle_code: '', composition: false }
+const VIDE = { code: '', libelle: '', type: '', composition: false }
 
 /**
  * Matières — ECONOMAT.T_MATIERE.
@@ -29,7 +27,6 @@ export default function MatiereListPage() {
     queryKey: ['matieres', page],
     queryFn: () => fetchMatieresPage(page),
   })
-  const { data: cycles } = useQuery({ queryKey: ['cycles'], queryFn: fetchCycles })
 
   const rafraichir = () => qc.invalidateQueries({ queryKey: ['matieres'] })
   const fermer = () => { setForm(null); setErreurs({}) }
@@ -67,26 +64,24 @@ export default function MatiereListPage() {
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Libellé</th>
               <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Cycle</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
             )}
             {isError && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-red-500">Erreur de chargement.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-red-500">Erreur de chargement.</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune matière.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Aucune matière.</td></tr>
             )}
             {data?.data?.map((matiere) => (
               <tr key={matiere.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-slate-600">{matiere.code}</td>
                 <td className="px-4 py-3 font-medium text-slate-800">{matiere.libelle}</td>
                 <td className="px-4 py-3 text-slate-600">{matiere.type ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{matiere.cycle_code ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
                   <Button
                     variant="outline" className="!px-3 !py-1 mr-2"
@@ -97,7 +92,6 @@ export default function MatiereListPage() {
                         code: matiere.code ?? '',
                         libelle: matiere.libelle ?? '',
                         type: matiere.type ?? '',
-                        cycle_code: matiere.cycle_code ?? '',
                         composition: Boolean(matiere.composition),
                       })
                     }}
@@ -143,11 +137,6 @@ export default function MatiereListPage() {
                  error={erreurs.libelle?.[0]} onChange={(e) => champ('libelle', e.target.value)} />
           <Input label="Type (facultatif)" value={form.type}
                  error={erreurs.type?.[0]} onChange={(e) => champ('type', e.target.value)} />
-          <Select label="Cycle" value={form.cycle_code} error={erreurs.cycle_code?.[0]}
-                  onChange={(e) => champ('cycle_code', e.target.value)}>
-            <option value="">— Tous —</option>
-            {cycles?.map((c) => <option key={c.id ?? c.code} value={c.code}>{c.libelle}</option>)}
-          </Select>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={Boolean(form.composition)}
                    onChange={(e) => champ('composition', e.target.checked)} />

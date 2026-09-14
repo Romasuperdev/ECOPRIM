@@ -33,7 +33,7 @@ const VIDE = {
   mouvement: 'inscription',
   matricule: '', nom: '', prenom: '', sexe: '', date_naissance: '', lieu_naissance: '', nationalite: '',
   adresse: '', ville: '', commune: '', quartier: '', telephone: '', email: '',
-  annee: '', cycle_code: '', niveau_code: '', classe_code: '', redoublant: '',
+  annee: '', niveau_code: '', classe_code: '', redoublant: '',
   etab_origine: '', niveau_origine: '', date_inscription: '',
   pere_nom: '', pere_prenom: '', pere_profession: '', pere_telephone: '', pere_email: '',
   mere_nom: '', mere_prenom: '', mere_profession: '', mere_telephone: '', mere_email: '',
@@ -173,8 +173,8 @@ export default function InscriptionListPage() {
     setEtape((e) => e + 1)
   }
 
-  // Les niveaux et classes se restreignent au cycle / niveau choisi quand l'info existe.
-  const niveauxFiltres = (ref?.niveaux ?? []).filter((n) => !form?.cycle_code || n.cycle_code === form.cycle_code)
+  // Les classes se restreignent au niveau choisi quand l'info existe.
+  const niveauxFiltres = ref?.niveaux ?? []
   const classesFiltrees = (ref?.classes ?? []).filter((c) => !form?.niveau_code || c.niveau_code === form.niveau_code)
 
   return (
@@ -404,10 +404,6 @@ export default function InscriptionListPage() {
                         {a.libelle}{a.cloturee ? ' (clôturée)' : ''}
                       </option>
                     ))}
-                  </Select>
-                  <Select label="Cycle" value={form.cycle_code} onChange={(e) => { champ('cycle_code', e.target.value); champ('niveau_code', ''); champ('classe_code', '') }} error={err('cycle_code')}>
-                    <option value="">—</option>
-                    {ref?.cycles?.map((c) => <option key={c.id ?? c.code} value={c.code}>{c.libelle ?? c.code}</option>)}
                   </Select>
                   <Select label="Niveau" value={form.niveau_code} onChange={(e) => { champ('niveau_code', e.target.value); champ('classe_code', '') }} error={err('niveau_code')}>
                     <option value="">—</option>

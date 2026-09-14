@@ -53,35 +53,6 @@ class CoherenceScolaire
         }
     }
 
-    /** Le niveau doit appartenir au cycle annoncé. */
-    public static function assertNiveau(?string $niveau, ?string $cycle): void
-    {
-        $niveau = trim((string) $niveau);
-        $cycle = trim((string) $cycle);
-        if ($niveau === '' || $cycle === '') {
-            return;
-        }
-
-        try {
-            $ligne = DB::connection('economat')->table('T_NIVEAU')
-                ->where('CodeNiveau', $niveau)->first(['LibelleNiveau', 'CodeCycle']);
-        } catch (Throwable $e) {
-            return;
-        }
-
-        if (! $ligne) {
-            throw ValidationException::withMessages([
-                'niveau_code' => ["Le niveau « {$niveau} » n'existe pas dans le référentiel."],
-            ]);
-        }
-
-        $cycleNiveau = trim((string) ($ligne->CodeCycle ?? ''));
-        if ($cycleNiveau !== '' && $cycle !== $cycleNiveau) {
-            throw ValidationException::withMessages([
-                'niveau_code' => ["Le niveau « {$ligne->LibelleNiveau} » relève du cycle {$cycleNiveau}, pas de {$cycle}."],
-            ]);
-        }
-    }
 
     /** La date d'inscription doit tomber dans la période de l'année scolaire. */
     public static function assertDateInscription(?string $date, ?string $annee): void

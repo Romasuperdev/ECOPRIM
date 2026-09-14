@@ -36,12 +36,9 @@ class RestrictionsInscriptionTest extends TestCase
             ['CODE' => 2, 'CodeAnnee' => '2025', 'LibelleAnnee' => '2025-2026', 'Activer' => true,
                 'ClotureDefinitive' => false, 'DEBUT' => '2025-09-01', 'FIN' => '2026-07-31'],
         ]);
-        DB::connection('economat')->table('T_CYCLE')->insert([
-            ['Num' => 1, 'CodeCycle' => 'PRIM', 'LibelleCycle' => 'Primaire'],
-        ]);
         DB::connection('economat')->table('T_NIVEAU')->insert([
-            ['Num' => 1, 'CodeNiveau' => 'CP1', 'LibelleNiveau' => 'CP1', 'CodeCycle' => 'PRIM'],
-            ['Num' => 2, 'CodeNiveau' => 'CM2', 'LibelleNiveau' => 'CM2', 'CodeCycle' => 'PRIM'],
+            ['Num' => 1, 'CodeNiveau' => 'CP1', 'LibelleNiveau' => 'CP1'],
+            ['Num' => 2, 'CodeNiveau' => 'CM2', 'LibelleNiveau' => 'CM2'],
         ]);
         DB::connection('economat')->table('T_CLASSE')->insert([
             ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1', 'ANNEE' => '2025-2026'],
@@ -99,7 +96,7 @@ class RestrictionsInscriptionTest extends TestCase
 
         $this->postJson('/api/v1/inscriptions', $this->eleve([
             'mouvement' => 'reinscription', 'annee' => '2025-2026',
-            'niveau_code' => 'CM2', 'cycle_code' => 'PRIM', 'classe_code' => 'CM2A',
+            'niveau_code' => 'CM2', 'classe_code' => 'CM2A',
         ]))->assertOk();
 
         // Toujours une seule ligne, passée à la nouvelle année.
@@ -150,7 +147,7 @@ class RestrictionsInscriptionTest extends TestCase
     public function test_la_classe_doit_relever_du_niveau_choisi(): void
     {
         $this->postJson('/api/v1/inscriptions', $this->eleve([
-            'niveau_code' => 'CP1', 'cycle_code' => 'PRIM', 'classe_code' => 'CM2A',
+            'niveau_code' => 'CP1', 'classe_code' => 'CM2A',
         ]))->assertStatus(422)->assertJsonValidationErrors('classe_code');
     }
 
@@ -165,16 +162,6 @@ class RestrictionsInscriptionTest extends TestCase
     {
         $this->postJson('/api/v1/inscriptions', $this->eleve(['classe_code' => 'FANTOME']))
             ->assertStatus(422)->assertJsonValidationErrors('classe_code');
-    }
-
-    public function test_le_niveau_doit_relever_du_cycle_choisi(): void
-    {
-        DB::connection('economat')->table('T_CYCLE')->insert([
-            ['Num' => 2, 'CodeCycle' => 'SEC', 'LibelleCycle' => 'Secondaire'],
-        ]);
-
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['niveau_code' => 'CP1', 'cycle_code' => 'SEC']))
-            ->assertStatus(422)->assertJsonValidationErrors('niveau_code');
     }
 
     // --- Dates ---

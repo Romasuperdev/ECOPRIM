@@ -19,14 +19,14 @@ class Eleve extends Model
     // TotalPaye, Rb_*, Remise...) ni le technique (MDP, MDP2, NUM...).
     protected $visible = [
         'id', 'matricule', 'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance', 'nationalite',
-        'classe_code', 'niveau_code', 'cycle_code', 'annee', 'statut', 'redoublant', 'photo',
+        'classe_code', 'niveau_code', 'annee', 'statut', 'redoublant', 'photo',
         'pere_nom', 'pere_prenom', 'pere_profession', 'pere_telephone', 'pere_email',
         'mere_nom', 'mere_prenom', 'mere_profession', 'mere_telephone', 'mere_email',
         'classe',
     ];
     protected $appends = [
         'id', 'matricule', 'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance', 'nationalite',
-        'classe_code', 'niveau_code', 'cycle_code', 'annee', 'statut', 'redoublant', 'photo',
+        'classe_code', 'niveau_code', 'annee', 'statut', 'redoublant', 'photo',
         'pere_nom', 'pere_prenom', 'pere_profession', 'pere_telephone', 'pere_email',
         'mere_nom', 'mere_prenom', 'mere_profession', 'mere_telephone', 'mere_email',
     ];
@@ -41,7 +41,6 @@ class Eleve extends Model
     public function getNationaliteAttribute() { return $this->attributes['Nationalite'] ?? null; }
     public function getClasseCodeAttribute() { return $this->attributes['CodeClasse'] ?? null; }
     public function getNiveauCodeAttribute() { return $this->attributes['CodeNiveau'] ?? null; }
-    public function getCycleCodeAttribute() { return $this->attributes['CodeCycle'] ?? null; }
     public function getAnneeAttribute() { return $this->attributes['AnneeAcad'] ?? null; }
     public function getStatutAttribute() { return $this->attributes['Etat'] ?? ($this->attributes['Statut'] ?? null); }
     public function getRedoublantAttribute() { return $this->attributes['Redoublant'] ?? null; }

@@ -15,7 +15,7 @@ class Classe extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    protected $appends = ['id', 'code', 'nom', 'niveau_code', 'annee', 'serie'];
+    protected $appends = ['id', 'code', 'nom', 'niveau_code', 'annee'];
     protected $hidden = ['num', 'CodeClasse', 'LibelleClasse', 'CodN', 'CodeF', 'ANNEE', 'BoolClassExam', 'CodeSerie', 'Site', 'CODEETABLISSEMENT', 'CODESOCIETE'];
 
     public function getIdAttribute() { return $this->attributes['num'] ?? ($this->attributes['CodeClasse'] ?? null); }
@@ -23,7 +23,6 @@ class Classe extends Model
     public function getNomAttribute() { return $this->attributes['LibelleClasse'] ?? ($this->attributes['CodeClasse'] ?? null); }
     public function getNiveauCodeAttribute() { return $this->attributes['CodN'] ?? null; }
     public function getAnneeAttribute() { return $this->attributes['ANNEE'] ?? null; }
-    public function getSerieAttribute() { return $this->attributes['CodeSerie'] ?? null; }
 
     public function niveau(): BelongsTo
     {

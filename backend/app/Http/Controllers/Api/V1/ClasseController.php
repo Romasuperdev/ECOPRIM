@@ -21,6 +21,9 @@ use Throwable;
  * créneau, une affectation, une absence ou une note s'y rattache — supprimer une classe
  * qui compte des élèves les laisserait rattachés à un code inexistant, et ECONOMAT ne
  * porte aucune clé étrangère pour l'empêcher.
+ *
+ * Pas de série : c'est une notion de lycée, sans objet au primaire. La colonne `CodeSerie`
+ * existe toujours dans T_CLASSE et ses valeurs sont préservées — NEXORA ne l'écrit plus.
  */
 class ClasseController extends Controller
 {
@@ -40,7 +43,6 @@ class ClasseController extends Controller
             'code' => 'CodeClasse',
             'nom' => 'LibelleClasse',
             'niveau_code' => 'CodN',
-            'serie' => 'CodeSerie',
             'annee' => 'ANNEE',
         ]);
     }
@@ -65,7 +67,6 @@ class ClasseController extends Controller
             'code' => [$creation ? 'required' : 'sometimes', 'string', 'max:20'],
             'nom' => [$creation ? 'required' : 'sometimes', 'string', 'max:60'],
             'niveau_code' => [$creation ? 'required' : 'sometimes', 'string', 'max:20'],
-            'serie' => ['nullable', 'string', 'max:20'],
         ];
     }
 

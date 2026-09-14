@@ -38,16 +38,14 @@ export async function fetchPhotoBlob(id) {
 
 // Listes de référence pour alimenter le formulaire.
 export async function fetchReferentiels() {
-  const [annees, cycles, niveaux, classes] = await Promise.all([
+  const [annees, niveaux, classes] = await Promise.all([
     apiClient.get('/annees-scolaires', { params: { per_page: 200 } }),
-    apiClient.get('/cycles', { params: { per_page: 200 } }),
     apiClient.get('/niveaux', { params: { per_page: 200 } }),
     apiClient.get('/classes', { params: { per_page: 200 } }),
   ])
   const liste = (r) => r.data?.data ?? r.data ?? []
   return {
     annees: liste(annees),
-    cycles: liste(cycles),
     niveaux: liste(niveaux),
     classes: liste(classes),
   }

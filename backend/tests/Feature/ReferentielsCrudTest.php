@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * Référentiels des Paramètres : années scolaires, cycles, niveaux, classes, matières.
+ * Référentiels des Paramètres : années scolaires, niveaux, classes, matières.
  *
  * Règle commune à tous : la suppression est réelle, mais refusée dès qu'une ligne s'y
  * rattache. ECONOMAT ne porte aucune clé étrangère — rien n'empêcherait techniquement de
@@ -40,12 +40,9 @@ class ReferentielsCrudTest extends TestCase
             ['CODE' => 2, 'CodeAnnee' => '2024', 'LibelleAnnee' => '2024-2025',
                 'Activer' => false, 'ClotureDefinitive' => true, 'DEBUT' => '2024-09-01'],
         ]);
-        $eco('T_CYCLE')->insert([
-            ['Num' => 1, 'CodeCycle' => 'PRIM', 'LibelleCycle' => 'Primaire', 'Primaire' => true],
-        ]);
         $eco('T_NIVEAU')->insert([
             ['Num' => 1, 'CodeNiveau' => 'CP1', 'LibelleNiveau' => 'Cours préparatoire 1',
-                'CodeCycle' => 'PRIM', 'ANNEE' => self::ANNEE, 'Ordre' => 1],
+                'ANNEE' => self::ANNEE, 'Ordre' => 1],
         ]);
     }
 
@@ -100,40 +97,12 @@ class ReferentielsCrudTest extends TestCase
         $this->assertDatabaseHas('T_ANNEEACADEMIQUE', ['CODE' => 1], 'economat');
     }
 
-    // ─── Cycles ───
-
-    public function test_creer_modifier_et_supprimer_un_cycle(): void
-    {
-        $this->postJson('/api/v1/cycles', ['code' => 'MAT', 'libelle' => 'Maternelle'])
-            ->assertCreated()->assertJsonPath('code', 'MAT');
-
-        $this->putJson('/api/v1/cycles/MAT', ['libelle' => 'Maternelle (rénovée)'])
-            ->assertOk()->assertJsonPath('libelle', 'Maternelle (rénovée)');
-
-        $this->deleteJson('/api/v1/cycles/MAT')->assertNoContent();
-        $this->assertDatabaseMissing('T_CYCLE', ['CodeCycle' => 'MAT'], 'economat');
-    }
-
-    public function test_un_cycle_qui_porte_des_niveaux_ne_se_supprime_pas(): void
-    {
-        $r = $this->deleteJson('/api/v1/cycles/PRIM')->assertStatus(409);
-
-        $this->assertStringContainsString('niveau', $r->json('message'));
-        $this->assertDatabaseHas('T_CYCLE', ['CodeCycle' => 'PRIM'], 'economat');
-    }
-
-    public function test_un_code_de_cycle_ne_peut_pas_etre_repris(): void
-    {
-        $this->postJson('/api/v1/cycles', ['code' => 'PRIM', 'libelle' => 'Doublon'])
-            ->assertStatus(422)->assertJsonValidationErrors('code');
-    }
-
     // ─── Niveaux ───
 
     public function test_creer_modifier_et_supprimer_un_niveau(): void
     {
         $r = $this->postJson('/api/v1/niveaux', [
-            'code' => 'CP2', 'libelle' => 'Cours préparatoire 2', 'cycle_code' => 'PRIM', 'ordre' => 2,
+            'code' => 'CP2', 'libelle' => 'Cours préparatoire 2', 'ordre' => 2,
         ])->assertCreated()->assertJsonPath('code', 'CP2');
         $id = $r->json('id');
 
@@ -144,16 +113,9 @@ class ReferentielsCrudTest extends TestCase
         $this->deleteJson("/api/v1/niveaux/{$id}")->assertNoContent();
     }
 
-    public function test_un_niveau_rattache_a_un_cycle_inconnu_est_refuse(): void
-    {
-        $this->postJson('/api/v1/niveaux', [
-            'code' => 'CP2', 'libelle' => 'CP2', 'cycle_code' => 'FANTOME',
-        ])->assertStatus(422)->assertJsonValidationErrors('cycle_code');
-    }
-
     public function test_un_code_de_niveau_est_unique_dans_l_annee_mais_reutilisable_ailleurs(): void
     {
-        $this->postJson('/api/v1/niveaux', ['code' => 'CP1', 'libelle' => 'Doublon', 'cycle_code' => 'PRIM'])
+        $this->postJson('/api/v1/niveaux', ['code' => 'CP1', 'libelle' => 'Doublon'])
             ->assertStatus(422)->assertJsonValidationErrors('code');
 
         // La même année existe dans une autre année : c'est normal, un CP1 par an.
@@ -224,7 +186,7 @@ class ReferentielsCrudTest extends TestCase
     public function test_creer_modifier_et_supprimer_une_matiere(): void
     {
         $r = $this->postJson('/api/v1/matieres', [
-            'code' => 'MATH', 'libelle' => 'Mathématiques', 'cycle_code' => 'PRIM',
+            'code' => 'MATH', 'libelle' => 'Mathématiques',
         ])->assertCreated()->assertJsonPath('code', 'MATH');
         $id = $r->json('id');
 

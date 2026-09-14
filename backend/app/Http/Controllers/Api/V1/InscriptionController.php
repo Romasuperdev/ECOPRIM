@@ -84,7 +84,6 @@ class InscriptionController extends Controller
             'email' => ['nullable', 'email', 'max:'.$l['email']],
             // Scolarité
             'annee' => ['required', 'string', 'max:'.$l['annee']],
-            'cycle_code' => ['nullable', 'string', 'max:'.$l['cycle_code']],
             'niveau_code' => ['nullable', 'string', 'max:'.$l['niveau_code']],
             'classe_code' => ['nullable', 'string', 'max:'.$l['classe_code']],
             'redoublant' => ['nullable', 'string', 'max:'.$l['redoublant']],
@@ -186,7 +185,6 @@ class InscriptionController extends Controller
     /** Contrôles de cohérence communs à la création et à la modification. */
     private function assertCoherence(array $data): void
     {
-        CoherenceScolaire::assertNiveau($data['niveau_code'] ?? null, $data['cycle_code'] ?? null);
         CoherenceScolaire::assertClasse($data['classe_code'] ?? null, $data['niveau_code'] ?? null, $data['annee'] ?? null);
         CoherenceScolaire::assertDateInscription($data['date_inscription'] ?? null, $data['annee'] ?? null);
 

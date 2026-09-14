@@ -16,9 +16,10 @@ const VIDE = { code: '', libelle: '' }
  *
  * Un niveau appartient à l'année de travail : le même CP1 est recréé chaque année.
  *
- * Ni le cycle ni l'ordre d'affichage n'apparaissent ici, à la demande : les colonnes
- * existent toujours dans T_NIVEAU et leurs valeurs sont préservées, la page ne les
- * affiche simplement pas et ne les écrit plus.
+ * Ni cycle ni ordre d'affichage : une école primaire n'a qu'un cycle, et les niveaux se
+ * lisent dans l'ordre du référentiel. Les colonnes `CodeCycle` et `Ordre` existent
+ * toujours dans T_NIVEAU et leurs valeurs sont préservées — NEXORA ne les lit ni ne les
+ * écrit plus.
  */
 export default function NiveauListPage() {
   const qc = useQueryClient()

@@ -57,8 +57,8 @@ class PorteeAnneeTest extends TestCase
             ['num' => 2, 'CodeClasse' => 'CB', 'LibelleClasse' => 'Classe actuelle', 'CodN' => 'N1', 'ANNEE' => self::B],
         ]);
         $eco('T_NIVEAU')->insert([
-            ['Num' => 1, 'CodeNiveau' => 'NA', 'LibelleNiveau' => 'Niveau passé', 'CodeCycle' => 'PRIM', 'ANNEE' => self::A, 'Ordre' => 1],
-            ['Num' => 2, 'CodeNiveau' => 'NB', 'LibelleNiveau' => 'Niveau actuel', 'CodeCycle' => 'PRIM', 'ANNEE' => self::B, 'Ordre' => 1],
+            ['Num' => 1, 'CodeNiveau' => 'NA', 'LibelleNiveau' => 'Niveau passé', 'ANNEE' => self::A, 'Ordre' => 1],
+            ['Num' => 2, 'CodeNiveau' => 'NB', 'LibelleNiveau' => 'Niveau actuel', 'ANNEE' => self::B, 'Ordre' => 1],
         ]);
         $eco('T_PROFESSEUR')->insert([
             ['Code' => 1, 'MatriculeProfesseur' => 'PA', 'NomProfesseur' => 'ProfPasse', 'CodeAnnee' => self::CODE_A],

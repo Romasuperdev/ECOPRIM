@@ -31,7 +31,6 @@
             <tr><td class="libelle">Année scolaire</td><td>{!! $v($eleve->annee) !!}</td></tr>
             <tr><td class="libelle">Classe</td><td>{!! $v($classe ?? $eleve->classe_code) !!}</td></tr>
             <tr><td class="libelle">Niveau</td><td>{!! $v($eleve->niveau_code) !!}</td></tr>
-            <tr><td class="libelle">Cycle</td><td>{!! $v($eleve->cycle_code) !!}</td></tr>
             <tr><td class="libelle">Redoublant</td><td>{!! $v($eleve->redoublant) !!}</td></tr>
         </table>
     </div>

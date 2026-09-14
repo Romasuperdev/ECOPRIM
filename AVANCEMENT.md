@@ -2307,3 +2307,32 @@ calcul par société (déjà cohérent avec la liste dans ce cas) est inchangé.
 
 Vérifié : suite `PerimetreConsoleTest` + `ContexteTest` (43 tests, 175 assertions) toujours
 verte — aucun test n'attendait l'ancien chiffre en vue générale.
+
+## Retrait de Cycle et Série
+
+Une école primaire n'a qu'un cycle, et la série est une notion de lycée : les deux
+disparaissent de NEXORA.
+
+**Ce qui part côté écran** : la page Cycles et son panneau, la colonne et la liste
+déroulante Cycle des Matières, la colonne Cycle des Niveaux, le champ et la colonne Série
+des Classes, et la liste déroulante Cycle de l'assistant d'inscription — dont le filtrage
+des niveaux par cycle, devenu sans objet. La fiche élève imprimée ne porte plus la ligne
+Cycle.
+
+**Ce qui part côté serveur** : `CycleController`, le modèle `Cycle` et les cinq routes
+`/cycles` ; `cycle_code` des listes blanches d'écriture de `T_NIVEAU`, `T_MATIERE` et
+`T_ETUDIANT` ; `serie` de celle de `T_CLASSE` ; le contrôle de cohérence niveau ↔ cycle de
+`CoherenceScolaire` (ses deux autres contrôles restent) ; et les accesseurs correspondants
+des modèles `Niveau`, `Classe` et `Eleve`.
+
+**Aucune donnée n'est touchée.** `T_CYCLE` existe toujours, de même que les colonnes
+`CodeCycle` de `T_NIVEAU`, `T_MATIERE` et `T_ETUDIANT` et `CodeSerie` de `T_CLASSE`, avec
+leurs valeurs. NEXORA ne les lit ni ne les écrit plus — les autres applications de la suite
+continuent de les voir intactes. Le retrait est donc réversible sans perte.
+
+Tests : les cas propres aux cycles sont retirés (`ReferentielsCrudTest`, le contrôle
+niveau ↔ cycle de `RestrictionsInscriptionTest`, `test_cycles_mappes` de `ReferenceReadTest`),
+les autres nettoyés de leurs fixtures `T_CYCLE`. Le harnais conserve la table `T_CYCLE` :
+il reflète ECONOMAT, pas ce que NEXORA en utilise.
+Suite : **291 tests, 1226 assertions verts**. Build et lint propres ; les quatre écrans
+touchés rendus à blanc, sans aucune occurrence de « Cycle » ou « Série ».

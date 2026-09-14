@@ -37,7 +37,6 @@ class MatiereController extends Controller
             'code' => 'CodeMatiere',
             'libelle' => 'LibelleMatiere',
             'type' => 'Type',
-            'cycle_code' => 'CodeCycle',
             'composition' => 'Composition',
         ]);
     }
@@ -58,7 +57,6 @@ class MatiereController extends Controller
             'code' => [$creation ? 'required' : 'sometimes', 'string', 'max:20'],
             'libelle' => [$creation ? 'required' : 'sometimes', 'string', 'max:60'],
             'type' => ['nullable', 'string', 'max:30'],
-            'cycle_code' => ['nullable', 'string', 'max:20'],
             'composition' => ['nullable', 'boolean'],
         ];
     }

@@ -17,7 +17,6 @@ use App\Http\Controllers\Api\V1\ParentController;
 use App\Http\Controllers\Api\V1\RapportController;
 use App\Http\Controllers\Api\V1\InscriptionController;
 use App\Http\Controllers\Api\V1\BulletinController;
-use App\Http\Controllers\Api\V1\CycleController;
 use App\Http\Controllers\Api\V1\SocieteController;
 use App\Http\Controllers\Api\V1\EtablissementController;
 use App\Http\Controllers\Api\V1\AffectationController;
@@ -115,11 +114,6 @@ Route::prefix('v1')->group(function () {
         Route::put('niveaux/{niveau}', [NiveauController::class, 'update']);
         Route::delete('niveaux/{niveau}', [NiveauController::class, 'destroy']);
 
-        Route::get('cycles', [CycleController::class, 'index']);
-        Route::get('cycles/{cycle}', [CycleController::class, 'show']);
-        Route::post('cycles', [CycleController::class, 'store']);
-        Route::put('cycles/{cycle}', [CycleController::class, 'update']);
-        Route::delete('cycles/{cycle}', [CycleController::class, 'destroy']);
         // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
         Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
         Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);

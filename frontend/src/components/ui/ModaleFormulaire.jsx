@@ -1,7 +1,7 @@
 import Button from './Button'
 
 /**
- * Coquille commune aux formulaires de référentiel (années, cycles, niveaux, classes,
+ * Coquille commune aux formulaires de référentiel (années, niveaux, classes,
  * matières). Elle ne fait que porter la mise en page déjà utilisée ailleurs dans
  * l'application : même carte blanche arrondie, même voile, mêmes boutons — pour que les
  * quatre pages de Paramètres se ressemblent sans que chacune redéclare son gabarit.
