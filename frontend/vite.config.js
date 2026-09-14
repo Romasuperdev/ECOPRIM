@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // Redirige les appels API vers le backend Laravel en développement
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
     },
