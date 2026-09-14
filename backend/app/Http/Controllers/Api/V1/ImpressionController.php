@@ -57,6 +57,38 @@ class ImpressionController extends Controller
         return $pdf->download($this->nomFichier('fiche-eleve', $eleve->matricule ?: $eleve->getKey()));
     }
 
+    /** Certificat de scolarité : atteste l'inscription en cours d'un élève. */
+    public function certificatScolarite(Request $request, Eleve $eleve)
+    {
+        $pdf = Pdf::loadView('pdf.certificat-scolarite', $this->commun($request) + [
+            'eleve' => $eleve,
+            'classe' => $this->libelleClasse($eleve->classe_code),
+            'motif' => $this->motif($request),
+        ]);
+
+        return $pdf->download($this->nomFichier('certificat-scolarite', $eleve->matricule ?: $eleve->getKey()));
+    }
+
+    /** Attestation de fréquentation : atteste qu'un élève a fréquenté l'établissement. */
+    public function attestationFrequentation(Request $request, Eleve $eleve)
+    {
+        $pdf = Pdf::loadView('pdf.attestation-frequentation', $this->commun($request) + [
+            'eleve' => $eleve,
+            'classe' => $this->libelleClasse($eleve->classe_code),
+            'motif' => $this->motif($request),
+        ]);
+
+        return $pdf->download($this->nomFichier('attestation-frequentation', $eleve->matricule ?: $eleve->getKey()));
+    }
+
+    /** Motif facultatif (visa, allocation familiale, transfert...), tapé avant impression. */
+    private function motif(Request $request): ?string
+    {
+        $motif = trim((string) $request->query('motif', ''));
+
+        return $motif !== '' ? $motif : null;
+    }
+
     /** Fiche complète d'un enseignant : état civil, coordonnées, carrière, administration. */
     public function enseignant(Request $request, Enseignant $enseignant)
     {

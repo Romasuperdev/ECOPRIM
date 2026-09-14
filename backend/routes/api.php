@@ -140,6 +140,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('evaluations-planifiees/{evaluation}', [EvaluationController::class, 'destroy']);
         // Documents imprimables (PDF) — lecture seule, une année clôturée s'imprime.
         Route::get('impressions/eleves/{eleve}', [ImpressionController::class, 'eleve']);
+        Route::get('impressions/eleves/{eleve}/certificat-scolarite', [ImpressionController::class, 'certificatScolarite']);
+        Route::get('impressions/eleves/{eleve}/attestation-frequentation', [ImpressionController::class, 'attestationFrequentation']);
         Route::get('impressions/enseignants/{enseignant}', [ImpressionController::class, 'enseignant']);
         Route::get('impressions/emploi-du-temps', [ImpressionController::class, 'emploiDuTemps']);
         Route::get('impressions/liste-classe', [ImpressionController::class, 'listeClasse']);

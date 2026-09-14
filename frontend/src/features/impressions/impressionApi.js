@@ -20,6 +20,12 @@ async function ouvrirPdf(url, params) {
 
 export const imprimerFicheEleve = (code) => ouvrirPdf(`impressions/eleves/${code}`)
 
+export const imprimerCertificatScolarite = (code, motif) =>
+  ouvrirPdf(`impressions/eleves/${code}/certificat-scolarite`, motif ? { motif } : undefined)
+
+export const imprimerAttestationFrequentation = (code, motif) =>
+  ouvrirPdf(`impressions/eleves/${code}/attestation-frequentation`, motif ? { motif } : undefined)
+
 export const imprimerFicheEnseignant = (code) => ouvrirPdf(`impressions/enseignants/${code}`)
 
 export const imprimerEmploiDuTemps = (params) => ouvrirPdf('impressions/emploi-du-temps', params)

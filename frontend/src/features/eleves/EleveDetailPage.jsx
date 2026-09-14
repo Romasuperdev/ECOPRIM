@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Printer } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
 import { fetchBulletinDonnees, fetchEleve, imprimerBulletin } from './elevesApi'
+import { imprimerAttestationFrequentation, imprimerCertificatScolarite } from '../impressions/impressionApi'
 
 function Champ({ label, value }) {
   return (
@@ -91,6 +94,33 @@ function SectionBulletin({ eleve }) {
   )
 }
 
+/** Certificat de scolarité et attestation de fréquentation, avec motif facultatif. */
+function SectionDocuments({ eleve }) {
+  const [motif, setMotif] = useState('')
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <h2 className="mb-4 text-lg font-semibold text-slate-800">Documents administratifs</h2>
+      <Input
+        label="Motif (facultatif)"
+        placeholder="Ex. : demande de visa, allocation familiale…"
+        value={motif}
+        onChange={(e) => setMotif(e.target.value)}
+      />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => imprimerCertificatScolarite(eleve.id, motif)}>
+          <Printer size={16} className="mr-1.5 inline" />
+          Certificat de scolarité
+        </Button>
+        <Button variant="outline" onClick={() => imprimerAttestationFrequentation(eleve.id, motif)}>
+          <Printer size={16} className="mr-1.5 inline" />
+          Attestation de fréquentation
+        </Button>
+      </div>
+    </section>
+  )
+}
+
 // Fiche élève en lecture seule (ECONOMAT.T_ETUDIANT).
 export default function EleveDetailPage() {
   const { id } = useParams()
@@ -131,6 +161,8 @@ export default function EleveDetailPage() {
           <Champ label="Statut" value={eleve.statut} />
         </dl>
       </section>
+
+      <SectionDocuments eleve={eleve} />
 
       <SectionBulletin eleve={eleve} />
 

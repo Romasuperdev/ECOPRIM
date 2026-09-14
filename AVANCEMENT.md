@@ -2406,3 +2406,44 @@ consultation garde son adresse propre, `/notes/consultation`.
 16 tests dédiés, éprouvés par mutation (ressaisie qui duplique, absent qui garde sa note,
 fermeture par défaut désactivée, barème non vérifié : les quatre sont détectées). Suite
 complète : **310 tests, 1304 assertions**.
+
+## Nouveau rapport de vision ERP pédagogique, gap analysis, et premiers documents administratifs
+
+L'utilisateur a transmis un second document de vision (43 sections, plus détaillé que celui
+d'août : facturation, cantine, transport, notation par compétences, catalogue de rôles élargi,
+génération automatique de documents, dashboard enrichi) en demandant explicitement de
+« l'appliquer pour perfectionner l'application ». Vu l'ampleur (une dizaine de modules), pas de
+grand chantier lancé à l'aveugle : une vérification factuelle du code a d'abord établi ce qui
+existe déjà (années scolaires verrouillées, classes/niveaux/matières, absences, évaluations
+typées, notes, bulletins, inscriptions, portails enseignant/parent, cahier de texte, emploi du
+temps, communication, console admin — **titulaire de classe existe déjà**, via l'indicateur
+« Principale » sur l'affectation enseignant↔classe) et ce qui manque vraiment : facturation,
+cantine, transport et notation par compétences sont **impossibles en l'état** (aucune table
+correspondante côté ECONOMAT, la base héritée qu'ECOPRIM ne peut pas étendre — un schéma
+`EP_*` a bien été prévu pour ce cas mais n'a jamais servi) ; le suivi des devoirs comme entité
+distincte n'existe pas ; le cloisonnement multi-établissement des données pédagogiques reste un
+chantier connu et différé. Le catalogue de rôles s'est révélé plus emmêlé que prévu — deux
+systèmes de rôles parallèles coexistent (un côté `master.roles`/`role_user`, externe, lu par
+`RhUser::getRoleNames()`, et `console_roles` propre à ECOPRIM pour les affectations) et le
+`RoleSeeder` local sème une table qu'aucun code ne lit réellement : corrigé à la va-vite, le
+risque était de se tromper de cible. Laissé de côté pour une passe dédiée.
+
+Choix de l'utilisateur pour démarrer : « le plus rapide en valeur, sans risque ». Premier
+livrable retenu : les **documents administratifs automatiques**, en s'appuyant sur
+`ImpressionController` (déjà responsable de la fiche élève, la fiche enseignant, l'emploi du
+temps et la liste de classe, tous sur la mise en page commune `pdf/layout.blade.php`) plutôt que
+d'inventer un nouveau mécanisme.
+
+- Deux nouveaux documents : **certificat de scolarité** et **attestation de fréquentation**,
+  chacun avec un champ *motif* facultatif (visa, allocation familiale, transfert...) saisi juste
+  avant l'impression.
+- Accessibles depuis la fiche élève (`/eleves/:id`), nouvelle section « Documents
+  administratifs » au-dessus du bulletin.
+- Lecture seule comme les autres impressions : une année clôturée reste imprimable.
+- 4 nouveaux tests dans `ImpressionTest` (génération, motif transmis à la vue, impression sur
+  année clôturée) : suite `ImpressionTest` au complet (11 tests, 52 assertions) verte. Suite
+  complète du projet : 315 tests passent (2 échecs préexistants et déjà documentés dans
+  `SaisieEconomatTest`, sans rapport avec ce changement).
+
+Mémoire mise à jour avec le contenu de ce second document de vision et la gap analysis, pour
+que les prochaines sessions n'aient pas à refaire cette vérification.

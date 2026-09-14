@@ -150,4 +150,37 @@ class ImpressionTest extends TestCase
         $this->getJson('/api/v1/impressions/liste-classe')->assertStatus(422);
         $this->getJson('/api/v1/impressions/emploi-du-temps')->assertStatus(422);
     }
+
+    public function test_le_certificat_de_scolarite_s_imprime(): void
+    {
+        $vue = $this->donneesDeLaVue('pdf.certificat-scolarite', '/api/v1/impressions/eleves/11/certificat-scolarite');
+
+        $this->assertSame('CP1 A', $vue['classe']);
+        $this->assertNull($vue['motif']);
+    }
+
+    public function test_l_attestation_de_frequentation_s_imprime(): void
+    {
+        $vue = $this->donneesDeLaVue('pdf.attestation-frequentation', '/api/v1/impressions/eleves/11/attestation-frequentation');
+
+        $this->assertSame('CP1 A', $vue['classe']);
+    }
+
+    public function test_le_motif_facultatif_est_transmis_a_la_vue(): void
+    {
+        $vue = $this->donneesDeLaVue(
+            'pdf.certificat-scolarite',
+            '/api/v1/impressions/eleves/11/certificat-scolarite?motif=Demande+de+visa'
+        );
+
+        $this->assertSame('Demande de visa', $vue['motif']);
+    }
+
+    public function test_le_certificat_et_l_attestation_restent_imprimables_sur_une_annee_cloturee(): void
+    {
+        $this->postJson('/api/v1/contexte/annee', ['annee' => '2024-2025'])->assertOk();
+
+        $this->assertPdf($this->get('/api/v1/impressions/eleves/12/certificat-scolarite'));
+        $this->assertPdf($this->get('/api/v1/impressions/eleves/12/attestation-frequentation'));
+    }
 }
