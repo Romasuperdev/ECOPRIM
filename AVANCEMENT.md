@@ -2336,3 +2336,34 @@ les autres nettoyés de leurs fixtures `T_CYCLE`. Le harnais conserve la table `
 il reflète ECONOMAT, pas ce que NEXORA en utilise.
 Suite : **291 tests, 1226 assertions verts**. Build et lint propres ; les quatre écrans
 touchés rendus à blanc, sans aucune occurrence de « Cycle » ou « Série ».
+
+## Socle : la base propre, et un garde-fou permanent
+
+Après lecture du code de **NEXORA LYCOLL**, une différence domine toutes les autres :
+LYCOLL possède sa base métier (`ATECH_BASE_LYCOLL`, 35 tables `LC_*`) là où NEXORA écrit
+dans dix tables d'ECONOMAT qu'elle ne possède pas. D'où les listes blanches, l'interdiction
+de supprimer, les contrôles de dépendance — et surtout l'impossibilité d'**ajouter une
+colonne ou une table**. Compétences, devoirs, cantine, transport, discipline, santé,
+documents : aucun n'a de table dans ECONOMAT, donc aucun n'est réalisable en l'état.
+
+Deux pièces posées, qui ne dépendaient d'aucune décision :
+
+**`App\Models\Metier\BaseMetierModel`** — socle des tables qui appartiennent à NEXORA, sur
+la base `ecoprim`, préfixe `EP_`. Conventions reprises de LYCOLL : clé UUID (pas de compteur
+partagé entre établissements) et dates ISO 8601 avec T (`datetime` SQL Server refuse les
+microsecondes de Laravel, et le format ISO lève l'ambiguïté de locale). Les `console_*`
+existantes gardent leur clé auto-incrémentée : elles tournent, rien ne justifie de les
+convertir. Le partage reste : ECONOMAT garde ce qu'elle possède déjà et reste source de
+vérité ; `EP_*` porte tout le reste, et s'y comporte normalement — suppression comprise.
+
+**`SocleConnexionsTest`** — le garde-fou. `DB_CONNECTION=economat` fait pointer le défaut de
+Laravel sur la base de production : un modèle sans `$connection` explicite y atterrit
+silencieusement, et s'il vise une table absente, la page répond 500 sans qu'on comprenne
+pourquoi. C'est exactement ce qui est arrivé à dix endpoints. Le test parcourt
+`app/Models`, exige que chaque modèle déclare sa connexion, qu'elle soit connue, et que
+toute table `console_*` ou `EP_*` vive bien sur la base propre. Vérifié par mutation : en
+retirant la connexion de `Matiere`, le test échoue **en nommant le modèle fautif**.
+
+Le repli de `config/database.php` passe en outre de `sqlsrv` à `ecoprim` : si la variable
+d'environnement disparaît, on tombe sur la base propre, jamais sur la production.
+Suite : **294 tests, 1235 assertions verts**.

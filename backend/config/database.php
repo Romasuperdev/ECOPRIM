@@ -1,7 +1,11 @@
 <?php
 
 return [
-    'default' => env('DB_CONNECTION', 'sqlsrv'),
+    // Repli sur la base PROPRE, jamais sur ECONOMAT : un modèle qui oublierait sa
+    // connexion ne doit pas atterrir dans la base de production partagée. Le .env garde
+    // le dernier mot — d'où le test SocleConnexionsTest, qui exige que chaque modèle
+    // déclare explicitement où il vit.
+    'default' => env('DB_CONNECTION', 'ecoprim'),
 
     'connections' => [
 
