@@ -66,7 +66,7 @@ Route::prefix('v1')->group(function () {
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
         Route::post('classes', [ClasseController::class, 'store']);
         Route::put('classes/{classe}', [ClasseController::class, 'update']);
-        Route::delete('classes/{classe}', [ClasseController::class, 'destroy']);
+        Route::delete('classes/{classe}', [ClasseController::class, 'destroy'])->middleware('permission:supprimer_classe');
         // Emplois du temps : grille par classe, bornée à l'année de travail.
         Route::get('emplois-du-temps/referentiels', [EmploiDuTempsController::class, 'referentiels']);
         Route::get('emplois-du-temps', [EmploiDuTempsController::class, 'index']);
@@ -98,7 +98,7 @@ Route::prefix('v1')->group(function () {
         // permet de vérifier le rapprochement des colonnes sans ouvrir SQL Server.
         Route::get('notes/structure', [SaisieNoteController::class, 'structure']);
         Route::get('notes/feuille', [SaisieNoteController::class, 'feuille']);
-        Route::post('notes/feuille', [SaisieNoteController::class, 'enregistrer']);
+        Route::post('notes/feuille', [SaisieNoteController::class, 'enregistrer'])->middleware('permission:saisir_notes');
         Route::get('enseignants', [EnseignantController::class, 'index']);
         Route::post('enseignants', [EnseignantController::class, 'store']);
         Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show']);
@@ -112,7 +112,7 @@ Route::prefix('v1')->group(function () {
         // absence mal saisie n'a pas d'autre voie de correction).
         Route::get('absences', [AbsenceController::class, 'index']);
         Route::get('absences/{absence}', [AbsenceController::class, 'show']);
-        Route::post('absences', [AbsenceController::class, 'store']);
+        Route::post('absences', [AbsenceController::class, 'store'])->middleware('permission:saisir_absences');
         Route::put('absences/{absence}', [AbsenceController::class, 'update']);
         Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
         // Parents / tuteurs : annuaire DÉRIVÉ des fiches élèves, en lecture seule.
@@ -144,7 +144,7 @@ Route::prefix('v1')->group(function () {
         // que ce qui a été vu en classe).
         Route::get('devoirs/referentiels', [DevoirController::class, 'referentiels']);
         Route::get('devoirs', [DevoirController::class, 'index']);
-        Route::post('devoirs', [DevoirController::class, 'store']);
+        Route::post('devoirs', [DevoirController::class, 'store'])->middleware('permission:creer_devoirs');
         Route::put('devoirs/{devoir}', [DevoirController::class, 'update']);
         Route::delete('devoirs/{devoir}', [DevoirController::class, 'destroy']);
         // Calendrier scolaire : congés/vacances, réunions parents-professeurs, sorties et
@@ -169,9 +169,9 @@ Route::prefix('v1')->group(function () {
         // Scolarité
         // Inscriptions = saisie d'un élève dans T_ETUDIANT. Pas de suppression : table partagée.
         Route::get('inscriptions', [InscriptionController::class, 'index']);
-        Route::post('inscriptions', [InscriptionController::class, 'store']);
+        Route::post('inscriptions', [InscriptionController::class, 'store'])->middleware('permission:inscrire_eleve');
         Route::get('inscriptions/{inscription}', [InscriptionController::class, 'show']);
-        Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update']);
+        Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update'])->middleware('permission:modifier_dossier_eleve');
         Route::get('inscriptions/{inscription}/photo', [InscriptionController::class, 'photo']);
         Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto']);
 
@@ -277,6 +277,10 @@ Route::prefix('v1')->group(function () {
             Route::get('roles', [RoleController::class, 'index']);
             Route::post('roles', [RoleController::class, 'store']);
             Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+            // Permissions accordées à un rôle (App\Support\Permissions) : même périmètre
+            // que la suppression d'un rôle (RoleController::assertGerable).
+            Route::get('roles/{role}/permissions', [RoleController::class, 'permissions']);
+            Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::get('etablissements/{code}', [EtablissementController::class, 'show']);
@@ -287,6 +291,7 @@ Route::prefix('v1')->group(function () {
             Route::put('utilisateurs/{user}', [UserController::class, 'update']);
             Route::post('utilisateurs/{user}/activer', [UserController::class, 'activer']);
             Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
+            Route::post('utilisateurs/{user}/reinitialiser-mot-de-passe', [UserController::class, 'reinitialiserMotDePasse']);
 
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::put('affectations/{affectation}/eleves', [AffectationController::class, 'definirEnfants']);

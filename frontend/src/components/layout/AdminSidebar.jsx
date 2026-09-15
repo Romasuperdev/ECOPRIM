@@ -1,19 +1,21 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, Users, ShieldCheck, History, ArrowLeftCircle } from 'lucide-react'
+import { LayoutDashboard, Building2, School, Users, ShieldCheck, KeyRound, History, ArrowLeftCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
-// Société, pas l'Admin Établissement. Utilisateurs & Accès et Rôles sont, eux, communs
-// aux trois niveaux : créer ses comptes et ses rôles est le quotidien d'un établissement.
+// Société, pas l'Admin Établissement. Utilisateurs, Rôles et Permissions sont, eux,
+// communs aux trois niveaux : créer ses comptes, ses rôles et décider ce qu'ils peuvent
+// faire est le quotidien d'un établissement (Configuration administrative).
 // On masque plutôt que de laisser cliquer vers un 403.
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
   { to: '/admin/etablissements', icon: School, label: 'Établissements', niveauSociete: true },
-  { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs & Accès' },
+  { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
+  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles' },
+  { to: '/admin/permissions', icon: KeyRound, label: 'Permissions' },
   { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
-  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles & permissions' },
 ]
 
 const A_VENIR = ['Applications & licences', 'Abonnements']

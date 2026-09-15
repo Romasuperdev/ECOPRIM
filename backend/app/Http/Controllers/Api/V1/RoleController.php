@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Console\Role;
 use App\Support\PerimetreConsole;
+use App\Support\Permissions;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -55,21 +57,68 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $this->assertGerable($role);
+        $role->delete();
+
+        return response()->noContent();
+    }
+
+    /** Catalogue fixe des permissions accordables, et celles déjà cochées pour ce rôle. */
+    public function permissions(Role $role)
+    {
+        $this->assertGerable($role);
+
+        return [
+            'catalogue' => Permissions::CATALOGUE,
+            'accordees' => $role->permissionCodes(),
+        ];
+    }
+
+    /** Remplace entièrement les permissions accordées à ce rôle par la liste envoyée. */
+    public function syncPermissions(Request $request, Role $role)
+    {
+        $this->assertGerable($role);
+
+        $data = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => [Rule::in(Permissions::codes())],
+        ]);
+
+        DB::connection('ecoprim')->transaction(function () use ($role, $data) {
+            DB::connection('ecoprim')->table('console_role_permissions')->where('role_id', $role->id)->delete();
+
+            $lignes = collect($data['permissions'])->unique()->map(fn ($code) => [
+                'role_id' => $role->id, 'permission_code' => $code,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            if ($lignes->isNotEmpty()) {
+                DB::connection('ecoprim')->table('console_role_permissions')->insert($lignes->all());
+            }
+        });
+
+        return ['catalogue' => Permissions::CATALOGUE, 'accordees' => $role->permissionCodes()];
+    }
+
+    /**
+     * Même garde-fou que la suppression : gérer un rôle (le retirer, ou changer ses
+     * permissions) suppose de l'administrer — le catalogue général au Super Admin, un rôle
+     * de société à quiconque administre cette société.
+     */
+    private function assertGerable(Role $role): void
+    {
         $user = auth()->user();
 
         if ($role->societe_code === null) {
             abort_unless($user->isSuperAdmin(), 403,
-                'Seul le Super Administrateur peut retirer un rôle du catalogue général.');
-        } else {
-            // assertAutorisee() ne connaît que la société ; un Admin Établissement n'en
-            // administre aucune directement, mais PerimetreConsole::codeCourant() lui en
-            // résout une (celle de son établissement) — c'est elle qu'on compare ici.
-            abort_unless($user->isSuperAdmin() || PerimetreConsole::codeCourant($user) === $role->societe_code, 403,
-                "Ce rôle n'est pas dans votre périmètre.");
+                'Seul le Super Administrateur peut gérer un rôle du catalogue général.');
+
+            return;
         }
 
-        $role->delete();
-
-        return response()->noContent();
+        // assertAutorisee() ne connaît que la société ; un Admin Établissement n'en
+        // administre aucune directement, mais PerimetreConsole::codeCourant() lui en
+        // résout une (celle de son établissement) — c'est elle qu'on compare ici.
+        abort_unless($user->isSuperAdmin() || PerimetreConsole::codeCourant($user) === $role->societe_code, 403,
+            "Ce rôle n'est pas dans votre périmètre.");
     }
 }

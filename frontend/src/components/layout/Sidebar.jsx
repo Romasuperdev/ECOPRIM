@@ -79,8 +79,19 @@ const GROUPS = [
     items: [
       { to: '/admin/societes', label: 'Sociétés' },
       { to: '/admin/etablissements', label: 'Établissements' },
-      { to: '/admin/utilisateurs', label: 'Utilisateurs & Accès' },
-      { to: '/admin/roles', label: 'Rôles & permissions' },
+    ],
+  },
+  // Le quotidien d'un Directeur / Admin Établissement : gérer les comptes de son
+  // établissement, leurs rôles et ce que chaque rôle a le droit de faire. Ouvert dès que
+  // peutConsole est vrai (Super Admin, Admin Société ou Admin Établissement) — pas
+  // superAdminOnly comme le groupe ci-dessus, qui reste la console générale/société.
+  {
+    label: '🔐 Configuration administrative',
+    peutConsoleOnly: true,
+    items: [
+      { to: '/admin/utilisateurs', label: 'Utilisateurs' },
+      { to: '/admin/roles', label: 'Rôles' },
+      { to: '/admin/permissions', label: 'Permissions' },
     ],
   },
 ]
@@ -151,8 +162,11 @@ function lireRepliee() {
 export default function Sidebar() {
   const location = useLocation()
   const roles = useAuthStore((state) => state.roles)
+  const peutConsole = useAuthStore((state) => state.peutConsole)
   const isSuperAdmin = roles.includes(ROLES.SUPER_ADMIN)
-  const visibleGroups = GROUPS.filter((group) => !group.superAdminOnly || isSuperAdmin)
+  const visibleGroups = GROUPS.filter(
+    (group) => (!group.superAdminOnly || isSuperAdmin) && (!group.peutConsoleOnly || peutConsole)
+  )
 
   const [repliee, setRepliee] = useState(lireRepliee)
 

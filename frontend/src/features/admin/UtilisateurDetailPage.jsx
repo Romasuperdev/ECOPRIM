@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, History, KeyRound, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import SelecteurEleves from './SelecteurEleves'
 import {
   createAffectation,
@@ -11,8 +13,39 @@ import {
   fetchAllEtablissements,
   fetchRoles,
   fetchUtilisateur,
+  reinitialiserMotDePasseUtilisateur,
   terminerAffectation,
 } from './adminApi'
+
+/** Réinitialisation ponctuelle du mot de passe, sans passer par un formulaire d'édition complet. */
+function ReinitialiserMotDePasse({ userId, onFermer }) {
+  const [motDePasse, setMotDePasse] = useState('')
+  const [erreur, setErreur] = useState(null)
+
+  const enregistrer = useMutation({
+    mutationFn: () => reinitialiserMotDePasseUtilisateur(userId, motDePasse),
+    onSuccess: onFermer,
+    onError: (e) => setErreur(e?.response?.data?.errors?.mot_de_passe?.[0] ?? e?.response?.data?.message ?? 'Erreur'),
+  })
+
+  return (
+    <ModaleFormulaire
+      titre="Réinitialiser le mot de passe"
+      sousTitre="Le nouveau mot de passe s'applique immédiatement ; pensez à le communiquer à l'intéressé(e)."
+      onFermer={onFermer}
+      onValider={() => enregistrer.mutate()}
+      enCours={enregistrer.isPending}
+      valideDesactive={motDePasse.length < 6}
+      libelleValider="Réinitialiser"
+    >
+      <Input
+        label="Nouveau mot de passe *" type="text" autoComplete="new-password"
+        placeholder="6 caractères minimum" value={motDePasse} error={erreur}
+        onChange={(e) => { setMotDePasse(e.target.value); setErreur(null) }}
+      />
+    </ModaleFormulaire>
+  )
+}
 
 function Champ({ label, value }) {
   return (
@@ -71,6 +104,7 @@ export default function UtilisateurDetailPage() {
   const [nouveauRole, setNouveauRole] = useState('')
   const [enfants, setEnfants] = useState([])
   const [erreur, setErreur] = useState(null)
+  const [resetMdp, setResetMdp] = useState(false)
 
   const { data: user, isLoading } = useQuery({ queryKey: ['utilisateurs', id], queryFn: () => fetchUtilisateur(id) })
   const societeCode = user?.societe_code || undefined
@@ -109,14 +143,20 @@ export default function UtilisateurDetailPage() {
       <div className="flex items-center gap-3">
         <Link to="/admin/utilisateurs" className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
         <h1 className="text-2xl font-bold text-slate-800">{user.name}</h1>
+        <Button variant="outline" className="ml-auto" onClick={() => setResetMdp(true)}>
+          <KeyRound size={16} className="mr-1.5 inline" />
+          Réinitialiser le mot de passe
+        </Button>
         {/* La traçabilité du compte se lit depuis sa fiche, filtrée sur ses identifiants. */}
-        <Link to={`/admin/utilisateurs/${user.id}/tracabilite`} className="ml-auto">
+        <Link to={`/admin/utilisateurs/${user.id}/tracabilite`}>
           <Button variant="outline">
             <History size={16} className="mr-1.5 inline" />
             Traçabilité
           </Button>
         </Link>
       </div>
+
+      {resetMdp && <ReinitialiserMotDePasse userId={user.id} onFermer={() => setResetMdp(false)} />}
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">Compte (RH_USER — lecture seule)</h2>

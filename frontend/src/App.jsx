@@ -42,6 +42,7 @@ const MailConfigPage = lazy(() => import('./features/parametres/MailConfigPage')
 const EnvoiPage = lazy(() => import('./features/communication/EnvoiPage'))
 const HistoriquePage = lazy(() => import('./features/communication/HistoriquePage'))
 const RoleListPage = lazy(() => import('./features/admin/RoleListPage'))
+const PermissionsPage = lazy(() => import('./features/admin/PermissionsPage'))
 const TracabilitePage = lazy(() => import('./features/tracabilite/TracabilitePage'))
 const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
@@ -125,6 +126,7 @@ export default function App() {
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
               />
               <Route path="/admin/roles" element={<RoleListPage />} />
+              <Route path="/admin/permissions" element={<PermissionsPage />} />
               </Route>
 
             {/* Portails restreints — un compte affecté du SEUL rôle Enseignant ou Parent

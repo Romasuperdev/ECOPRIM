@@ -219,6 +219,36 @@ class RhUser extends Model implements AuthenticatableContract
         return $this->isSuperAdmin() || $this->estAdminSociete();
     }
 
+    /**
+     * Autorise une action précise du catalogue App\Support\Permissions, indépendamment
+     * des trois niveaux d'administration de la console.
+     *
+     * Un Super Admin, un Admin Société et un Admin Établissement passent toujours : ils
+     * administrent déjà tout ce périmètre par ailleurs, leur demander en plus une
+     * permission cochée quelque part serait un verrou qu'eux-mêmes devraient lever pour
+     * leur propre compte. Les autres (Enseignant, Secrétaire, Comptable...) ne passent que
+     * si l'un de leurs rôles actifs accorde ce code.
+     */
+    public function aLaPermission(string $code): bool
+    {
+        if ($this->isSuperAdmin() || $this->estAdminSociete() || $this->estAdminEtablissement()) {
+            return true;
+        }
+
+        try {
+            return DB::connection('ecoprim')->table('console_affectations as a')
+                ->join('console_role_permissions as p', 'p.role_id', '=', 'a.role_id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where('p.permission_code', $code)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->exists();
+        } catch (\Throwable $e) {
+            // Base console absente (migrations non passées) : fail closed, jamais ouvert.
+            return false;
+        }
+    }
+
     // --- Portails restreints : Enseignant et Parent ---
 
     public const ROLE_ENSEIGNANT = 'enseignant';

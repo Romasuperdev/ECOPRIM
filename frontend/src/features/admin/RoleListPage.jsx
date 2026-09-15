@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { KeyRound, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { createRole, deleteRole, fetchRoles } from './adminApi'
@@ -30,9 +31,10 @@ export default function RoleListPage() {
     <div>
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Rôles &amp; permissions</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Rôles</h1>
           <p className="mt-1 text-sm text-slate-500">
             Catalogue des rôles attribuables aux utilisateurs, établissement par établissement.
+            Ce que chaque rôle a le droit de faire se règle dans <Link to="/admin/permissions" className="text-primary-700 hover:underline">Permissions</Link>.
           </p>
         </div>
         <Button onClick={() => { setErreurs({}); setForm({ code: '', nom: '' }) }}>+ Nouveau rôle</Button>
@@ -63,6 +65,13 @@ export default function RoleListPage() {
                   {r.societe_code ?? <span className="italic text-slate-400">Général</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <Link
+                    to={`/admin/permissions?role=${r.id}`}
+                    className="mr-1 inline-flex rounded p-1.5 text-slate-500 hover:bg-slate-100"
+                    title="Voir et modifier les permissions de ce rôle"
+                  >
+                    <KeyRound size={16} />
+                  </Link>
                   <button
                     onClick={() => supprimer.mutate(r.id)}
                     disabled={supprimer.isPending}

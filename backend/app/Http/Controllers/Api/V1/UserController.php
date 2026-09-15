@@ -237,6 +237,20 @@ class UserController extends Controller
         return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
     }
 
+    /**
+     * Réinitialise le mot de passe d'un compte, sans passer par le formulaire complet
+     * d'édition — action ponctuelle, distincte de `update()`.
+     */
+    public function reinitialiserMotDePasse(Request $request, string $user)
+    {
+        $rh = $this->trouverDansPerimetre($user);
+        $data = $request->validate(['mot_de_passe' => ['required', 'string', 'min:6', 'max:100']]);
+
+        $this->ecrivain->modifier((int) $rh->Id, $data);
+
+        return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
+    }
+
     private function ligne(RhUser $u): array
     {
         return [

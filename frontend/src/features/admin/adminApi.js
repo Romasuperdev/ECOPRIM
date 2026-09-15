@@ -110,6 +110,11 @@ export async function desactiverUtilisateur(id) {
   return data
 }
 
+export async function reinitialiserMotDePasseUtilisateur(id, mot_de_passe) {
+  const { data } = await apiClient.post(`/utilisateurs/${id}/reinitialiser-mot-de-passe`, { mot_de_passe })
+  return data
+}
+
 // Rôles (catalogue)
 export async function fetchRoles() {
   const { data } = await apiClient.get('/roles')
@@ -123,6 +128,17 @@ export async function createRole(payload) {
 
 export async function deleteRole(id) {
   await apiClient.delete(`/roles/${id}`)
+}
+
+// Permissions accordées à un rôle
+export async function fetchPermissionsRole(roleId) {
+  const { data } = await apiClient.get(`/roles/${roleId}/permissions`)
+  return data
+}
+
+export async function enregistrerPermissionsRole(roleId, permissions) {
+  const { data } = await apiClient.put(`/roles/${roleId}/permissions`, { permissions })
+  return data
 }
 
 // Affectations
