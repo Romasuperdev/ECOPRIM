@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, LayoutDashboard } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import Logo from '../ui/Logo'
 import { ROLES } from '../../lib/constants'
+
+const CLE_REPLIE = 'nexora-sidebar-repliee'
 
 // Navigation NEXORA. Seules les pages réellement fonctionnelles sont listées : les
 // entrées non construites ont été retirées, à une exception assumée et validée
@@ -136,19 +139,75 @@ function GroupSection({ group, hasActiveItem }) {
   )
 }
 
+/** Lue une seule fois au montage : évite un aller-retour visible replié → déplié. */
+function lireRepliee() {
+  try {
+    return localStorage.getItem(CLE_REPLIE) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function Sidebar() {
   const location = useLocation()
   const roles = useAuthStore((state) => state.roles)
   const isSuperAdmin = roles.includes(ROLES.SUPER_ADMIN)
   const visibleGroups = GROUPS.filter((group) => !group.superAdminOnly || isSuperAdmin)
 
+  const [repliee, setRepliee] = useState(lireRepliee)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLE_REPLIE, repliee ? '1' : '0')
+    } catch {
+      // Confort seulement (mémorise l'état d'un rechargement à l'autre) : silencieux si indisponible.
+    }
+  }, [repliee])
+
+  if (repliee) {
+    return (
+      <aside
+        className="flex h-full w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto py-4"
+        style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setRepliee(false)}
+          title="Déplier le menu"
+          className="rounded-lg p-2.5 hover:bg-white/10"
+        >
+          <PanelLeftOpen size={18} />
+        </button>
+        <NavLink
+          to="/"
+          end
+          title="Tableau de bord"
+          className="rounded-lg p-2.5 hover:bg-white/10"
+          style={({ isActive }) =>
+            isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+          }
+        >
+          <LayoutDashboard size={18} />
+        </NavLink>
+      </aside>
+    )
+  }
+
   return (
     <aside
       className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
       style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
     >
-      <div className="mb-6 px-2">
+      <div className="mb-6 flex items-center justify-between px-2">
         <Logo />
+        <button
+          type="button"
+          onClick={() => setRepliee(true)}
+          title="Replier le menu"
+          className="shrink-0 rounded-lg p-1.5 hover:bg-white/10"
+        >
+          <PanelLeftClose size={18} />
+        </button>
       </div>
       <nav className="space-y-0.5 pb-6 text-sm">
         <div className="mb-2">
