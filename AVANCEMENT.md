@@ -2486,3 +2486,22 @@ l'année clôturée (423), `classe_code`/`matiere_code`/`enseignant_code` vérif
 18 nouveaux tests (`DevoirTest`, `EvenementTest`), suite complète : **333 tests, 1415
 assertions** (2 échecs préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport).
 Migrations appliquées sur la vraie base `ecoprim`.
+
+## Menu principal repliable
+
+Demande de l'utilisateur : gagner de la place en pliant/dépliant le menu latéral. Bouton à côté
+du logo dans `Sidebar.jsx` ; replié, le menu se réduit à une bande de 56px avec juste un
+raccourci vers le tableau de bord et le bouton pour redéplier (les ~25 entrées du menu n'ont
+pas d'icône individuelle — un vrai rail à icônes aurait demandé d'en choisir une par entrée,
+hors de propos ici). L'état choisi est mémorisé dans `localStorage` pour survivre à un
+rechargement.
+
+## Fermer un formulaire au clic hors de la fenêtre ou à la touche Échap
+
+Demande de l'utilisateur, appliquée partout où c'est pertinent plutôt que sur un seul écran :
+nouveau hook partagé `useEchap`, branché sur `ModaleFormulaire` (la coquille commune à la
+plupart des écrans à formulaire) et sur les neuf autres écrans qui définissaient chacun leur
+propre voile modal (sociétés, établissements, utilisateurs, rôles, documents élèves,
+inscriptions, cahier de textes, affectations enseignant-classe, emploi du temps). Un seul de
+ces neuf (affectations enseignant-classe) n'avait même pas la fermeture au clic hors fenêtre —
+ajoutée au passage pour que le geste soit cohérent partout, pas seulement Échap.
