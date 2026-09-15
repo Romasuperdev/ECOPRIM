@@ -2447,3 +2447,42 @@ d'inventer un nouveau mécanisme.
 
 Mémoire mise à jour avec le contenu de ce second document de vision et la gap analysis, pour
 que les prochaines sessions n'aient pas à refaire cette vérification.
+
+## Réorganisation du menu Programme, et deux nouveaux modules : Devoirs et Calendrier scolaire
+
+Demande de l'utilisateur en deux temps. D'abord un déplacement : « Affectation enseignant –
+classe » quitte le groupe Programme pour rejoindre Paramètre (`Sidebar.jsx`) — c'est une
+configuration (qui enseigne quoi, où), pas une opération pédagogique répétée.
+
+Puis la liste complète de ce que Programme doit permettre de créer et gérer : emploi du temps
+(déjà là), devoirs, examens, congés/vacances scolaires, calendrier scolaire, réunions
+parents-professeurs, sorties et activités pédagogiques, activités scolaires. Plutôt que de
+construire sept modules dont plusieurs se recouvrent, deux décisions de conception :
+
+- **Examens** n'est pas un nouveau module : le catalogue de types de `Évaluations planifiées`
+  couvre déjà « Composition » (le mot français pour un examen à l'école primaire) — en ajouter
+  un second aurait dupliqué le système de notation existant.
+- **Congés/vacances, réunions parents-professeurs, sorties et activités pédagogiques** partagent
+  la même forme (titre, période, lieu éventuel) : réunis dans un seul module **Calendrier
+  scolaire**, avec un type par événement, plutôt que quatre écrans presque identiques.
+
+Résultat : deux nouveaux modules, tous deux sur le schéma déjà rodé par `evaluations`
+(`ecoprim.devoirs` et `ecoprim.evenements`, tables propres à NEXORA — ni les devoirs ni le
+calendrier n'ont de colonne dans ECONOMAT) :
+
+- **Devoirs** (`/devoirs`) : titre, consigne, classe, matière, enseignant facultatif, date de
+  remise. Distinct du cahier de texte, qui ne consigne que ce qui a été vu en classe. La date de
+  remise dépassée est signalée en rouge dans la liste.
+- **Calendrier scolaire** (`/calendrier-scolaire`) : titre, type (Congés/Vacances, Réunion
+  parents-professeurs, Sortie pédagogique, Activité scolaire), période (date début/fin), classe
+  concernée (facultative — vide pour un événement qui touche tout l'établissement, comme des
+  vacances), lieu facultatif.
+
+Les deux suivent exactement les mêmes garde-fous que les évaluations planifiées : verrou sur
+l'année clôturée (423), `classe_code`/`matiere_code`/`enseignant_code` vérifiés par
+`Rule::exists` contre ECONOMAT sans contrainte de clé étrangère inter-base, suppression réelle
+(donnée propre à NEXORA, rien n'en dépend en aval).
+
+18 nouveaux tests (`DevoirTest`, `EvenementTest`), suite complète : **333 tests, 1415
+assertions** (2 échecs préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport).
+Migrations appliquées sur la vraie base `ecoprim`.

@@ -42,6 +42,8 @@ const GROUPS = [
     items: [
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
       { to: '/cahier-textes', label: 'Cahier de textes' },
+      { to: '/devoirs', label: 'Devoirs' },
+      { to: '/calendrier-scolaire', label: 'Calendrier scolaire' },
     ],
   },
   {

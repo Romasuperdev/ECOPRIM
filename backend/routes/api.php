@@ -33,6 +33,8 @@ use App\Http\Controllers\Api\V1\TracabiliteController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\EvaluationController;
+use App\Http\Controllers\Api\V1\DevoirController;
+use App\Http\Controllers\Api\V1\EvenementController;
 use App\Http\Controllers\Api\V1\PortailEnseignantController;
 use App\Http\Controllers\Api\V1\PortailParentController;
 
@@ -138,6 +140,20 @@ Route::prefix('v1')->group(function () {
         Route::post('evaluations-planifiees', [EvaluationController::class, 'store']);
         Route::put('evaluations-planifiees/{evaluation}', [EvaluationController::class, 'update']);
         Route::delete('evaluations-planifiees/{evaluation}', [EvaluationController::class, 'destroy']);
+        // Devoirs : table propre à NEXORA, distincte du cahier de texte (qui ne consigne
+        // que ce qui a été vu en classe).
+        Route::get('devoirs/referentiels', [DevoirController::class, 'referentiels']);
+        Route::get('devoirs', [DevoirController::class, 'index']);
+        Route::post('devoirs', [DevoirController::class, 'store']);
+        Route::put('devoirs/{devoir}', [DevoirController::class, 'update']);
+        Route::delete('devoirs/{devoir}', [DevoirController::class, 'destroy']);
+        // Calendrier scolaire : congés/vacances, réunions parents-professeurs, sorties et
+        // activités pédagogiques — un seul modèle d'événement, distingué par type.
+        Route::get('evenements/referentiels', [EvenementController::class, 'referentiels']);
+        Route::get('evenements', [EvenementController::class, 'index']);
+        Route::post('evenements', [EvenementController::class, 'store']);
+        Route::put('evenements/{evenement}', [EvenementController::class, 'update']);
+        Route::delete('evenements/{evenement}', [EvenementController::class, 'destroy']);
         // Documents imprimables (PDF) — lecture seule, une année clôturée s'imprime.
         Route::get('impressions/eleves/{eleve}', [ImpressionController::class, 'eleve']);
         Route::get('impressions/eleves/{eleve}/certificat-scolarite', [ImpressionController::class, 'certificatScolarite']);

@@ -34,6 +34,8 @@ const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirE
 const EmploiDuTempsPage = lazy(() => import('./features/emplois-du-temps/EmploiDuTempsPage'))
 const AffectationEnseignantPage = lazy(() => import('./features/affectations-enseignants/AffectationEnseignantPage'))
 const CahierTextesPage = lazy(() => import('./features/cahier-textes/CahierTextesPage'))
+const DevoirListPage = lazy(() => import('./features/devoirs/DevoirListPage'))
+const CalendrierScolairePage = lazy(() => import('./features/calendrier/CalendrierScolairePage'))
 const DocumentsElevesParamPage = lazy(() => import('./features/parametres/DocumentsElevesPage'))
 const SmsConfigPage = lazy(() => import('./features/parametres/SmsConfigPage'))
 const MailConfigPage = lazy(() => import('./features/parametres/MailConfigPage'))
@@ -152,6 +154,8 @@ export default function App() {
               <Route path="/emplois-du-temps" element={<EmploiDuTempsPage />} />
               <Route path="/affectations-enseignants" element={<AffectationEnseignantPage />} />
               <Route path="/cahier-textes" element={<CahierTextesPage />} />
+              <Route path="/devoirs" element={<DevoirListPage />} />
+              <Route path="/calendrier-scolaire" element={<CalendrierScolairePage />} />
 
               <Route path="/parametres/documents-eleves" element={<DocumentsElevesParamPage />} />
               <Route path="/parametres/sms" element={<SmsConfigPage />} />
