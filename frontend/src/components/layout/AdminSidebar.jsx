@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, History, ArrowLeftCircle } from 'lucide-react'
+import { LayoutDashboard, Building2, School, History, ArrowLeftCircle, X } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
@@ -18,24 +18,34 @@ const ITEMS = [
 
 const A_VENIR = ['Applications & licences', 'Abonnements']
 
-export default function AdminSidebar() {
+/** `dansTiroir` : ouvert par-dessus le contenu sur petit écran (voir AdminLayout). */
+export default function AdminSidebar({ dansTiroir = false, onFermer }) {
   const superAdmin = useAuthStore((s) => s.superAdmin)
   const niveauSociete = useAuthStore((s) => s.niveauSociete)
   const items = ITEMS.filter((i) => (!i.generale || superAdmin) && (!i.niveauSociete || niveauSociete))
 
   return (
     <aside
-      className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
+      className={`flex h-full flex-col overflow-y-auto p-4 ${dansTiroir ? 'w-full' : 'w-60 shrink-0'}`}
       style={{ background: 'var(--sidebar-2)', color: 'var(--sidebar-text)' }}
     >
-      <div className="mb-1 px-2">
+      <div className="mb-1 flex items-center justify-between px-2">
         <Logo />
+        {dansTiroir && (
+          <button
+            type="button" onClick={onFermer} title="Fermer le menu"
+            className="shrink-0 rounded-lg p-1.5 hover:bg-white/10"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
       <div className="mb-4 px-2 text-[10px] font-semibold" style={{ color: 'var(--brand-accent)' }}>
         CONSOLE ADMINISTRATIVE
       </div>
       <NavLink
         to="/"
+        onClick={dansTiroir ? onFermer : undefined}
         className="mb-4 flex items-center gap-2 px-2 text-xs font-medium opacity-70 hover:opacity-100"
       >
         <ArrowLeftCircle size={14} /> Retour à l’application
@@ -47,6 +57,7 @@ export default function AdminSidebar() {
             key={to}
             to={to}
             end={end}
+            onClick={dansTiroir ? onFermer : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
             }

@@ -56,11 +56,11 @@ export default function ParentEnfantPage() {
       <h1 className="mb-1 text-2xl font-bold text-heading">{`${eleve?.prenom ?? ''} ${eleve?.nom ?? ''}`.trim() || matricule}</h1>
       <p className="mb-4 text-sm text-muted">{eleve?.classe?.nom ?? eleve?.classe_code ?? '—'}</p>
 
-      <div className="mb-6 flex gap-1 border-b border-[var(--border)]">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
         {TABS.map((t) => (
           <button
             key={t.cle} type="button" onClick={() => setOnglet(t.cle)}
-            className={`px-3 py-2 text-sm font-medium ${
+            className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm font-medium ${
               onglet === t.cle ? 'border-b-2 border-[var(--brand-accent)] text-heading' : 'text-muted hover:text-heading'
             }`}
           >
@@ -113,7 +113,7 @@ function OngletAbsences({ matricule }) {
   const { data: absences, isLoading } = useQuery({ queryKey: ['portail-absences-enfant', matricule], queryFn: () => fetchAbsencesEnfant(matricule) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -150,7 +150,7 @@ function OngletCahier({ matricule }) {
   return (
     <div className="space-y-4">
       {entetes.map((e) => (
-        <div key={e.id} className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <div key={e.id} className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
           <div className="border-b px-4 py-2 text-sm font-semibold text-heading" style={{ borderColor: 'var(--border)' }}>
             {e.mois} — semaine {e.semaine}
           </div>
@@ -230,7 +230,7 @@ function OngletDevoirs({ matricule }) {
   const { data: devoirs, isLoading } = useQuery({ queryKey: ['portail-devoirs-enfant', matricule], queryFn: () => fetchDevoirsEnfant(matricule) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -261,7 +261,7 @@ function OngletEvaluations({ matricule }) {
   const { data: evaluations, isLoading } = useQuery({ queryKey: ['portail-evaluations-enfant', matricule], queryFn: () => fetchEvaluationsPlanifieesEnfant(matricule) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -294,7 +294,7 @@ function OngletCalendrier({ matricule }) {
   const { data: evenements, isLoading } = useQuery({ queryKey: ['portail-evenements-enfant', matricule], queryFn: () => fetchEvenementsEnfant(matricule) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -363,7 +363,7 @@ function OngletResultats({ matricule }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full text-left text-sm">
           <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
             <tr className="text-muted">

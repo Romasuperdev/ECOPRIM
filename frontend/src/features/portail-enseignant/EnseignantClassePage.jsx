@@ -52,13 +52,13 @@ export default function EnseignantClassePage() {
       </Link>
       <h1 className="mb-4 text-2xl font-bold text-heading">{classe}</h1>
 
-      <div className="mb-6 flex gap-1 border-b border-[var(--border)]">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
         {TABS.map((t) => (
           <button
             key={t.cle}
             type="button"
             onClick={() => setOnglet(t.cle)}
-            className={`px-3 py-2 text-sm font-medium ${
+            className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm font-medium ${
               onglet === t.cle
                 ? 'border-b-2 border-[var(--brand-accent)] text-heading'
                 : 'text-muted hover:text-heading'
@@ -240,7 +240,7 @@ function OngletDevoirs({ classe }) {
   const { data: devoirs, isLoading } = useQuery({ queryKey: ['portail-devoirs', classe], queryFn: () => fetchMesDevoirs(classe) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -273,7 +273,7 @@ function OngletEvaluations({ classe }) {
   const { data: evaluations, isLoading } = useQuery({ queryKey: ['portail-evaluations', classe], queryFn: () => fetchMesEvaluationsPlanifiees(classe) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">
@@ -341,7 +341,7 @@ function OngletAbsences({ classe }) {
 
       <MessageRefus message={refus} onFermer={() => setRefus(null)} />
 
-      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full text-left text-sm">
           <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
             <tr className="text-muted">
@@ -415,7 +415,7 @@ function OngletEleves({ classe }) {
   const { data: eleves, isLoading } = useQuery({ queryKey: ['portail-eleves', classe], queryFn: () => fetchMesEleves(classe) })
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
       <table className="w-full text-left text-sm">
         <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
           <tr className="text-muted">

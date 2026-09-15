@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import Logo from '../ui/Logo'
 import { ROLES } from '../../lib/constants'
@@ -96,11 +96,12 @@ const GROUPS = [
   },
 ]
 
-function NavItem({ to, end, children }) {
+function NavItem({ to, end, children, onNaviguer }) {
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={onNaviguer}
       className={({ isActive }) =>
         `flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
       }
@@ -113,7 +114,7 @@ function NavItem({ to, end, children }) {
   )
 }
 
-function GroupSection({ group, hasActiveItem }) {
+function GroupSection({ group, hasActiveItem, onNaviguer }) {
   return (
     <details className="group/section" open={hasActiveItem}>
       <summary
@@ -126,7 +127,7 @@ function GroupSection({ group, hasActiveItem }) {
       <div className="mt-0.5 space-y-0.5">
         {group.items.map((item, index) =>
           item.to ? (
-            <NavItem key={`${item.label}-${index}`} to={item.to}>
+            <NavItem key={`${item.label}-${index}`} to={item.to} onNaviguer={onNaviguer}>
               {item.label}
             </NavItem>
           ) : (
@@ -159,7 +160,11 @@ function lireRepliee() {
   }
 }
 
-export default function Sidebar() {
+/**
+ * @param {boolean} dansTiroir  Ouvert en tiroir sur petit écran : le menu occupe déjà tout
+ *   l'espace disponible, le replier n'aurait pas de sens — on propose « fermer » à la place.
+ */
+export default function Sidebar({ dansTiroir = false, onFermer }) {
   const location = useLocation()
   const roles = useAuthStore((state) => state.roles)
   const peutConsole = useAuthStore((state) => state.peutConsole)
@@ -178,7 +183,8 @@ export default function Sidebar() {
     }
   }, [repliee])
 
-  if (repliee) {
+  // En tiroir, l'état replié n'a pas cours : on affiche toujours le menu entier.
+  if (repliee && ! dansTiroir) {
     return (
       <aside
         className="flex h-full w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto py-4"
@@ -209,23 +215,26 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex h-full w-60 shrink-0 flex-col overflow-y-auto p-4"
+      className={`flex h-full flex-col overflow-y-auto p-4 ${dansTiroir ? 'w-full' : 'w-60 shrink-0'}`}
       style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
     >
       <div className="mb-6 flex items-center justify-between px-2">
         <Logo />
         <button
           type="button"
-          onClick={() => setRepliee(true)}
-          title="Replier le menu"
+          onClick={() => (dansTiroir ? onFermer?.() : setRepliee(true))}
+          title={dansTiroir ? 'Fermer le menu' : 'Replier le menu'}
           className="shrink-0 rounded-lg p-1.5 hover:bg-white/10"
         >
-          <PanelLeftClose size={18} />
+          {dansTiroir ? <X size={18} /> : <PanelLeftClose size={18} />}
         </button>
       </div>
       <nav className="space-y-0.5 pb-6 text-sm">
         <div className="mb-2">
-          <NavItem to="/" end>
+          {/* En tiroir, ouvrir une page referme le menu : sur un téléphone, on veut voir
+              la page demandée, pas rester devant le menu. Déplier un groupe, en revanche,
+              ne ferme rien — d'où un rappel posé sur les liens, pas sur tout le tiroir. */}
+          <NavItem to="/" end onNaviguer={dansTiroir ? onFermer : undefined}>
             <LayoutDashboard size={16} />
             Tableau de bord
           </NavItem>
@@ -233,6 +242,7 @@ export default function Sidebar() {
         {visibleGroups.map((group) => (
           <GroupSection
             key={group.label}
+            onNaviguer={dansTiroir ? onFermer : undefined}
             group={group}
             hasActiveItem={group.items.some(
               (item) => item.to && (location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))

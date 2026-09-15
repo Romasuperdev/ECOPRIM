@@ -145,7 +145,7 @@ export default function UtilisateurDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link to="/admin/utilisateurs" className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
         <h1 className="text-2xl font-bold text-slate-800">{user.name}</h1>
         <Button variant="outline" className="ml-auto" onClick={() => setResetMdp(true)}>

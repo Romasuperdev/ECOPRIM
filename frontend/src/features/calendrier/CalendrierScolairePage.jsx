@@ -57,7 +57,7 @@ export default function CalendrierScolairePage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Calendrier scolaire</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -90,7 +90,7 @@ export default function CalendrierScolairePage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
