@@ -2569,3 +2569,40 @@ société. Un chantier propre, pas une extension hâtive d'un contrôle déjà d
 11 nouveaux tests (`PermissionTest`), suite complète : **344 tests, 1438 assertions** (2 échecs
 préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport). Migration appliquée
 sur la vraie base `ecoprim`.
+
+### Retour d'usage immédiat : le compte Directeur ne voyait pas la section, puis atterrissait dans la console
+
+Deux allers-retours avec l'utilisateur juste après la livraison ci-dessus, tous deux réels et
+attendus d'un premier essai :
+
+1. **« Je ne vois pas la Configuration administrative »** — le compte de test (`roma17`,
+   affecté avec le rôle *Direction*) n'avait pas le rôle technique *Admin Établissement* :
+   comme documenté ci-dessus, « Direction » n'accorde aucune capacité de console par
+   lui-même. Diagnostiqué en lisant directement `console_affectations`/`console_roles` en
+   base réelle, puis corrigé en ajoutant l'affectation manquante (`Affectation::create` en
+   tinker, avec l'accord explicite de l'utilisateur avant de toucher à des données réelles) :
+   un compte peut cumuler plusieurs rôles, *Direction* reste donc en place à côté du nouveau
+   *Admin Établissement*.
+
+2. **« Je ne veux pas être renvoyé vers /admin, je veux rester dans l'application »** — même
+   une fois l'accès débloqué, cliquer sur Utilisateurs/Rôles/Permissions faisait basculer
+   vers `AdminLayout` (bandeau « Console Administrative », `AdminSidebar` séparée) : une
+   rupture d'expérience pour un Directeur qui n'a jamais besoin de la vue multi-établissement.
+   Corrigé en déplaçant ces trois routes du groupe `AdminLayout` vers le groupe `Layout`
+   principal dans `App.jsx` (mêmes URLs `/admin/utilisateurs`, `/admin/roles`,
+   `/admin/permissions` — seule la mise en page change, aucun lien interne à retoucher),
+   protégées par `<ProtectedRoute exigeConsole>` faute de l'être déjà par l'enveloppe
+   `AdminLayout` d'origine. Seules Sociétés, Établissements et Traçabilité gardent la
+   console : elles ont vraiment besoin d'une vue multi-établissement, contrairement au
+   quotidien d'un établissement.
+
+Effets de bord traités dans la foulée pour ne pas régresser silencieusement :
+- Le sélecteur de société (`SocieteBarre`, jusque-là dans l'en-tête d'`AdminLayout` — utile à
+  un Super Admin ou un Admin Société qui gère plusieurs sociétés) est repris dans l'en-tête du
+  `Layout` principal, visible seulement si `niveauSociete` — invisible et sans objet pour un
+  Admin Établissement, borné à la sienne.
+- Le bouton Traçabilité de la fiche utilisateur est masqué pour un Admin Établissement
+  (`niveauSociete` requis, cloisonnement par établissement pas encore fait — voir plus haut) :
+  mieux vaut ne pas montrer un bouton qui renverrait vers la console pour un accès refusé.
+- `AdminSidebar` ne propose plus Utilisateurs/Rôles/Permissions (déménagés) : ne reste que ce
+  qui est vraiment propre à la console.
