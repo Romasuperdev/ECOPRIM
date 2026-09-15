@@ -2706,3 +2706,41 @@ et intermittent sur l'upload de photo, sans rapport).
 téléphone — ou une erreur de saisie qui recopie le numéro d'un autre parent — donneront accès
 au dossier du mauvais enfant. C'est la contrepartie assumée de la reconnaissance par téléphone ;
 la vérification du numéro au moment de l'inscription devient un geste important.
+
+## L'application devient utilisable sur téléphone et tablette
+
+Demande de l'utilisateur : que l'application s'adapte à tout type d'appareil. Relevé d'abord ce
+qui bloquait réellement, plutôt que de retoucher des écrans au hasard — trois problèmes, dont
+deux invisibles tant qu'on travaille sur grand écran :
+
+1. **Le menu latéral ne se poussait jamais de côté.** `w-60` en dur, toujours affiché : sur un
+   téléphone de 375 px, il en mangeait les deux tiers. Sous le point de rupture `lg`, il s'ouvre
+   désormais en tiroir par-dessus le contenu (bouton hamburger dans l'en-tête, voile cliquable,
+   croix de fermeture), et la colonne fixe ne réapparaît qu'à partir de `lg`. Même traitement
+   pour la console (`AdminLayout`). Le portail Parent/Enseignant, lui, n'a jamais eu de menu
+   latéral : il était déjà adapté.
+2. **28 tableaux étaient en `overflow-hidden`** : sur un écran étroit, les colonnes de droite
+   n'étaient pas seulement hors champ, elles étaient *inaccessibles* — aucun défilement possible.
+   Le bon réflexe existait déjà dans l'application (les grilles d'emploi du temps étaient en
+   `overflow-x-auto`), il n'était simplement pas généralisé. Remplacement mécanique, en épargnant
+   les deux `overflow-hidden` qui, eux, ont un vrai rôle : la vignette photo de l'élève (qui
+   recadre volontairement) et la carte de permissions.
+3. **Les barres d'onglets débordaient** — la fiche enfant en compte neuf depuis l'ajout des
+   portails. Elles défilent horizontalement, libellés insécables.
+
+Ajouts plus discrets : les en-têtes de page laissent le bouton d'action passer à la ligne au
+lieu de s'écraser contre le titre (15 écrans), `h-dvh` remplace `h-screen` pour que la barre
+d'adresse mobile ne masque plus le bas de page, et « Se déconnecter » se raccourcit en
+« Quitter » sous `sm`.
+
+Deux choix de mise en œuvre à noter : le tiroir se referme quand on ouvre une page mais **pas**
+quand on déplie un groupe du menu — d'où un rappel posé sur les liens eux-mêmes plutôt qu'un
+`onClick` global sur le tiroir, qui aurait fermé le menu à chaque dépliage. Et la fermeture ne
+passe pas par un effet sur l'URL (le linter le signalait à juste titre : l'événement, c'est le
+clic, pas le changement d'adresse).
+
+Les fichiers de `features/_retires/` (code mort, non routé) ont été restaurés après le
+remplacement automatique : inutile de les faire figurer dans le diff.
+
+**Non vérifié visuellement** : l'environnement de travail n'a pas de navigateur, donc le build
+et le lint passent mais le rendu réel sur téléphone reste à contrôler côté utilisateur.
