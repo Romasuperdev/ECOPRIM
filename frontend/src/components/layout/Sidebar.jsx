@@ -25,6 +25,7 @@ const GROUPS = [
       { to: '/parametres/documents-eleves', label: 'Documents élèves' },
       { to: '/parametres/sms', label: 'Passerelle SMS' },
       { to: '/parametres/mail', label: 'Messagerie (SMTP)' },
+      { to: '/affectations-enseignants', label: 'Affectation enseignant – classe' },
     ],
   },
   {
@@ -39,7 +40,6 @@ const GROUPS = [
   {
     label: '📚 Programme',
     items: [
-      { to: '/affectations-enseignants', label: 'Affectation enseignant – classe' },
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
       { to: '/cahier-textes', label: 'Cahier de textes' },
     ],
