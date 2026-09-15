@@ -2647,3 +2647,62 @@ l'enseignant via `T_CORPROFCLASSE`, mes enfants rattachés pour le parent via
 
 8 nouveaux tests dans `PortailTest`, suite complète : **354 tests, 1458 assertions** (2 échecs
 préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport).
+
+## Les accès Parent et Enseignant se créent tout seuls, au bon moment
+
+Demande de l'utilisateur : l'accès du parent doit naître à l'inscription de l'élève (« un
+parent peut être rattaché à plusieurs élèves »), celui de l'enseignant à la création de sa
+fiche, et tout doit vivre dans `RH_USER`.
+
+État des lieux avant de coder : `InscriptionController` n'écrivait que dans `T_ETUDIANT`,
+`EnseignantController` que dans `T_PROFESSEUR` — aucun des deux ne connaissait RH_USER. En
+revanche la chaîne complète existait déjà ailleurs (`UserController::store()` : compte
+RH_USER + `console_affectations` + `console_affectation_eleves` pour un parent) : c'est elle
+qui a servi de modèle, plutôt que d'inventer un second mécanisme. Manquait la pièce centrale :
+**aucun moyen de reconnaître qu'une personne a déjà un compte** — sans quoi le deuxième enfant
+d'un même parent aurait créé un doublon.
+
+Trois règles tranchées avec l'utilisateur avant d'écrire la moindre ligne :
+
+1. **Un seul compte parent par élève** : le père/tuteur s'il a un téléphone, sinon la mère.
+   Renseigner les deux ne crée pas deux accès.
+2. **Le téléphone identifie la personne.** Le numéro est normalisé (« 07 08 09 10 11 » et
+   « 07-08-09-10-11 » sont le même parent), puis cherché à la fois comme identifiant et comme
+   coordonnée — ce qui reconnaît aussi un compte créé à la main par un administrateur. Trouvé :
+   on rattache l'enfant au compte existant, sans toucher à son mot de passe. Un numéro de moins
+   de six chiffres est une saisie partielle, pas un compte.
+3. **Le numéro sert d'identifiant, le mot de passe est tiré au hasard et affiché UNE fois**
+   (alphabet sans 0/O ni 1/I/L, pour être dicté ou recopié sans ambiguïté). Il n'est jamais
+   stocké en clair — RH_USER n'en garde que le haché — donc la fenêtre qui l'affiche est la
+   seule occasion de le lire. Un test le vérifie explicitement.
+
+Deux points qui auraient fait un accès inutilisable sans y prendre garde :
+
+- Côté enseignant, le portail retrouve ses classes par `T_PROFESSEUR.LOGIN = RH_USER.Login`
+  (`PortailEnseignantController::professeur`). Le service écrit donc aussi le login sur la
+  fiche, via une méthode `ProfesseurEcrivain::definirLogin()` volontairement séparée de la
+  carte des colonnes ordinaires : ce champ ne se saisit pas dans le formulaire, il est posé
+  par le code — et `Mdp`, lui, reste exclu comme avant.
+- Le catalogue de rôles n'est semé que par `php artisan console:importer` : le service crée le
+  rôle `parent`/`enseignant` s'il manque, sinon la toute première inscription d'une
+  installation neuve aurait échoué.
+
+**Rien de tout cela ne peut faire échouer l'acte principal** : la création d'accès est enveloppée,
+et si la base console est injoignable l'élève reste inscrit — l'écran affiche alors pourquoi
+l'accès n'a pas pu être ouvert, et il pourra l'être plus tard depuis Configuration
+administrative.
+
+Effet de bord traité au passage : `SaisieEconomatTest` n'isolait pas la connexion `ecoprim`.
+Tant que les inscriptions ne touchaient qu'ECONOMAT, ça ne se voyait pas ; maintenant qu'elles
+ouvrent un accès, la suite aurait écrit dans la **vraie** base console. La connexion y est donc
+isolée en SQLite mémoire comme dans les autres tests.
+
+11 nouveaux tests (`AccesAutomatiqueTest` : père prioritaire puis mère, numéro normalisé,
+deuxième enfant sans doublon, mot de passe haché, portail parent qui voit bien l'enfant, fiche
+enseignant reliée, rôle créé s'il manque). Suite complète : **365 tests** (1 échec préexistant
+et intermittent sur l'upload de photo, sans rapport).
+
+**À savoir avant la mise en service** : le numéro fait foi. Deux familles qui partagent un
+téléphone — ou une erreur de saisie qui recopie le numéro d'un autre parent — donneront accès
+au dossier du mauvais enfant. C'est la contrepartie assumée de la reconnaissance par téléphone ;
+la vérification du numéro au moment de l'inscription devient un geste important.
