@@ -2505,3 +2505,67 @@ propre voile modal (sociétés, établissements, utilisateurs, rôles, documents
 inscriptions, cahier de textes, affectations enseignant-classe, emploi du temps). Un seul de
 ces neuf (affectations enseignant-classe) n'avait même pas la fermeture au clic hors fenêtre —
 ajoutée au passage pour que le geste soit cohérent partout, pas seulement Échap.
+
+## Configuration administrative : Utilisateurs, Rôles et Permissions pour le Directeur
+
+Demande de l'utilisateur : une section réservée au Directeur/Administrateur d'établissement
+pour gérer les utilisateurs, leurs rôles et leurs droits, avec une matrice de permissions par
+rôle (exemples donnés : Enseignant, Secrétaire, Directeur) — et explicitement une application
+**réelle** des droits côté serveur, pas un simple affichage (option choisie après question
+posée, car l'alternative — un vrai système d'autorisation — est plus longue et plus risquée à
+bien faire).
+
+Avant de coder, vérification de l'existant (deux agents de recherche) :
+
+- **Déjà construit et fonctionnel**, juste invisible : `/admin/utilisateurs` et `/admin/roles`
+  fonctionnent déjà pour un Admin Établissement côté serveur (`UserController::cloisonner()`,
+  `AffectationController`, tous deux bornés à son établissement) — seul le lien de navigation
+  manquait, cantonné au Super Admin dans `Sidebar.jsx`.
+- **Aucun système de permissions n'existait** : deux catalogues de rôles coexistent
+  (`master.roles`/`role_user`, externe, lu par `RhUser::getRoleNames()` — sert au *type* de
+  compte/portail — et `console_roles`/`console_affectations`, propre à ECOPRIM — sert aux
+  affectations société/établissement) ; aucun des deux ne porte de notion de permission
+  granulaire, et le `RoleSeeder` Spatie constaté plus tôt reste mort.
+- Réinitialisation de mot de passe : aucune route dédiée, seulement le formulaire d'édition
+  complet acceptant un `mot_de_passe` facultatif.
+
+Construit :
+
+- **Navigation** : nouveau groupe « 🔐 Configuration administrative » (Utilisateurs, Rôles,
+  Permissions), visible dès que `peutConsole` est vrai — pas seulement Super Admin comme le
+  groupe « ⚙️ Administration » historique, qui ne garde que Sociétés/Établissements.
+- **Permissions, réellement appliquées** : catalogue fixe de 17 actions
+  (`App\Support\Permissions`, ex. `saisir_notes`, `creer_devoirs`, `inscrire_eleve`,
+  `supprimer_classe`), table `console_role_permissions` (quelles permissions un rôle accorde),
+  `RhUser::aLaPermission()` + middleware `permission:code`. Un Super Admin, Admin Société ou
+  Admin Établissement passe toujours — ce garde-fou vise les rôles métier (Enseignant,
+  Secrétaire, Comptable...), pas les administrateurs de la console.
+- Appliqué aux actions les plus sensibles déjà identifiées dans les exemples de l'utilisateur :
+  saisie de notes, création de devoir, saisie d'absence, inscription, modification de dossier
+  élève, suppression de classe. **Volontairement pas** sur les actions de lecture seule
+  (consulter classes/élèves/emploi du temps) : les gater aussi aurait bloqué net tout compte
+  existant sans permission déjà accordée — aucune affectation n'existe encore dans la base
+  réelle (`console_affectations` vide), donc *tout* compte non-administrateur perdrait l'accès
+  à ces actions nouvellement protégées tant que son rôle n'a pas été configuré dans le nouvel
+  écran Permissions. C'est le prix normal d'un vrai système d'autorisation qui n'existait pas
+  avant — mais seulement sur les actions couvertes ci-dessus, pas sur toute l'application.
+- Écran `/admin/permissions` : cases à cocher groupées par rôle, choix dans une liste
+  déroulante, enregistrement réel (remplace entièrement les permissions du rôle).
+- Réinitialisation du mot de passe en une action depuis la fiche utilisateur, sans repasser
+  par le formulaire complet.
+
+**Découverte importante en testant**, à connaître avant de nommer un rôle dans le catalogue :
+un rôle dont le **code** est littéralement `enseignant` ou `parent` confine automatiquement son
+titulaire au portail restreint (`RhUser::typePortail()`), qui n'atteint jamais les routes ici
+protégées ni la Configuration administrative. Un rôle voulu à accès complet (même s'il
+s'appelle « Enseignant » à l'écran) doit porter un autre code technique.
+
+**Volontairement pas fait dans cette passe** : le cloisonnement par établissement (et non par
+société) de la traçabilité par utilisateur — `TracabiliteController::assertCompteVisible()` ne
+sait vérifier qu'une société, pas un établissement précis ; l'ouvrir tel quel à un Admin
+Établissement lui laisserait voir l'activité de comptes d'un autre établissement de la même
+société. Un chantier propre, pas une extension hâtive d'un contrôle déjà délicat.
+
+11 nouveaux tests (`PermissionTest`), suite complète : **344 tests, 1438 assertions** (2 échecs
+préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport). Migration appliquée
+sur la vraie base `ecoprim`.
