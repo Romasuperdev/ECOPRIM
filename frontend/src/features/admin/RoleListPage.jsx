@@ -4,11 +4,14 @@ import { Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { createRole, deleteRole, fetchRoles } from './adminApi'
+import useEchap from '../../hooks/useEchap'
 
 export default function RoleListPage() {
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: roles, isLoading } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
   const invalider = () => qc.invalidateQueries({ queryKey: ['roles'] })

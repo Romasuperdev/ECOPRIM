@@ -15,6 +15,7 @@ import {
   updateInscription,
 } from './inscriptionsApi'
 import { imprimerFicheEleve, imprimerListeClasse } from '../impressions/impressionApi'
+import useEchap from '../../hooks/useEchap'
 
 const MOUVEMENTS = [
   { cle: 'inscription', label: 'Inscription' },
@@ -51,6 +52,8 @@ export default function InscriptionListPage() {
   const [photoBlob, setPhotoBlob] = useState(null) // { id, url } de la photo déjà en base
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
   const anneeEffective = filtres.annee ?? contexte?.annee ?? ''

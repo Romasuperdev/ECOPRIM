@@ -15,6 +15,7 @@ import {
   fetchUtilisateurs,
   updateUtilisateur,
 } from './adminApi'
+import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
   login: '', mot_de_passe: '', nom: '', prenom: '', email: '',
@@ -38,6 +39,8 @@ export default function UtilisateurListPage() {
   const [enfants, setEnfants] = useState([])
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data, isLoading } = useQuery({
     queryKey: ['utilisateurs', page, q],

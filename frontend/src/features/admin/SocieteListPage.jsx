@@ -12,6 +12,7 @@ import {
   importerSocietes,
   updateSociete,
 } from './adminApi'
+import useEchap from '../../hooks/useEchap'
 
 const VIDE = { code: '', nom: '', ville: '', adresse: '', telephone: '', email: '', representant: '' }
 
@@ -20,6 +21,8 @@ export default function SocieteListPage() {
   const [form, setForm] = useState(null) // null = fermé ; sinon objet en édition/création
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data, isLoading } = useQuery({ queryKey: ['societes', page], queryFn: () => fetchSocietes(page) })
 

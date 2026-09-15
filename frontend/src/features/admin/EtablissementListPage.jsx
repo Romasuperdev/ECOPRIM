@@ -12,6 +12,7 @@ import {
   updateEtablissement,
 } from './adminApi'
 import { fetchConsoleContexte } from './consoleContexteApi'
+import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
   code: '', intitule: '', type: '', adresse: '', ville: '', pays: 'Côte d’Ivoire',
@@ -27,6 +28,8 @@ export default function EtablissementListPage() {
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data, isLoading } = useQuery({
     queryKey: ['etablissements', page, q, filtreSociete],

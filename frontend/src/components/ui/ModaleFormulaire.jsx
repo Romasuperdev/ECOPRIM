@@ -1,10 +1,14 @@
 import Button from './Button'
+import useEchap from '../../hooks/useEchap'
 
 /**
  * Coquille commune aux formulaires de référentiel (années, niveaux, classes,
  * matières). Elle ne fait que porter la mise en page déjà utilisée ailleurs dans
  * l'application : même carte blanche arrondie, même voile, mêmes boutons — pour que les
  * quatre pages de Paramètres se ressemblent sans que chacune redéclare son gabarit.
+ *
+ * Se ferme aussi au clic sur le voile ou à la touche Échap, comme `onFermer` (le bouton
+ * Annuler) : mêmes conséquences, juste un raccourci pour y arriver.
  */
 export default function ModaleFormulaire({
   titre,
@@ -16,9 +20,17 @@ export default function ModaleFormulaire({
   libelleValider = 'Enregistrer',
   children,
 }) {
+  useEchap(onFermer)
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6">
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+      onClick={onFermer}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-lg font-semibold text-slate-800">{titre}</h2>
         {sousTitre && <p className="mt-1 text-sm text-slate-500">{sousTitre}</p>}
 

@@ -12,6 +12,7 @@ import {
   updateCreneau,
 } from './emploiApi'
 import { imprimerEmploiDuTemps, imprimerListeClasse } from '../impressions/impressionApi'
+import useEchap from '../../hooks/useEchap'
 
 export default function EmploiDuTempsPage() {
   const qc = useQueryClient()
@@ -30,6 +31,7 @@ export default function EmploiDuTempsPage() {
 
   const rafraichir = () => qc.invalidateQueries({ queryKey: ['emploi'] })
   const fermer = () => { setCellule(null); setErreur(null); setSaisie({ matiere: '', salle: '' }) }
+  useEchap(cellule ? fermer : undefined)
 
   const enregistrer = useMutation({
     mutationFn: () => {

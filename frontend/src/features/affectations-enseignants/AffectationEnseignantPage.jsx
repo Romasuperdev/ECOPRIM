@@ -10,6 +10,7 @@ import {
   fetchReferentiels,
   updateAffectation,
 } from './affectationEnseignantApi'
+import useEchap from '../../hooks/useEchap'
 
 /**
  * Qui enseigne quoi, dans quelle classe.
@@ -47,6 +48,7 @@ export default function AffectationEnseignantPage() {
   }
 
   const fermer = () => { setForm(null); setErreurs({}) }
+  useEchap(form ? fermer : undefined)
 
   const enregistrer = useMutation({
     mutationFn: (v) => (v.id
@@ -235,8 +237,8 @@ export default function AffectationEnseignantPage() {
 
       {/* Formulaire */}
       {form && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={fermer}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-slate-800">
               {form.id ? 'Remplacer l’enseignant' : 'Affecter un enseignant'}
             </h2>

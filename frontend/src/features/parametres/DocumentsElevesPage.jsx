@@ -6,6 +6,7 @@ import Select from '../../components/ui/Select'
 import { Trash2 } from 'lucide-react'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { createPrerequis, deletePrerequis, fetchPrerequis, updatePrerequis } from './parametresApi'
+import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
   libelle: '', type: '', code: '', niveau: '', annee: '',
@@ -18,6 +19,8 @@ export default function DocumentsElevesPage() {
   const [erreurs, setErreurs] = useState({})
   const [refus, setRefus] = useState(null)
   const qc = useQueryClient()
+
+  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: lignes, isLoading } = useQuery({
     queryKey: ['prerequis', filtres],

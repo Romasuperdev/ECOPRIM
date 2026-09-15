@@ -14,6 +14,7 @@ import {
   supprimerCahier,
   supprimerLigneCahier,
 } from './cahierTextesApi'
+import useEchap from '../../hooks/useEchap'
 
 const JOURS = [
   { cle: 'lundi', libelle: 'Lundi' },
@@ -89,6 +90,7 @@ function LigneCahier({ entete, ligne, verrouille, onSaved, onRemoved }) {
 function FormEntete({ initial, referentiels, erreurs, onSubmit, onClose, enCours }) {
   const [form, setForm] = useState(initial)
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  useEchap(onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
