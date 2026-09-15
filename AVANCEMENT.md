@@ -2606,3 +2606,44 @@ Effets de bord traités dans la foulée pour ne pas régresser silencieusement :
   mieux vaut ne pas montrer un bouton qui renverrait vers la console pour un accès refusé.
 - `AdminSidebar` ne propose plus Utilisateurs/Rôles/Permissions (déménagés) : ne reste que ce
   qui est vraiment propre à la console.
+
+## Portails Enseignant et Parent : tableaux de bord enrichis (Devoirs, Évaluations, Calendrier)
+
+Demande de l'utilisateur : des « plateformes » dédiées pour les parents et les enseignants,
+avec un schéma détaillé de ce que chaque tableau de bord doit montrer. Les deux portails
+existaient déjà (`/mon-espace`, cloisonnés par `RhUser::typePortail()`) — gap analysis d'abord
+(agent de recherche) pour ne compléter que ce qui manque vraiment :
+
+- **Déjà là** : portail Enseignant — ses classes, ses matières, cahier de textes, absences,
+  émploi du temps (par classe) ; portail Parent — ses enfants, leur classe, absences, cahier
+  de textes, notes/moyennes/bulletin (par enfant).
+- **Absent partout** (recherché dans tout le dépôt) : Notifications, Messages et Annonces —
+  code retiré (`app/_retires/`, `_retires/AnnoncesPage.jsx`) et jamais reconstruit ; « Retards »
+  — n'existe nulle part dans l'application, même pas côté personnel. Construire l'un ou
+  l'autre est un vrai projet à part (quoi déclenche une notification, stockage, lu/non-lu,
+  ou — pour Retards — un nouveau concept proche des absences mais distinct) : proposé à
+  l'utilisateur comme un « Lot 2 » nécessitant des choix de conception, pas entrepris ici.
+- **Lot 1 retenu** : brancher dans les deux portails ce qui existe déjà côté application
+  principale mais n'y était jamais exposé — Devoirs, Évaluations planifiées et Calendrier
+  scolaire (les trois modules ajoutés plus haut dans cette même session) — plus l'enseignant
+  titulaire et l'emploi du temps côté fiche enfant, restés absents du portail Parent.
+
+Construit, en lecture seule et cloisonné exactement comme l'existant (mes classes pour
+l'enseignant via `T_CORPROFCLASSE`, mes enfants rattachés pour le parent via
+`console_affectation_eleves`) :
+
+- **Portail Enseignant** : tableau de bord enrichi de trois sections (mes créneaux de la
+  semaine — la trame hebdomadaire ne porte pas de date calendaire, donc « prochains cours »
+  se lit comme « cette semaine », pas comme un vrai temps réel ; prochains devoirs ;
+  calendrier scolaire) ; deux nouveaux onglets sur la fiche classe (Devoirs, Évaluations).
+- **Portail Parent** : enseignant titulaire affiché (déduit de `T_CORPROFCLASSE.Principale`,
+  même donnée que le « titulaire de classe » déjà utilisé côté Affectation enseignant) ;
+  quatre nouveaux onglets sur la fiche enfant (Emploi du temps — même grille jour/heure que
+  côté enseignant, Devoirs, Évaluations, Calendrier) ; un onglet Documents avec certificat de
+  scolarité et attestation de fréquentation téléchargeables — ces deux documents (ajoutés plus
+  tôt dans la session) étaient jusque-là réservés au personnel (`portail:staff`) : nouvelles
+  routes `PortailParentController::certificatScolarite()`/`attestationFrequentation()`
+  délèguent à `ImpressionController` après vérification que l'enfant est bien rattaché.
+
+8 nouveaux tests dans `PortailTest`, suite complète : **354 tests, 1458 assertions** (2 échecs
+préexistants et déjà documentés dans `SaisieEconomatTest`, sans rapport).
