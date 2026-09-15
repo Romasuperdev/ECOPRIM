@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Eleve;
+use App\Services\AccesAutomatique;
 use App\Services\EtudiantEcrivain;
 use App\Services\PhotoEleveStockage;
 use App\Support\AnneeScolaireGuard;
@@ -27,7 +28,20 @@ class InscriptionController extends Controller
     public function __construct(
         private EtudiantEcrivain $ecrivain,
         private PhotoEleveStockage $photos,
+        private AccesAutomatique $acces,
     ) {}
+
+    /**
+     * Réponse d'un mouvement : la fiche élève, plus l'accès parent créé (ou retrouvé) au
+     * passage. Le mot de passe n'y figure qu'à la création du compte, et n'est jamais
+     * stocké en clair : c'est la seule et unique fois où l'écran peut l'afficher.
+     */
+    private function reponse(Eleve $eleve, array $data, int $statut)
+    {
+        return response()->json(array_merge($eleve->toArray(), [
+            'acces_parent' => $this->acces->pourParent($data, (string) $eleve->matricule),
+        ]), $statut);
+    }
 
     public function index(Request $request)
     {
@@ -151,7 +165,7 @@ class InscriptionController extends Controller
 
             $code = $this->ecrivain->creer($data);
 
-            return response()->json(Eleve::findOrFail($code), 201);
+            return $this->reponse(Eleve::findOrFail($code), $data, 201);
         }
 
         // Réinscription / transfert sortant : l'élève doit exister.
@@ -179,7 +193,7 @@ class InscriptionController extends Controller
 
         $this->ecrivain->modifier((int) $existant->Code, $data);
 
-        return response()->json(Eleve::findOrFail($existant->Code), 200);
+        return $this->reponse(Eleve::findOrFail($existant->Code), $data, 200);
     }
 
     /** Contrôles de cohérence communs à la création et à la modification. */
@@ -213,7 +227,8 @@ class InscriptionController extends Controller
 
         $this->ecrivain->modifier((int) $eleve->getKey(), $data);
 
-        return response()->json(Eleve::findOrFail($inscription));
+        // Un téléphone de parent ajouté après coup ouvre l'accès à ce moment-là.
+        return $this->reponse(Eleve::findOrFail($inscription), $data, 200);
     }
 
     /**

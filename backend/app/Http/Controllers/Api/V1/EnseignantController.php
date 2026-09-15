@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Enseignant;
+use App\Services\AccesAutomatique;
 use App\Services\ProfesseurEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
@@ -17,7 +18,21 @@ use Illuminate\Validation\ValidationException;
  */
 class EnseignantController extends Controller
 {
-    public function __construct(private ProfesseurEcrivain $ecrivain) {}
+    public function __construct(
+        private ProfesseurEcrivain $ecrivain,
+        private AccesAutomatique $acces,
+    ) {}
+
+    /**
+     * Réponse d'un enregistrement : la fiche, plus l'accès créé (ou retrouvé) au passage.
+     * Le mot de passe n'y figure qu'à la création du compte — l'écran l'affiche une fois.
+     */
+    private function reponse(Enseignant $enseignant, array $data, int $statut = 200)
+    {
+        return response()->json(array_merge($enseignant->toArray(), [
+            'acces_enseignant' => $this->acces->pourEnseignant($data, (int) $enseignant->getKey()),
+        ]), $statut);
+    }
 
     public function index(Request $request)
     {
@@ -106,7 +121,7 @@ class EnseignantController extends Controller
 
         $code = $this->ecrivain->creer($data);
 
-        return response()->json(Enseignant::findOrFail($code), 201);
+        return $this->reponse(Enseignant::findOrFail($code), $data, 201);
     }
 
     public function update(Request $request, Enseignant $enseignant)
@@ -123,6 +138,7 @@ class EnseignantController extends Controller
 
         $this->ecrivain->modifier($code, $data);
 
-        return response()->json(Enseignant::findOrFail($code));
+        // Un numéro renseigné après coup ouvre l'accès à ce moment-là.
+        return $this->reponse(Enseignant::findOrFail($code), $data);
     }
 }

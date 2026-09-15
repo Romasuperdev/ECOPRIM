@@ -23,6 +23,18 @@ class SaisieEconomatTest extends TestCase
         $this->setUpMasterDb();
         $this->setUpEconomatDb();
 
+        // Inscrire un élève ou créer un enseignant ouvre désormais un accès (voir
+        // AccesAutomatique) : la base console doit donc être isolée ici aussi, sans quoi
+        // la suite écrirait dans la vraie base `ecoprim`.
+        config(['database.connections.ecoprim' => [
+            'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true,
+        ]]);
+        DB::purge('ecoprim');
+        \Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--database' => 'ecoprim', '--path' => 'database/migrations/console',
+            '--realpath' => false, '--force' => true,
+        ]);
+
         $rh = RhUser::on('master')->forceCreate([
             'Id' => 1, 'Login' => 'boss', 'Nom' => 'N', 'Prenom' => 'P', 'Email' => 'b@e.ci',
             'MotDePasse' => Hash::make('x'), 'SuperAdmin' => true, 'Supprimer' => false,

@@ -93,6 +93,17 @@ class ProfesseurEcrivain
         return $this->table()->trouver($code);
     }
 
+    /**
+     * Écrit le seul identifiant de connexion (LOGIN), volontairement hors de la carte
+     * ci-dessus : il ne se saisit jamais dans le formulaire, il est posé par
+     * AccesAutomatique pour relier la fiche au compte RH_USER — c'est par ce lien que le
+     * portail Enseignant retrouve ses classes. Le mot de passe (Mdp), lui, reste exclu.
+     */
+    public function definirLogin(int $code, string $login): void
+    {
+        $this->table()->modifier($code, ['LOGIN' => $login]);
+    }
+
     public function matriculeExiste(string $matricule, ?int $sauf = null): bool
     {
         return $this->table()->requete()

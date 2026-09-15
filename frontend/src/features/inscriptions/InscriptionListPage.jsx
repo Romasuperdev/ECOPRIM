@@ -15,6 +15,7 @@ import {
   updateInscription,
 } from './inscriptionsApi'
 import { imprimerFicheEleve, imprimerListeClasse } from '../impressions/impressionApi'
+import ModaleAcces from '../../components/ui/ModaleAcces'
 import useEchap from '../../hooks/useEchap'
 
 const MOUVEMENTS = [
@@ -51,6 +52,8 @@ export default function InscriptionListPage() {
   const [erreurPhoto, setErreurPhoto] = useState(null)
   const [photoBlob, setPhotoBlob] = useState(null) // { id, url } de la photo déjà en base
   const [erreurs, setErreurs] = useState({})
+  // Identifiants du parent, affichés une seule fois après l'enregistrement.
+  const [accesParent, setAccesParent] = useState(null)
   const qc = useQueryClient()
 
   useEchap(form ? () => setForm(null) : undefined)
@@ -88,7 +91,10 @@ export default function InscriptionListPage() {
       }
       return eleve
     },
-    onSuccess: () => { invalider(); setForm(null); setErreurs({}); reinitPhoto() },
+    onSuccess: (eleve) => {
+      invalider(); setForm(null); setErreurs({}); reinitPhoto()
+      if (eleve?.acces_parent) setAccesParent(eleve.acces_parent)
+    },
     onError: (e) => {
       if (e?.photoSeulement) {
         invalider()
@@ -537,6 +543,8 @@ export default function InscriptionListPage() {
           </div>
         </div>
       )}
+
+      <ModaleAcces acces={accesParent} onFermer={() => setAccesParent(null)} />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
 import StepIndicator from '../../components/ui/StepIndicator'
+import ModaleAcces from '../../components/ui/ModaleAcces'
 import { fetchEnseignant, createEnseignant, updateEnseignant } from './enseignantsApi'
 
 const VIDE = {
@@ -41,6 +42,8 @@ export default function EnseignantFormPage() {
   const [modifs, setModifs] = useState({})
   const [etape, setEtape] = useState(0)
   const [erreurs, setErreurs] = useState({})
+  // Identifiants de l'enseignant, affichés une seule fois après l'enregistrement.
+  const [accesEnseignant, setAccesEnseignant] = useState(null)
 
   const etapes = enEdition ? [...ETAPES_BASE, 'Départ'] : ETAPES_BASE
   // Le matricule n'est exigé qu'à la création : le rendre obligatoire en modification
@@ -60,8 +63,14 @@ export default function EnseignantFormPage() {
 
   const enregistrer = useMutation({
     mutationFn: () => (enEdition ? updateEnseignant(id, form) : createEnseignant(form)),
-    onSuccess: () => {
+    onSuccess: (enseignant) => {
       qc.invalidateQueries({ queryKey: ['enseignants'] })
+      // Les identifiants ne s'affichent qu'une fois : on reste sur la page tant qu'ils
+      // n'ont pas été lus, puis on retourne à la liste.
+      if (enseignant?.acces_enseignant) {
+        setAccesEnseignant(enseignant.acces_enseignant)
+        return
+      }
       navigate('/enseignants')
     },
     onError: (e) => {
@@ -244,6 +253,8 @@ export default function EnseignantFormPage() {
           </div>
         </form>
       </div>
+
+      <ModaleAcces acces={accesEnseignant} onFermer={() => navigate('/enseignants')} />
     </div>
   )
 }
