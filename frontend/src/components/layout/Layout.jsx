@@ -4,11 +4,12 @@ import Button from '../ui/Button'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ContexteBarre from '../../features/contexte/ContexteBarre'
+import SocieteBarre from '../../features/admin/SocieteBarre'
 import ErrorBoundary from '../ErrorBoundary'
 
 export default function Layout() {
   const location = useLocation()
-  const { user, roles, logout } = useAuthStore()
+  const { user, roles, logout, niveauSociete } = useAuthStore()
 
   const handleLogout = async () => {
     await logoutApi()
@@ -35,6 +36,10 @@ export default function Layout() {
               )}
             </div>
             <ContexteBarre />
+            {/* Société administrée : utile pour choisir sur laquelle portent Utilisateurs/
+                Rôles/Permissions quand on en gère plusieurs (Super Admin, Admin Société).
+                Sans objet pour un Admin Établissement, borné à la sienne — masqué pour lui. */}
+            {niveauSociete && <SocieteBarre />}
           </div>
           <Button variant="outline" onClick={handleLogout}>
             Se déconnecter

@@ -1,20 +1,18 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, Users, ShieldCheck, KeyRound, History, ArrowLeftCircle } from 'lucide-react'
+import { LayoutDashboard, Building2, School, History, ArrowLeftCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
-// Société, pas l'Admin Établissement. Utilisateurs, Rôles et Permissions sont, eux,
-// communs aux trois niveaux : créer ses comptes, ses rôles et décider ce qu'ils peuvent
-// faire est le quotidien d'un établissement (Configuration administrative).
+// Société, pas l'Admin Établissement. Utilisateurs, Rôles et Permissions ont déménagé
+// dans l'application (Configuration administrative, voir Sidebar.jsx) : un Directeur n'a
+// plus besoin de passer par la console pour son quotidien. Ne reste ici que ce qui est
+// propre à la console : vue d'ensemble multi-établissement et traçabilité.
 // On masque plutôt que de laisser cliquer vers un 403.
 const ITEMS = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
   { to: '/admin/etablissements', icon: School, label: 'Établissements', niveauSociete: true },
-  { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
-  { to: '/admin/roles', icon: ShieldCheck, label: 'Rôles' },
-  { to: '/admin/permissions', icon: KeyRound, label: 'Permissions' },
   { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
 ]
 

@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import SelecteurEleves from './SelecteurEleves'
+import { useAuthStore } from '../../store/authStore'
 import {
   createAffectation,
   definirEnfantsAffectation,
@@ -100,6 +101,10 @@ function EnfantsAffectation({ affectation, onSaved }) {
 export default function UtilisateurDetailPage() {
   const { id } = useParams()
   const qc = useQueryClient()
+  // La traçabilité reste un outil de la console (niveau société) : un Admin Établissement
+  // n'y a pas accès (voir AVANCEMENT.md) — le bouton est masqué plutôt que de le renvoyer
+  // sur une page qui répondra 403.
+  const niveauSociete = useAuthStore((s) => s.niveauSociete)
   const [nouvelEtab, setNouvelEtab] = useState('')
   const [nouveauRole, setNouveauRole] = useState('')
   const [enfants, setEnfants] = useState([])
@@ -148,12 +153,14 @@ export default function UtilisateurDetailPage() {
           Réinitialiser le mot de passe
         </Button>
         {/* La traçabilité du compte se lit depuis sa fiche, filtrée sur ses identifiants. */}
-        <Link to={`/admin/utilisateurs/${user.id}/tracabilite`}>
-          <Button variant="outline">
-            <History size={16} className="mr-1.5 inline" />
-            Traçabilité
-          </Button>
-        </Link>
+        {niveauSociete && (
+          <Link to={`/admin/utilisateurs/${user.id}/tracabilite`}>
+            <Button variant="outline">
+              <History size={16} className="mr-1.5 inline" />
+              Traçabilité
+            </Button>
+          </Link>
+        )}
       </div>
 
       {resetMdp && <ReinitialiserMotDePasse userId={user.id} onFermer={() => setResetMdp(false)} />}

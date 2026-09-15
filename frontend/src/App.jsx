@@ -114,9 +114,10 @@ export default function App() {
                 path="/admin/etablissements/:code"
                 element={<ProtectedRoute exigeNiveauSociete><EtablissementDetailPage /></ProtectedRoute>}
               />
-              <Route path="/admin/utilisateurs" element={<UtilisateurListPage />} />
-              <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
-              {/* Traçabilité : la liste générale, et celle d'un compte depuis sa fiche. */}
+              {/* Traçabilité : la liste générale, et celle d'un compte depuis sa fiche. Reste
+                  dans la console (niveau société) : Utilisateurs/Rôles/Permissions, eux, ont
+                  déménagé dans l'application (voir plus bas, Configuration administrative) —
+                  un Directeur n'a plus besoin de « sortir » vers la console pour son quotidien. */}
               <Route
                 path="/admin/tracabilite"
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
@@ -125,8 +126,6 @@ export default function App() {
                 path="/admin/utilisateurs/:id/tracabilite"
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
               />
-              <Route path="/admin/roles" element={<RoleListPage />} />
-              <Route path="/admin/permissions" element={<PermissionsPage />} />
               </Route>
 
             {/* Portails restreints — un compte affecté du SEUL rôle Enseignant ou Parent
@@ -158,6 +157,27 @@ export default function App() {
               <Route path="/cahier-textes" element={<CahierTextesPage />} />
               <Route path="/devoirs" element={<DevoirListPage />} />
               <Route path="/calendrier-scolaire" element={<CalendrierScolairePage />} />
+
+              {/* Configuration administrative — Utilisateurs, Rôles, Permissions : ouvert dès
+                  que peutConsole est vrai (Super Admin, Admin Société, Admin Établissement),
+                  mais SANS quitter l'application (pas de bascule vers AdminLayout/console) —
+                  contrairement à Sociétés/Établissements/Traçabilité, qui restent la console. */}
+              <Route
+                path="/admin/utilisateurs"
+                element={<ProtectedRoute exigeConsole><UtilisateurListPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/utilisateurs/:id"
+                element={<ProtectedRoute exigeConsole><UtilisateurDetailPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/roles"
+                element={<ProtectedRoute exigeConsole><RoleListPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/permissions"
+                element={<ProtectedRoute exigeConsole><PermissionsPage /></ProtectedRoute>}
+              />
 
               <Route path="/parametres/documents-eleves" element={<DocumentsElevesParamPage />} />
               <Route path="/parametres/sms" element={<SmsConfigPage />} />
