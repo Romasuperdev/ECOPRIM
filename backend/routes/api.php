@@ -223,6 +223,11 @@ Route::prefix('v1')->group(function () {
             Route::post('absences', [PortailEnseignantController::class, 'absencesStore']);
             Route::put('absences/{absence}', [PortailEnseignantController::class, 'absencesUpdate']);
             Route::delete('absences/{absence}', [PortailEnseignantController::class, 'absencesDestroy']);
+
+            Route::get('prochains-cours', [PortailEnseignantController::class, 'prochainsCours']);
+            Route::get('devoirs', [PortailEnseignantController::class, 'devoirs']);
+            Route::get('evaluations-planifiees', [PortailEnseignantController::class, 'evaluationsPlanifiees']);
+            Route::get('evenements', [PortailEnseignantController::class, 'evenements']);
         });
 
         // Portail Parent — un compte affecté du seul rôle Parent : uniquement les enfants
@@ -234,6 +239,13 @@ Route::prefix('v1')->group(function () {
             Route::get('enfants/{matricule}/cahier-textes', [PortailParentController::class, 'cahierTextes']);
             Route::get('enfants/{matricule}/moyennes', [PortailParentController::class, 'moyennes']);
             Route::get('enfants/{matricule}/bulletin', [PortailParentController::class, 'bulletin']);
+            Route::get('enfants/{matricule}/certificat-scolarite', [PortailParentController::class, 'certificatScolarite']);
+            Route::get('enfants/{matricule}/attestation-frequentation', [PortailParentController::class, 'attestationFrequentation']);
+            Route::get('emplois-du-temps/referentiels', [PortailParentController::class, 'emploiReferentiels']);
+            Route::get('enfants/{matricule}/emploi-du-temps', [PortailParentController::class, 'emploiDuTemps']);
+            Route::get('enfants/{matricule}/devoirs', [PortailParentController::class, 'devoirs']);
+            Route::get('enfants/{matricule}/evaluations-planifiees', [PortailParentController::class, 'evaluationsPlanifiees']);
+            Route::get('enfants/{matricule}/evenements', [PortailParentController::class, 'evenements']);
         });
 
         // Console générale — Super Admin seul : le catalogue des sociétés.

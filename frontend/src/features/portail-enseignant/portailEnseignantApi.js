@@ -73,3 +73,23 @@ export async function modifierAbsence(id, payload) {
 export async function supprimerAbsence(id) {
   await apiClient.delete(`${BASE}/absences/${id}`)
 }
+
+export async function fetchProchainsCours() {
+  const { data } = await apiClient.get(`${BASE}/prochains-cours`)
+  return data
+}
+
+export async function fetchMesDevoirs(classe) {
+  const { data } = await apiClient.get(`${BASE}/devoirs`, { params: classe ? { classe } : {} })
+  return data
+}
+
+export async function fetchMesEvaluationsPlanifiees(classe) {
+  const { data } = await apiClient.get(`${BASE}/evaluations-planifiees`, { params: classe ? { classe } : {} })
+  return data
+}
+
+export async function fetchMesEvenements() {
+  const { data } = await apiClient.get(`${BASE}/evenements`)
+  return data
+}

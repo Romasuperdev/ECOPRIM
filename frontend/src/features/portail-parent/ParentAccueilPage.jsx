@@ -34,6 +34,9 @@ export default function ParentAccueilPage() {
             <div>
               <div className="font-semibold text-heading">{`${e.prenom ?? ''} ${e.nom ?? ''}`.trim()}</div>
               <div className="text-sm text-muted">{e.classe_libelle ?? e.classe ?? '—'}</div>
+              {e.enseignant_titulaire && (
+                <div className="text-xs text-muted">Titulaire : {e.enseignant_titulaire}</div>
+              )}
             </div>
             <ChevronRight size={18} className="text-muted" />
           </Link>

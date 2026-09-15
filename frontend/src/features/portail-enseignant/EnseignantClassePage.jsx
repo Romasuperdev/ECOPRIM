@@ -14,7 +14,9 @@ import {
   fetchCahierReferentiels,
   fetchCahiers,
   fetchMesAbsences,
+  fetchMesDevoirs,
   fetchMesEleves,
+  fetchMesEvaluationsPlanifiees,
   fetchMonEmploi,
   fetchMonEmploiReferentiels,
   modifierAbsence,
@@ -32,6 +34,8 @@ const JOURS_CAHIER = [
 
 const TABS = [
   { cle: 'cahier', libelle: 'Cahier de textes' },
+  { cle: 'devoirs', libelle: 'Devoirs' },
+  { cle: 'evaluations', libelle: 'Évaluations' },
   { cle: 'absences', libelle: 'Absences' },
   { cle: 'eleves', libelle: 'Élèves' },
   { cle: 'emploi', libelle: 'Emploi du temps' },
@@ -66,6 +70,8 @@ export default function EnseignantClassePage() {
       </div>
 
       {onglet === 'cahier' && <OngletCahier classe={classe} />}
+      {onglet === 'devoirs' && <OngletDevoirs classe={classe} />}
+      {onglet === 'evaluations' && <OngletEvaluations classe={classe} />}
       {onglet === 'absences' && <OngletAbsences classe={classe} />}
       {onglet === 'eleves' && <OngletEleves classe={classe} />}
       {onglet === 'emploi' && <OngletEmploi classe={classe} />}
@@ -224,6 +230,74 @@ function OngletCahier({ classe }) {
                  onChange={(e) => setForm((f) => ({ ...f, semaine: e.target.value }))} />
         </ModaleFormulaire>
       )}
+    </div>
+  )
+}
+
+// --- Devoirs (lecture seule — la création se fait depuis l'application, avec la permission requise) ---
+
+function OngletDevoirs({ classe }) {
+  const { data: devoirs, isLoading } = useQuery({ queryKey: ['portail-devoirs', classe], queryFn: () => fetchMesDevoirs(classe) })
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
+          <tr className="text-muted">
+            <th className="px-4 py-3 font-medium">Titre</th>
+            <th className="px-4 py-3 font-medium">Matière</th>
+            <th className="px-4 py-3 font-medium">À rendre le</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          {isLoading && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
+          {!isLoading && (devoirs?.length ?? 0) === 0 && (
+            <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucun devoir donné à cette classe.</td></tr>
+          )}
+          {devoirs?.map((d) => (
+            <tr key={d.id}>
+              <td className="px-4 py-3 font-medium text-heading">{d.titre}</td>
+              <td className="px-4 py-3 text-muted">{d.matiere_libelle}</td>
+              <td className="px-4 py-3 text-muted">{d.date_remise}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// --- Évaluations planifiées (lecture seule) ---
+
+function OngletEvaluations({ classe }) {
+  const { data: evaluations, isLoading } = useQuery({ queryKey: ['portail-evaluations', classe], queryFn: () => fetchMesEvaluationsPlanifiees(classe) })
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
+          <tr className="text-muted">
+            <th className="px-4 py-3 font-medium">Titre</th>
+            <th className="px-4 py-3 font-medium">Matière</th>
+            <th className="px-4 py-3 font-medium">Type</th>
+            <th className="px-4 py-3 font-medium">Date</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          {isLoading && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
+          {!isLoading && (evaluations?.length ?? 0) === 0 && (
+            <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Aucune évaluation planifiée.</td></tr>
+          )}
+          {evaluations?.map((e) => (
+            <tr key={e.id}>
+              <td className="px-4 py-3 font-medium text-heading">{e.titre}</td>
+              <td className="px-4 py-3 text-muted">{e.matiere_libelle}</td>
+              <td className="px-4 py-3 text-muted">{e.type}</td>
+              <td className="px-4 py-3 text-muted">{e.date}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

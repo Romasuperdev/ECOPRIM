@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Devoir;
 use App\Models\Eleve;
+use App\Models\Evaluation;
+use App\Models\Evenement;
 use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -263,5 +266,139 @@ class PortailEnseignantController extends Controller
             ->first();
 
         return $eleve ? trim((string) $eleve->getRawOriginal('CodeClasse')) : null;
+    }
+
+    /**
+     * Mes créneaux de la semaine, toutes classes confondues — la trame hebdomadaire ne
+     * porte pas de date calendaire (jour = Lundi..Vendredi, pas un jour précis), donc
+     * « prochains cours » se lit comme « cette semaine, dans l'ordre », pas comme les
+     * tout prochains dans le temps réel.
+     */
+    public function prochainsCours()
+    {
+        $prof = $this->professeur();
+        if (! $prof) {
+            return [];
+        }
+
+        try {
+            $creneaux = DB::connection('economat')->table('T_EMPLOIDUTEMPS as e')
+                ->join('T_CORPROFCLASSE as c', function ($j) {
+                    $j->on('c.CodeClasse', '=', 'e.CODECLASSE')->on('c.CodeMatiere', '=', 'e.CODEMATIERE');
+                })
+                ->where('c.CodeProfesseur', $prof->Code)
+                ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'e.ANNEE'))
+                ->select('e.CODEJOUR', 'e.CODEHEURE', 'e.CODECLASSE', 'e.CODEMATIERE', 'e.CODESALLE')
+                ->get();
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        return $creneaux->map(fn ($c) => [
+            'jour' => (int) $c->CODEJOUR,
+            'jour_libelle' => $this->libelle('T_EMPJOUR', 'Code', 'Libelle', (string) $c->CODEJOUR),
+            'heure' => (int) $c->CODEHEURE,
+            'heure_libelle' => $this->libelleHoraire($c->CODEHEURE),
+            'classe' => $c->CODECLASSE,
+            'classe_libelle' => $this->libelle('T_CLASSE', 'CodeClasse', 'LibelleClasse', $c->CODECLASSE),
+            'matiere_libelle' => $this->libelle('T_MATIERE', 'CodeMatiere', 'LibelleMatiere', $c->CODEMATIERE),
+            'salle_libelle' => $c->CODESALLE ? $this->libelle('T_SALLESCLASSE', 'CODESALLE', 'LIBELLESALLE', $c->CODESALLE) : null,
+        ])
+            ->sortBy([['jour', 'asc'], ['heure', 'asc']])
+            ->values();
+    }
+
+    private function libelleHoraire($code): ?string
+    {
+        if (! $code) {
+            return null;
+        }
+        try {
+            $h = DB::connection('economat')->table('T_HORAIRE')->where('COD_HORAIRE', $code)->first();
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        return $h ? trim(($h->HEUR_DEBUT ?? '').' - '.($h->HEUR_FIN ?? '')) : null;
+    }
+
+    // --- Devoirs, évaluations et calendrier : consultation sur mes classes seulement ---
+
+    /** Devoirs donnés à mes classes, ou à une seule si `classe` est précisé. */
+    public function devoirs(Request $request)
+    {
+        $classe = $request->query('classe');
+        if ($classe) {
+            $this->assertClasseAutorisee($classe);
+        }
+
+        return Devoir::query()
+            ->where('annee', ContexteScolaire::annee())
+            ->whereIn('classe_code', $classe ? [$classe] : $this->mesClasses())
+            ->orderBy('date_remise')
+            ->get()
+            ->map(fn (Devoir $d) => [
+                'id' => $d->id,
+                'titre' => $d->titre,
+                'consigne' => $d->consigne,
+                'classe' => $d->classe_code,
+                'classe_libelle' => $this->libelle('T_CLASSE', 'CodeClasse', 'LibelleClasse', $d->classe_code),
+                'matiere' => $d->matiere_code,
+                'matiere_libelle' => $this->libelle('T_MATIERE', 'CodeMatiere', 'LibelleMatiere', $d->matiere_code),
+                'date_remise' => optional($d->date_remise)->format('Y-m-d'),
+            ])
+            ->values();
+    }
+
+    /** Évaluations planifiées sur mes classes, avant toute note. */
+    public function evaluationsPlanifiees(Request $request)
+    {
+        $classe = $request->query('classe');
+        if ($classe) {
+            $this->assertClasseAutorisee($classe);
+        }
+
+        return Evaluation::query()
+            ->where('annee', ContexteScolaire::annee())
+            ->whereIn('classe_code', $classe ? [$classe] : $this->mesClasses())
+            ->orderBy('date')
+            ->get()
+            ->map(fn (Evaluation $e) => [
+                'id' => $e->id,
+                'titre' => $e->titre,
+                'classe' => $e->classe_code,
+                'classe_libelle' => $this->libelle('T_CLASSE', 'CodeClasse', 'LibelleClasse', $e->classe_code),
+                'matiere' => $e->matiere_code,
+                'matiere_libelle' => $this->libelle('T_MATIERE', 'CodeMatiere', 'LibelleMatiere', $e->matiere_code),
+                'type' => $e->type,
+                'date' => optional($e->date)->format('Y-m-d'),
+                'heure_debut' => $e->heure_debut,
+                'heure_fin' => $e->heure_fin,
+            ])
+            ->values();
+    }
+
+    /** Calendrier scolaire : événements de mes classes, et ceux de tout l'établissement. */
+    public function evenements()
+    {
+        return Evenement::query()
+            ->where('annee', ContexteScolaire::annee())
+            ->where(fn ($q) => $q->whereNull('classe_code')->orWhereIn('classe_code', $this->mesClasses()))
+            ->orderBy('date_debut')
+            ->get()
+            ->map(fn (Evenement $e) => [
+                'id' => $e->id,
+                'titre' => $e->titre,
+                'type' => $e->type,
+                'description' => $e->description,
+                'date_debut' => optional($e->date_debut)->format('Y-m-d'),
+                'date_fin' => optional($e->date_fin)->format('Y-m-d'),
+                'lieu' => $e->lieu,
+                'classe' => $e->classe_code,
+                'classe_libelle' => $e->classe_code
+                    ? $this->libelle('T_CLASSE', 'CodeClasse', 'LibelleClasse', $e->classe_code)
+                    : null,
+            ])
+            ->values();
     }
 }

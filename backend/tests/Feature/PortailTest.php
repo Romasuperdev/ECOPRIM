@@ -53,11 +53,19 @@ class PortailTest extends TestCase
             ['Code' => 7, 'MatriculeProfesseur' => 'P7', 'NomProfesseur' => 'Traoré', 'PrenomProfesseur' => 'Moussa', 'LOGIN' => 'mtraore'],
         ]);
         $eco('T_CORPROFCLASSE')->insert([
-            ['Code' => 1, 'CodeClasse' => 'CP1A', 'CodeMatiere' => 'MATH', 'CodeProfesseur' => 7, 'ANNEE' => self::ANNEE],
+            ['Code' => 1, 'CodeClasse' => 'CP1A', 'CodeMatiere' => 'MATH', 'CodeProfesseur' => 7, 'ANNEE' => self::ANNEE, 'Principale' => true],
         ]);
         $eco('T_ETUDIANT')->insert([
             ['Code' => 1, 'Matricule' => 'EL1', 'Nom' => 'Koné', 'Prenom' => 'Awa', 'CodeClasse' => 'CP1A', 'AnneeAcad' => self::ANNEE],
             ['Code' => 2, 'Matricule' => 'EL2', 'Nom' => 'Yao', 'Prenom' => 'Kofi', 'CodeClasse' => 'CP1B', 'AnneeAcad' => self::ANNEE],
+        ]);
+        $eco('T_EMPJOUR')->insert([['Code' => 1, 'Libelle' => 'Lundi']]);
+        $eco('T_HORAIRE')->insert([
+            ['COD_HORAIRE' => 1, 'HEUR_DEBUT' => '08:00', 'HEUR_FIN' => '09:00', 'DUREEE' => '1h'],
+        ]);
+        $eco('T_EMPLOIDUTEMPS')->insert([
+            'CODE' => 1, 'CODEJOUR' => 1, 'CODEHEURE' => 1, 'CODECLASSE' => 'CP1A',
+            'CODEMATIERE' => 'MATH', 'ANNEE' => self::ANNEE,
         ]);
     }
 
@@ -291,5 +299,89 @@ class PortailTest extends TestCase
 
         $this->assertCount(2, $r->json('eleves'));
         $this->assertDatabaseCount('console_affectation_eleves', 2, 'ecoprim');
+    }
+
+    // --- Portail Enseignant : emploi du temps, devoirs, évaluations, calendrier ---
+
+    public function test_l_enseignant_voit_ses_creneaux_de_la_semaine(): void
+    {
+        $this->enseignant();
+
+        $r = $this->getJson('/api/v1/mon-espace/enseignant/prochains-cours')->assertOk();
+        $this->assertCount(1, $r->json());
+        $this->assertSame('CP1 A', $r->json('0.classe_libelle'));
+        $this->assertSame('Mathématiques', $r->json('0.matiere_libelle'));
+    }
+
+    public function test_l_enseignant_voit_les_devoirs_de_ses_classes_seulement(): void
+    {
+        $this->enseignant();
+        DB::connection('ecoprim')->table('devoirs')->insert([
+            ['titre' => 'Devoir CP1A', 'classe_code' => 'CP1A', 'matiere_code' => 'MATH', 'date_remise' => '2025-10-01', 'annee' => self::ANNEE],
+            ['titre' => 'Devoir CP1B', 'classe_code' => 'CP1B', 'matiere_code' => 'MATH', 'date_remise' => '2025-10-01', 'annee' => self::ANNEE],
+        ]);
+
+        $r = $this->getJson('/api/v1/mon-espace/enseignant/devoirs')->assertOk();
+        $this->assertCount(1, $r->json());
+        $this->assertSame('Devoir CP1A', $r->json('0.titre'));
+    }
+
+    public function test_l_enseignant_voit_les_evenements_de_ses_classes_et_ceux_de_l_ecole(): void
+    {
+        $this->enseignant();
+        DB::connection('ecoprim')->table('evenements')->insert([
+            ['titre' => 'Vacances', 'type' => 'vacances', 'classe_code' => null, 'date_debut' => '2025-10-20', 'date_fin' => '2025-11-03', 'annee' => self::ANNEE],
+            ['titre' => 'Réunion CP1B', 'type' => 'reunion', 'classe_code' => 'CP1B', 'date_debut' => '2025-10-10', 'date_fin' => '2025-10-10', 'annee' => self::ANNEE],
+        ]);
+
+        $r = $this->getJson('/api/v1/mon-espace/enseignant/evenements')->assertOk();
+        $this->assertCount(1, $r->json());
+        $this->assertSame('Vacances', $r->json('0.titre'));
+    }
+
+    // --- Portail Parent : titulaire, emploi du temps, devoirs, évaluations, calendrier, documents ---
+
+    public function test_la_fiche_enfant_indique_l_enseignant_titulaire(): void
+    {
+        $this->parent(['EL1']);
+
+        $r = $this->getJson('/api/v1/mon-espace/parent/enfants/EL1')->assertOk();
+        $this->assertSame('Moussa Traoré', $r->json('enseignant_titulaire'));
+    }
+
+    public function test_le_parent_consulte_l_emploi_du_temps_de_la_classe_de_son_enfant(): void
+    {
+        $this->parent(['EL1']);
+
+        $r = $this->getJson('/api/v1/mon-espace/parent/enfants/EL1/emploi-du-temps')->assertOk();
+        $this->assertCount(1, $r->json('creneaux'));
+    }
+
+    public function test_le_parent_voit_les_devoirs_de_la_classe_de_son_enfant_seulement(): void
+    {
+        $this->parent(['EL1']);
+        DB::connection('ecoprim')->table('devoirs')->insert([
+            ['titre' => 'Devoir CP1A', 'classe_code' => 'CP1A', 'matiere_code' => 'MATH', 'date_remise' => '2025-10-01', 'annee' => self::ANNEE],
+            ['titre' => 'Devoir CP1B', 'classe_code' => 'CP1B', 'matiere_code' => 'MATH', 'date_remise' => '2025-10-01', 'annee' => self::ANNEE],
+        ]);
+
+        $r = $this->getJson('/api/v1/mon-espace/parent/enfants/EL1/devoirs')->assertOk();
+        $this->assertCount(1, $r->json());
+        $this->assertSame('Devoir CP1A', $r->json('0.titre'));
+    }
+
+    public function test_le_parent_ne_peut_pas_voir_les_devoirs_d_un_enfant_qui_n_est_pas_le_sien(): void
+    {
+        $this->parent(['EL1']);
+
+        $this->getJson('/api/v1/mon-espace/parent/enfants/EL2/devoirs')->assertStatus(403);
+    }
+
+    public function test_le_parent_telecharge_le_certificat_de_scolarite_de_son_enfant(): void
+    {
+        $this->parent(['EL1']);
+
+        $r = $this->get('/api/v1/mon-espace/parent/enfants/EL1/certificat-scolarite')->assertOk();
+        $this->assertSame('application/pdf', $r->headers->get('content-type'));
     }
 }
