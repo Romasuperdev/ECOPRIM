@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import BandeauPortail from '../../components/ui/BandeauPortail'
+import Onglets from '../../components/ui/Onglets'
 import { ArrowLeft, Download, FileText } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import {
@@ -50,24 +52,21 @@ export default function ParentEnfantPage() {
 
   return (
     <div>
-      <Link to="/mon-espace" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-heading">
-        <ArrowLeft size={15} /> Mes enfants
+      <Link
+        to="/mon-espace"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-heading"
+      >
+        <ArrowLeft size={15} strokeWidth={2.5} /> Mes enfants
       </Link>
-      <h1 className="mb-1 text-2xl font-bold text-heading">{`${eleve?.prenom ?? ''} ${eleve?.nom ?? ''}`.trim() || matricule}</h1>
-      <p className="mb-4 text-sm text-muted">{eleve?.classe?.nom ?? eleve?.classe_code ?? '—'}</p>
 
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
-        {TABS.map((t) => (
-          <button
-            key={t.cle} type="button" onClick={() => setOnglet(t.cle)}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm font-medium ${
-              onglet === t.cle ? 'border-b-2 border-[var(--brand-accent)] text-heading' : 'text-muted hover:text-heading'
-            }`}
-          >
-            {t.libelle}
-          </button>
-        ))}
+      <div className="mb-5">
+        <BandeauPortail
+          titre={`${eleve?.prenom ?? ''} ${eleve?.nom ?? ''}`.trim() || matricule}
+          sousTitre={eleve?.classe?.nom ?? eleve?.classe_code ?? '—'}
+        />
       </div>
+
+      <Onglets onglets={TABS} actif={onglet} onChanger={setOnglet} />
 
       {onglet === 'fiche' && <OngletFiche eleve={eleve} />}
       {onglet === 'emploi' && <OngletEmploi matricule={matricule} />}

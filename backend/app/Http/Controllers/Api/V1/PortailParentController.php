@@ -80,7 +80,57 @@ class PortailParentController extends Controller
                 'classe_libelle' => $e->classe?->nom,
                 'enseignant_titulaire' => $this->titulaire($e->classe_code, $e->annee),
                 'photo' => $e->photo,
+                // Les trois chiffres que le parent vient chercher : ils figurent sur la
+                // carte de l'enfant, pour éviter d'avoir à ouvrir trois onglets afin de
+                // savoir si tout va bien.
+                'apercu' => $this->apercu($e),
             ])->values(),
+        ];
+    }
+
+    /**
+     * Moyenne, absences et devoirs à venir d'un enfant.
+     * Chaque chiffre est isolé : une vue absente en rend un null, pas la page entière.
+     */
+    private function apercu(Eleve $e): array
+    {
+        $isole = function (callable $calcul) {
+            try {
+                return $calcul();
+            } catch (Throwable $err) {
+                return null;
+            }
+        };
+
+        return [
+            'moyenne' => $isole(function () use ($e) {
+                $q = DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')
+                    ->where('Matricule', $e->matricule);
+                ContexteScolaire::appliquer($q, 'CodeAnnee');
+                $m = $q->avg('Moyenne');
+
+                return $m !== null ? round((float) $m, 2) : null;
+            }),
+            'absences' => $isole(function () use ($e) {
+                $q = DB::connection('economat')->table('T_ABSENCEELEVE')
+                    ->where('Matricule', $e->matricule);
+                ContexteScolaire::appliquer($q, 'AnneeCour');
+
+                return (int) $q->count();
+            }),
+            'devoirs_a_venir' => $isole(function () use ($e) {
+                if (! $e->classe_code) {
+                    return 0;
+                }
+                $q = Devoir::where('classe_code', $e->classe_code)
+                    ->whereDate('date_remise', '>=', now()->toDateString());
+                $variantes = ContexteScolaire::variantes();
+                if ($variantes !== []) {
+                    $q->whereIn('annee', $variantes);
+                }
+
+                return (int) $q->count();
+            }),
         ];
     }
 

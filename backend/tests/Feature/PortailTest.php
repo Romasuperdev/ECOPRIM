@@ -241,6 +241,55 @@ class PortailTest extends TestCase
         $this->assertSame('EL1', $r->json('enfants.0.matricule'));
     }
 
+    /**
+     * La carte de l'enfant porte trois chiffres — moyenne, absences, devoirs à venir —
+     * pour éviter au parent d'ouvrir trois onglets afin de savoir si tout va bien.
+     * Ils doivent rester bornés à SON enfant et à l'année de travail.
+     */
+    public function test_la_carte_de_l_enfant_porte_moyenne_absences_et_devoirs(): void
+    {
+        $eco = fn (string $t) => DB::connection('economat')->table($t);
+        $eco('V_MOYENNE_ELEVE_CLASSE')->insert([
+            ['Code' => 10, 'Matricule' => 'EL1', 'Moyenne' => 12, 'CodeEleve' => 1, 'CodeClasse' => 'CP1A', 'CodeAnnee' => '2025'],
+            ['Code' => 11, 'Matricule' => 'EL1', 'Moyenne' => 14, 'CodeEleve' => 1, 'CodeClasse' => 'CP1A', 'CodeAnnee' => '2025'],
+            // L'autre enfant ne doit pas peser dans la moyenne affichée.
+            ['Code' => 12, 'Matricule' => 'EL2', 'Moyenne' => 2, 'CodeEleve' => 2, 'CodeClasse' => 'CP1B', 'CodeAnnee' => '2025'],
+        ]);
+        $eco('T_ABSENCEELEVE')->insert([
+            ['Code' => 20, 'Matricule' => 'EL1', 'CodeClasse' => 'CP1A', 'Date' => now()->toDateString(),
+                'AnneeCour' => self::ANNEE, 'Justifier' => false],
+            ['Code' => 21, 'Matricule' => 'EL2', 'CodeClasse' => 'CP1B', 'Date' => now()->toDateString(),
+                'AnneeCour' => self::ANNEE, 'Justifier' => false],
+        ]);
+        DB::connection('ecoprim')->table('devoirs')->insert([
+            ['titre' => 'À rendre', 'classe_code' => 'CP1A', 'matiere_code' => 'MATH',
+                'date_remise' => now()->addWeek()->toDateString(),
+                'annee' => self::ANNEE, 'created_at' => now(), 'updated_at' => now()],
+            // Déjà passé : ne compte pas dans « à venir ».
+            ['titre' => 'Rendu', 'classe_code' => 'CP1A', 'matiere_code' => 'MATH',
+                'date_remise' => now()->subWeek()->toDateString(),
+                'annee' => self::ANNEE, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->parent(['EL1']);
+        $r = $this->getJson('/api/v1/mon-espace/parent/enfants')->assertOk();
+
+        $this->assertEqualsWithDelta(13, $r->json('enfants.0.apercu.moyenne'), 0.01);
+        $this->assertSame(1, $r->json('enfants.0.apercu.absences'));
+        $this->assertSame(1, $r->json('enfants.0.apercu.devoirs_a_venir'));
+    }
+
+    public function test_la_carte_de_classe_de_l_enseignant_porte_son_effectif(): void
+    {
+        $this->enseignant();
+
+        $r = $this->getJson('/api/v1/mon-espace/enseignant/classes')->assertOk();
+
+        // CP1A compte EL1 ; EL2 est en CP1B, que cet enseignant n'a pas.
+        $this->assertSame('CP1A', $r->json('classes.0.classe'));
+        $this->assertSame(1, $r->json('classes.0.effectif'));
+    }
+
     public function test_le_parent_ne_peut_pas_consulter_un_enfant_qui_n_est_pas_le_sien(): void
     {
         $this->parent(['EL1']);

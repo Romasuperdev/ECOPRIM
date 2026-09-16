@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import BandeauPortail from '../../components/ui/BandeauPortail'
+import Onglets from '../../components/ui/Onglets'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
@@ -51,27 +53,18 @@ export default function EnseignantClassePage() {
 
   return (
     <div>
-      <Link to="/mon-espace" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-heading">
-        <ArrowLeft size={15} /> Mes classes
+      <Link
+        to="/mon-espace"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-heading"
+      >
+        <ArrowLeft size={15} strokeWidth={2.5} /> Mes classes
       </Link>
-      <h1 className="mb-4 text-2xl font-bold text-heading">{classe}</h1>
 
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
-        {TABS.map((t) => (
-          <button
-            key={t.cle}
-            type="button"
-            onClick={() => setOnglet(t.cle)}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm font-medium ${
-              onglet === t.cle
-                ? 'border-b-2 border-[var(--brand-accent)] text-heading'
-                : 'text-muted hover:text-heading'
-            }`}
-          >
-            {t.libelle}
-          </button>
-        ))}
+      <div className="mb-5">
+        <BandeauPortail titre={classe} sousTitre="Cahier de textes, notes, devoirs, absences et emploi du temps." />
       </div>
+
+      <Onglets onglets={TABS} actif={onglet} onChanger={setOnglet} />
 
       {onglet === 'cahier' && <OngletCahier classe={classe} />}
       {/* La saisie appartient à l'enseignant : c'est ici qu'elle se fait, la classe étant

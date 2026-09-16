@@ -107,6 +107,9 @@ class PortailEnseignantController extends Controller
                 'matiere' => trim((string) $l->CodeMatiere),
                 'matiere_libelle' => $this->libelle('T_MATIERE', 'CodeMatiere', 'LibelleMatiere', $l->CodeMatiere),
                 'principale' => (bool) ($l->Principale ?? false),
+                // Affiché sur la carte de la classe : un enseignant sait de combien
+                // d'élèves il parle avant même d'ouvrir la liste.
+                'effectif' => $this->effectif(trim((string) $l->CodeClasse)),
             ])->values(),
         ];
     }
@@ -120,6 +123,23 @@ class PortailEnseignantController extends Controller
             return DB::connection('economat')->table($table)->where($cle, $valeur)->value($colonne) ?: $valeur;
         } catch (Throwable $e) {
             return $valeur;
+        }
+    }
+
+    /** Nombre d'élèves d'une classe pour l'année de travail. Null si illisible. */
+    private function effectif(string $classe): ?int
+    {
+        if ($classe === '') {
+            return null;
+        }
+
+        try {
+            $q = DB::connection('economat')->table('T_ETUDIANT')->where('CodeClasse', $classe);
+            ContexteScolaire::appliquer($q, 'AnneeAcad');
+
+            return (int) $q->count();
+        } catch (Throwable $e) {
+            return null;
         }
     }
 

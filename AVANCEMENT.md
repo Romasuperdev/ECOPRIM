@@ -3168,3 +3168,42 @@ lignes plutôt que d'être coupé. Un intitulé tronqué ne se devine pas.
 
 Le filet vertical qui relie les entrées à leur rubrique a été renforcé dans la foulée : à
 50 % d'opacité il virait au gris et ne disait plus rien de son module.
+
+## Espaces Enseignant et Parent : mêmes codes que le reste de l'application
+
+Les deux portails avaient été construits avant le design system : cartes plates, titres
+discrets, onglets soulignés, et surtout aucun signe d'appartenance à la plateforme. Ils
+reprennent désormais le vocabulaire visuel du reste — bandeau bleu nuit, pastilles en
+relief, pastilles d'onglet, texte gras et contrasté.
+
+**Le bandeau n'est pas qu'une décoration.** C'est le même aplat bleu nuit que le tableau de
+bord du personnel, et pour la raison écrite dès sa création : un parent qui ouvre son
+espace doit voir immédiatement qu'il est dans l'école de son enfant, pas sur un écran
+étranger. Il ne suit donc pas le thème.
+
+**Trois pièces ont été sorties en composants partagés** plutôt qu'écrites deux fois :
+
+- `PastilleRelief` — la pastille en relief du menu, réutilisable ; les portails y puisent
+  les mêmes trois familles de couleur que l'application.
+- `Onglets` — les deux pages de détail avaient chacune leur barre d'onglets, écrites à la
+  main et légèrement différentes. Onglets en pastilles et non plus soulignés : l'espace
+  Parent en compte neuf, qui défilent horizontalement sur un téléphone, et un trait sous
+  l'onglet actif se perd dès qu'il sort du champ.
+- `BandeauPortail` — le bandeau, partagé par les quatre écrans.
+
+**Une carte redessinée mais vide n'apporte rien**, d'où deux enrichissements côté serveur,
+qui figuraient d'ailleurs au cahier des charges initial de ces espaces :
+
+- la carte d'un enfant porte sa **moyenne**, ses **absences** et ses **devoirs à venir** —
+  le parent sait si tout va bien sans ouvrir trois onglets. Le ton suit le sens : vert
+  quand il n'y a rien à signaler, orange quand cela mérite un regard ;
+- la carte d'une classe porte son **effectif**, et le bandeau la somme des élèves suivis.
+  Une classe pouvant apparaître plusieurs fois (une ligne par matière enseignée), la somme
+  dédoublonne : elle compte des élèves, pas des affectations.
+
+Chaque chiffre est calculé isolément côté serveur : une vue absente en rend un `null`, pas
+la page entière. 2 nouveaux tests les figent, dont l'un vérifie qu'ils restent bornés à
+l'enfant du parent connecté et à l'année de travail.
+
+À défaut de photo, l'enfant est représenté par ses **initiales** dans une pastille en
+relief — mieux qu'une silhouette grise identique pour tous.
