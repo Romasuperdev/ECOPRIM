@@ -180,6 +180,31 @@ class PorteeAnneeTest extends TestCase
         $this->assertSame('Passe', $r->json('data.0.nom'));
     }
 
+    /**
+     * ECONOMAT stocke l'année tantôt en libellé (T_ETUDIANT.AnneeAcad), tantôt en code.
+     * Un filtre explicite doit donc accepter les deux formes, comme le fait le contexte.
+     *
+     * Ce test vient d'un bug constaté en base réelle : la liste des inscriptions faisait
+     * une égalité stricte sur le libellé reçu et rendait une liste VIDE sur deux des trois
+     * années du référentiel — 23 élèves et 3 élèves invisibles, bien qu'inscrits.
+     */
+    public function test_un_filtre_explicite_accepte_le_code_comme_le_libelle(): void
+    {
+        // Un élève dont l'année est stockée en CODE, pas en libellé.
+        DB::connection('economat')->table('T_ETUDIANT')->insert([
+            'Code' => 3, 'Matricule' => 'A2', 'Nom' => 'Code', 'Prenom' => 'Stocke',
+            'AnneeAcad' => self::CODE_A, 'CodeClasse' => 'CA',
+        ]);
+
+        // Filtré par le libellé : l'élève stocké en code doit quand même sortir.
+        $parLibelle = $this->getJson('/api/v1/inscriptions?annee='.self::A)->assertOk();
+        $this->assertCount(2, $parLibelle->json('data'));
+
+        // Et l'inverse : filtré par le code, celui stocké en libellé sort aussi.
+        $parCode = $this->getJson('/api/v1/inscriptions?annee='.self::CODE_A)->assertOk();
+        $this->assertCount(2, $parCode->json('data'));
+    }
+
     public function test_le_choix_de_l_annee_persiste_entre_les_appels(): void
     {
         $this->choisir(self::A);

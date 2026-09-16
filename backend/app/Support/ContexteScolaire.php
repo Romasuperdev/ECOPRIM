@@ -35,6 +35,44 @@ class ContexteScolaire
     }
 
     /**
+     * Mêmes deux formes, mais pour une année DÉSIGNÉE (par son libellé ou par son
+     * code), et non pour l'année de travail.
+     *
+     * À utiliser dès qu'un filtre reçoit une année de l'extérieur. Une égalité
+     * stricte sur la valeur reçue paraît suffisante et ne l'est pas : elle ne
+     * retrouve que les lignes stockées dans la même convention que celle qui a été
+     * transmise. Le filtre « année » des inscriptions faisait exactement cela, et
+     * rendait une liste VIDE sur deux des trois années du référentiel.
+     *
+     * Si l'année n'est pas au référentiel, on la renvoie telle quelle : mieux vaut
+     * chercher ce qui a été demandé que de ne rien filtrer du tout.
+     */
+    public static function variantesDe(?string $annee): array
+    {
+        $annee = trim((string) $annee);
+        if ($annee === '') {
+            return [];
+        }
+
+        try {
+            $trouvee = AnneeScolaire::all()->first(
+                fn ($a) => (string) $a->libelle === $annee || (string) $a->code_annee === $annee
+            );
+        } catch (Throwable $e) {
+            return [$annee];
+        }
+
+        if ($trouvee === null) {
+            return [$annee];
+        }
+
+        return array_values(array_unique(array_filter(
+            [$trouvee->libelle, $trouvee->code_annee],
+            fn ($v) => (string) $v !== ''
+        )));
+    }
+
+    /**
      * Restreint une requête à l'année de travail.
      * Sans année connue, la requête est laissée intacte : on ne masque pas tout
      * l'applicatif parce que le référentiel est vide ou injoignable.

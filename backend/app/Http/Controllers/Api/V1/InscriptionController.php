@@ -46,8 +46,12 @@ class InscriptionController extends Controller
     public function index(Request $request)
     {
         $eleves = Eleve::query()
+            // Une année explicite est acceptée sous ses deux formes (libellé ou code),
+            // comme le fait le contexte : ECONOMAT stocke tantôt l'une, tantôt l'autre,
+            // et une égalité stricte renvoyait une liste vide sur les années stockées
+            // dans l'autre convention.
             ->when($request->filled('annee'),
-                fn ($q) => $q->where('AnneeAcad', $request->input('annee')),
+                fn ($q) => $q->whereIn('AnneeAcad', ContexteScolaire::variantesDe($request->input('annee'))),
                 fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
             ->when($request->filled('classe'), fn ($q) => $q->where('CodeClasse', $request->input('classe')))
             ->when($request->filled('mouvement'), function ($q) use ($request) {

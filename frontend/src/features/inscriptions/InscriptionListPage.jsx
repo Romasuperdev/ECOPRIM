@@ -44,8 +44,7 @@ const VIDE = {
 
 export default function InscriptionListPage() {
   const [page, setPage] = useState(1)
-  // annee à null = on suit l'année choisie dans l'en-tête ; une chaîne = choix local.
-  const [filtres, setFiltres] = useState({ q: '', annee: null, classe: '', mouvement: '' })
+  const [filtres, setFiltres] = useState({ q: '', classe: '' })
   const [form, setForm] = useState(null)
   const [etape, setEtape] = useState(0)
   const [photo, setPhoto] = useState(null)        // fichier choisi, pas encore envoyé
@@ -60,16 +59,20 @@ export default function InscriptionListPage() {
   useEchap(form ? () => setForm(null) : undefined)
 
   const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
-  const anneeEffective = filtres.annee ?? contexte?.annee ?? ''
+  // L'année de travail se choisit une fois pour toutes dans l'en-tête : la page la
+  // suit, elle ne la redemande pas.
+  const anneeEffective = contexte?.annee ?? ''
 
+  // `annee` n'est volontairement PAS transmise. Sans elle, le serveur applique
+  // ContexteScolaire, qui filtre sur le libellé ET sur le code — ECONOMAT stockant
+  // tantôt l'un tantôt l'autre. Le filtre explicite, lui, faisait une égalité stricte
+  // sur le seul libellé et pouvait donc masquer des élèves bien inscrits.
   const { data, isLoading } = useQuery({
-    queryKey: ['inscriptions', page, { ...filtres, annee: anneeEffective }],
+    queryKey: ['inscriptions', page, filtres, anneeEffective],
     queryFn: () => fetchInscriptions({
       page,
       q: filtres.q || undefined,
-      annee: anneeEffective || undefined,
       classe: filtres.classe || undefined,
-      mouvement: filtres.mouvement || undefined,
     }),
   })
   const { data: ref } = useQuery({ queryKey: ['referentiels'], queryFn: fetchReferentiels })
@@ -192,9 +195,18 @@ export default function InscriptionListPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Élèves et inscriptions</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            La liste de tous les élèves, et le dossier d’inscription, de réinscription ou de
-            transfert de chacun — saisie directe dans ECONOMAT.T_ETUDIANT.
+          {/* Le compte dit d'emblée combien d'élèves sont inscrits pour l'année de
+              travail — c'est la première chose qu'on vient vérifier sur cet écran. */}
+          <p className="mt-1 text-sm font-medium text-muted">
+            {isLoading
+              ? 'Chargement…'
+              : `${data?.total ?? 0} élève${(data?.total ?? 0) > 1 ? 's' : ''} inscrit${
+                  (data?.total ?? 0) > 1 ? 's' : ''
+                }${anneeEffective ? ` en ${anneeEffective}` : ''}`}
+          </p>
+          <p className="mt-0.5 text-sm text-muted">
+            Consultez leur fiche, ou ouvrez un dossier d’inscription, de réinscription ou de
+            transfert — saisie directe dans ECONOMAT.T_ETUDIANT.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -236,20 +248,6 @@ export default function InscriptionListPage() {
         <div className="min-w-[200px] flex-1">
           <Input label="Rechercher" placeholder="Nom, prénom ou matricule…" value={filtres.q}
                  onChange={(e) => { setPage(1); setFiltres((f) => ({ ...f, q: e.target.value })) }} />
-        </div>
-        <div className="min-w-[160px]">
-          <Select label="Type de mouvement" value={filtres.mouvement}
-                  onChange={(e) => { setPage(1); setFiltres((f) => ({ ...f, mouvement: e.target.value })) }}>
-            <option value="">Tous</option>
-            {MOUVEMENTS.map((m) => <option key={m.cle} value={m.cle}>{m.label}</option>)}
-          </Select>
-        </div>
-        <div className="min-w-[150px]">
-          <Select label="Année" value={anneeEffective}
-                  onChange={(e) => { setPage(1); setFiltres((f) => ({ ...f, annee: e.target.value })) }}>
-            <option value="">Toutes</option>
-            {ref?.annees?.map((a) => <option key={a.id} value={a.libelle}>{a.libelle}</option>)}
-          </Select>
         </div>
         <div className="min-w-[150px]">
           <Select label="Classe" value={filtres.classe}

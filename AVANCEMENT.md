@@ -3095,3 +3095,43 @@ qui cherchait « Élèves » doit continuer à la trouver. Le titre de la page s
 inscriptions n'a pas. Elle rendait la valeur brute de `T_ETUDIANT.Statut`, un entier sans
 libellé — donc un numéro affiché tel quel. Elle n'a pas été reprise ; si ce statut a un
 sens métier, il faudra d'abord lui donner une table de correspondance.
+
+### Le filtre « Année » de la page Inscriptions masquait des élèves
+
+Demande : retirer les filtres « Type de mouvement » et « Année » de la page
+Inscriptions — l'année étant déjà choisie dans l'en-tête —, et « voir les élèves déjà
+inscrits ».
+
+Cette dernière phrase s'est révélée être un **bug**, pas une préférence. Le contrôleur
+traitait l'année de deux façons opposées :
+
+```php
+->when($request->filled('annee'),
+    fn ($q) => $q->where('AnneeAcad', $request->input('annee')),   // égalité STRICTE
+    fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))       // libellé ET code
+```
+
+Or ECONOMAT stocke l'année tantôt en libellé, tantôt en code — c'est la raison d'être de
+`ContexteScolaire`. L'écran, lui, transmettait toujours le libellé, donc passait toujours
+par la branche stricte. Mesuré sur la base réelle, année par année :
+
+| Année de travail | Avant | Après |
+|---|---|---|
+| ANNEE SCOLAIRE 2024/2025 | **0 élève** | 23 élèves |
+| Année Scolaire 2026-2027 | 9 élèves | 9 élèves |
+| 2026-2027 | **0 élève** | 3 élèves |
+
+Sur deux des trois années, la liste était vide alors que les élèves étaient bien inscrits.
+Retirer le sélecteur « Année » suffit à corriger l'écran (sans paramètre, le serveur
+applique le contexte, tolérant aux deux conventions) — mais laisser la branche stricte en
+place aurait laissé le piège armé pour le prochain qui rebranche un filtre. D'où
+`ContexteScolaire::variantesDe()` : à partir d'un libellé **ou** d'un code, elle retrouve
+l'année au référentiel et rend ses deux formes. Le filtre explicite les accepte désormais
+toutes les deux, et un test le fige.
+
+Ajouté au passage, puisque c'est la question qu'on vient poser à cet écran : le nombre
+d'élèves inscrits, affiché sous le titre.
+
+**Deux tests en échec, sans rapport** : `SaisieEconomatTest` échoue sur ses deux envois de
+photo `.jpg` (le `.png` passe). Vérifié en rejouant la suite sans mes modifications : ils
+échouaient déjà. C'est la génération de faux JPEG par GD sous Windows, pas le code.
