@@ -42,8 +42,7 @@ export const GROUPS = [
     label: '📝 Traitement',
     module: 'traitement',
     items: [
-      { to: '/inscriptions', label: 'Inscriptions' },
-      { to: '/eleves', label: 'Élèves' },
+      { to: '/inscriptions', label: 'Élèves et inscriptions' },
       { to: '/enseignants', label: 'Enseignants' },
       { to: '/absences', label: 'Absences' },
     ],

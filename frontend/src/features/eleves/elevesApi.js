@@ -1,27 +1,14 @@
 import apiClient from '../../api/client'
 
-export async function fetchEleves(page = 1) {
-  const { data } = await apiClient.get('/eleves', { params: { page } })
-  return data
-}
+// La LISTE des élèves est servie par la page Inscriptions, qui lit la même table
+// avec en plus recherche, filtres et édition : `fetchEleves` n'a plus d'appelant.
+// Retirés aussi : createEleve / updateEleve / deleteEleve, qui visaient des routes
+// POST, PUT et DELETE /eleves inexistantes côté serveur — et ECONOMAT n'autorise
+// de toute façon pas la suppression d'un élève.
 
 export async function fetchEleve(id) {
   const { data } = await apiClient.get(`/eleves/${id}`)
   return data
-}
-
-export async function createEleve(payload) {
-  const { data } = await apiClient.post('/eleves', payload)
-  return data
-}
-
-export async function updateEleve(id, payload) {
-  const { data } = await apiClient.put(`/eleves/${id}`, payload)
-  return data
-}
-
-export async function deleteEleve(id) {
-  await apiClient.delete(`/eleves/${id}`)
 }
 
 export async function fetchBulletinDonnees(id) {

@@ -11,7 +11,6 @@ import { fetchMe } from './features/auth/authApi'
 // Pages chargées à la demande (code-splitting par route) pour alléger le premier chargement.
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
-const EleveListPage = lazy(() => import('./features/eleves/EleveListPage'))
 const EleveDetailPage = lazy(() => import('./features/eleves/EleveDetailPage'))
 const ClasseListPage = lazy(() => import('./features/classes/ClasseListPage'))
 const EnseignantListPage = lazy(() => import('./features/enseignants/EnseignantListPage'))
@@ -188,7 +187,13 @@ export default function App() {
               <Route path="/niveaux" element={<NiveauListPage />} />
               <Route path="/annees-scolaires" element={<AnneeScolaireListPage />} />
 
-              <Route path="/eleves" element={<EleveListPage />} />
+              {/* La liste des élèves a fusionné avec celle des inscriptions : les deux
+                  lisaient T_ETUDIANT et affichaient les mêmes lignes, celle des
+                  inscriptions avec en plus la recherche, les filtres, l'impression et
+                  l'édition. On redirige au lieu de supprimer : d'anciens favoris et
+                  les liens déjà partagés continuent de mener quelque part. */}
+              <Route path="/eleves" element={<Navigate to="/inscriptions" replace />} />
+              {/* La FICHE, elle, reste un écran à part : bulletin, documents, assiduité. */}
               <Route path="/eleves/:id" element={<EleveDetailPage />} />
 
               <Route path="/classes" element={<ClasseListPage />} />

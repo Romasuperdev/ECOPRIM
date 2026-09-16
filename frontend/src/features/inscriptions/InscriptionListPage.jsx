@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import StepIndicator from '../../components/ui/StepIndicator'
 import { fetchContexte } from '../contexte/contexteApi'
-import { ImagePlus, Lock, Printer, User } from 'lucide-react'
+import { Eye, ImagePlus, Lock, Printer, User } from 'lucide-react'
 import {
   createInscription,
   fetchInscriptions,
@@ -190,9 +191,10 @@ export default function InscriptionListPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Inscriptions</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Élèves et inscriptions</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Inscriptions, réinscriptions et transferts — saisie directe dans ECONOMAT.T_ETUDIANT.
+            La liste de tous les élèves, et le dossier d’inscription, de réinscription ou de
+            transfert de chacun — saisie directe dans ECONOMAT.T_ETUDIANT.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -285,8 +287,18 @@ export default function InscriptionListPage() {
                 <td className="px-4 py-3 text-slate-600">{e.classe_code ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.annee ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.date_naissance ?? '—'}</td>
-                <td className="px-4 py-3 text-right">
-                  <Button variant="outline" className="!px-3 !py-1 mr-2"
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-2">
+                  {/* Reprise de l'ancienne page « Élèves » : la fiche détaillée
+                      (bulletin, documents, assiduité) reste un écran à part. */}
+                  <Link
+                    to={`/eleves/${e.id}`}
+                    title="Ouvrir la fiche de l'élève"
+                    className="inline-flex rounded-full p-2 text-muted hover:bg-slate-100 hover:text-primary-700"
+                  >
+                    <Eye size={16} />
+                  </Link>
+                  <Button variant="outline" className="!px-3 !py-1"
                           title="Imprimer la fiche de l'élève"
                           onClick={() => imprimerFicheEleve(e.id)}>
                     <Printer size={14} />
@@ -305,6 +317,7 @@ export default function InscriptionListPage() {
                           }}>
                     Éditer
                   </Button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -132,7 +132,7 @@ export default function EleveDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/eleves" className="rounded p-1.5 text-slate-500 hover:bg-slate-100">
+        <Link to="/inscriptions" title="Retour à la liste des élèves" className="rounded-full p-2 text-muted hover:bg-slate-100">
           <ArrowLeft size={18} />
         </Link>
         <h1 className="text-2xl font-bold text-slate-800">

@@ -3057,3 +3057,41 @@ de l'application n'en a besoin aujourd'hui — l'enseignant a `diplome` et `form
 champs simples, l'inscription a père et mère en deux étapes fixes. Le construire à vide
 aurait été du décor. Le seul précédent approchant est l'ajout de rôle dans la fiche
 utilisateur.
+
+## Les deux listes d'élèves n'en font plus qu'une
+
+Constat de l'utilisateur : « Élèves » et « Inscriptions » montrent la même chose. Vérifié —
+les deux lisaient `T_ETUDIANT` et affichaient une ligne par élève. Mais elles n'étaient pas
+équivalentes pour autant : la liste des inscriptions est **strictement plus riche**
+(recherche par nom/matricule, filtres mouvement / année / classe, impression de la fiche,
+édition du dossier en assistant), là où la page « Élèves » était en lecture seule, sans
+filtre ni recherche, et paginée à l'aveugle.
+
+La fusion consistait donc à supprimer la plus pauvre — à une exception près, qu'il fallait
+repérer avant : **la page « Élèves » était le seul chemin vers la fiche détaillée** d'un
+élève (bulletin, documents, assiduité). La supprimer sans rien faire aurait rendu
+`EleveDetailPage` inatteignable. Un lien « Ouvrir la fiche » a donc été ajouté sur chaque
+ligne de la liste des inscriptions, avant de retirer quoi que ce soit.
+
+Trois autres détails auraient cassé sans l'audit préalable :
+
+- La fiche élève avait une flèche de retour vers `/eleves`, qui n'existe plus : elle pointe
+  désormais vers `/inscriptions`.
+- `/eleves` **redirige** au lieu de disparaître : les favoris et les liens déjà partagés
+  continuent de mener quelque part.
+- L'endpoint `GET /api/v1/eleves` n'a **pas** été retiré : il est encore appelé par trois
+  autres modules (saisie d'absence, sélecteur d'élèves de la console, référentiels). Seul
+  son appelant côté liste a disparu.
+
+Au passage, `elevesApi` perd `createEleve`, `updateEleve` et `deleteEleve` : ils visaient
+des routes POST/PUT/DELETE `/eleves` **qui n'existent pas côté serveur** — et ECONOMAT
+n'autorise de toute façon pas la suppression d'un élève. Du code mort qui promettait une
+opération dangereuse.
+
+L'entrée de menu s'appelle « Élèves et inscriptions », et non plus « Inscriptions » : celui
+qui cherchait « Élèves » doit continuer à la trouver. Le titre de la page suit.
+
+**Une perte assumée** : l'ancienne liste affichait une colonne « Statut » que la liste des
+inscriptions n'a pas. Elle rendait la valeur brute de `T_ETUDIANT.Statut`, un entier sans
+libellé — donc un numéro affiché tel quel. Elle n'a pas été reprise ; si ce statut a un
+sens métier, il faudra d'abord lui donner une table de correspondance.
