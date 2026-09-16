@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Support\Facades\Schema;
 
 abstract class TestCase extends BaseTestCase
@@ -111,6 +112,7 @@ abstract class TestCase extends BaseTestCase
     {
         AnneeScolaireGuard::oublier();
         ContexteScolaire::oublier();
+        PerimetreEtablissement::oublier();
 
         config(['database.connections.economat' => [
             'driver' => 'sqlite',
@@ -280,6 +282,9 @@ abstract class TestCase extends BaseTestCase
             $t->string('CodeF')->nullable();
             $t->string('ANNEE')->nullable();
             $t->string('CodeSerie')->nullable();
+            // Rattachement à l'établissement : c'est par là que passe le périmètre des
+            // élèves, T_ETUDIANT n'ayant pas de colonne établissement.
+            $t->string('CODEETABLISSEMENT')->nullable();
             $t->string('CODESOCIETE')->nullable();
         });
 

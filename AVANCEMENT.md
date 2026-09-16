@@ -2899,3 +2899,75 @@ horizontal à 390 px (`scrollWidth == clientWidth`), dans les deux thèmes.
 part, et les ~25 badges de statut et ~15 bandeaux restent écrits à la main. Le rebranchement des
 échelles les a rendus corrects dans les deux thèmes, donc les unifier n'apporterait plus de gain
 visuel — c'est devenu du rangement, à faire au fil de l'eau plutôt qu'en une passe risquée.
+
+## Tableau de bord : des indicateurs, et un périmètre qui n'existait pas
+
+Demande : un tableau de bord riche en graphiques, sur le modèle d'une maquette fournie
+(bandeau, anneau, jauges, histogramme mensuel, table d'échéances). Avant de dessiner quoi
+que ce soit, relevé de ce que les données peuvent réellement soutenir — un graphique
+alimenté par des chiffres inventés ne vaut rien.
+
+**Ce que le sondage de la base a révélé**, et qui a orienté toute la suite :
+
+- Les données pédagogiques sont encore très minces (36 élèves, 2 absences, 8 moyennes,
+  6 professeurs). Chaque bloc doit donc dire « rien n'a encore été saisi » plutôt que
+  d'afficher un cadre vide qui passerait pour une panne.
+- `T_ETUDIANT.Sexe` contient `1`, `2`, `3`, `F` et `M` : inexploitable. Aucun graphique
+  par sexe n'a été construit — la répartition se fait par **niveau**, dont les données
+  sont propres.
+- `T_STATISTIQUESCLASSE` et `T_TABLE_EFFECTIFS`, présentées comme des tables de KPI
+  toutes faites, sont **vides**. Vérifié avant de s'appuyer dessus.
+- `T_VERSEMENT` contient bien 44 encaissements réels. Ouvrir le financier a été proposé,
+  et **refusé** : la règle « jamais le financier » posée à la conception tient. Le tableau
+  de bord reste pédagogique, et c'est écrit dans le contrôleur pour que la question ne se
+  repose pas à l'aveugle.
+
+### Le périmètre établissement n'existait pas
+
+Découverte la plus importante : le tableau de bord **n'était borné à aucun établissement**.
+Il agrégeait toute la société, quel que soit l'établissement choisi dans l'en-tête. Raison
+structurelle : `T_ETUDIANT` n'a pas de colonne établissement, seulement `CODESOCIETE`. Le
+rattachement ne peut donc passer que par la classe (`T_CLASSE.CODEETABLISSEMENT`), d'où le
+nouveau `App\Support\PerimetreEtablissement`, jumeau de `ContexteScolaire`.
+
+**Mais** : sur la base actuelle, les 6 classes de l'année en cours n'ont **aucun** code
+établissement (les 22 classes qui en ont un appartiennent à d'autres années). Appliquer le
+filtre tel quel aurait donc affiché zéro partout. D'où le comportement retenu, couvert par
+un test : quand aucune classe de l'année ne porte le code de l'établissement choisi, on
+garde les chiffres de la société **et on l'affiche**, avec le nombre de classes à corriger
+et un lien vers l'écran des classes. Un écran à zéro passerait pour une panne ; des
+chiffres élargis affichés en silence seraient faux. La troisième voie est de le dire.
+
+### Le taux d'assiduité était faux
+
+L'ancien calcul était `100 − absences / effectif`. Il comparait un cumul d'absences depuis
+la rentrée à un effectif, sans jamais tenir compte du temps écoulé : une école de 300
+élèves tombait à 0 % dès la 300ᵉ absence de l'année, en novembre comme en juin. Le calcul
+se rapporte désormais aux **journées-élèves réellement écoulées** (jours ouvrés depuis le
+début de l'année × effectif). Les vacances ne sont pas déduites — elles gonflent le
+dénominateur, donc le taux — c'est pourquoi la jauge affiche le détail sous le pourcentage
+(« 2 absences / 163 j. ouvrés ») : un pourcentage seul n'est pas vérifiable, et celui-ci
+s'est déjà trompé une fois.
+
+### L'écran
+
+Bandeau de marque, quatre tuiles, anneau de répartition par niveau, trois jauges
+(assiduité, réussite, encadrement), classement des moyennes par classe, histogramme
+mensuel à deux vues (mouvements d'élèves / absences, justifiées ou non), et table des
+prochaines échéances agrégeant évaluations, devoirs et événements. Premiers graphiques du
+projet : recharts était installé depuis longtemps sans être utilisé. Toutes leurs couleurs
+passent par les variables `--chart-*`, donc ils suivent le mode sombre.
+
+**Deux défauts trouvés en regardant le rendu, invisibles à la compilation** : avec un seul
+mois de données, la barre occupait toute la largeur du graphique (plafonnée à 48 px) ; et
+sur mobile les hauteurs figées faisaient déborder l'anneau et la rangée de jauges hors de
+leur carte (418 px de contenu pour 380 disponibles). Mesuré, corrigé, re-mesuré.
+
+**Au passage** : les deux graphiques mensuels utilisaient `YEAR()`/`MONTH()`, que SQLite ne
+connaît pas. Ils levaient donc une exception avalée par `sansErreur`, rendaient un tableau
+vide, et n'étaient **jamais testés**. L'extraction de date est désormais choisie selon le
+moteur, et les deux graphiques sont couverts.
+
+7 nouveaux tests (`TableauDeBordTest`) : périmètre appliqué, changement d'établissement,
+repli quand rien n'est rattaché, assiduité rapportée aux journées, ventilation des
+absences, agenda borné aux échéances à venir.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Console\Affectation;
 use App\Models\AnneeScolaire;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use App\Models\Console\Etablissement;
 use App\Services\BEtablissementEcrivain;
 use Illuminate\Http\Request;
@@ -114,8 +115,11 @@ class ContexteController extends Controller
 
         $request->session()->put('annee_travail', $choix['libelle']);
         // Le contexte est mis en cache le temps d'une requête : on l'invalide pour que
-        // tout ce qui est lu ensuite parte bien de la nouvelle année.
+        // tout ce qui est lu ensuite parte bien de la nouvelle année. Le périmètre
+        // établissement dépend lui aussi de l'année (il passe par les classes) : il doit
+        // tomber avec elle, sinon on filtrerait sur les classes de l'année précédente.
         ContexteScolaire::oublier();
+        PerimetreEtablissement::oublier();
 
         return response()->json([
             'annee' => $choix['libelle'],
@@ -139,6 +143,7 @@ class ContexteController extends Controller
         }
 
         $request->session()->put('etablissement_code', $choix['code']);
+        PerimetreEtablissement::oublier();
         $request->session()->put('etablissement_nom', $choix['intitule']);
 
         return response()->json([
@@ -151,6 +156,7 @@ class ContexteController extends Controller
     public function destroy(Request $request)
     {
         $request->session()->forget(['etablissement_code', 'etablissement_nom']);
+        PerimetreEtablissement::oublier();
 
         return response()->json(['etablissement_code' => null, 'etablissement_nom' => null]);
     }
