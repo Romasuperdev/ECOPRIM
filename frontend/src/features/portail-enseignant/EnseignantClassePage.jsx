@@ -120,7 +120,7 @@ function LigneCahier({ entete, ligne, onSaved, onRemoved }) {
           <input
             type="text" maxLength={50} value={valeurs[j.cle] ?? ''}
             onChange={(e) => setValeurs((v) => ({ ...v, [j.cle]: e.target.value }))}
-            placeholder="—" className="field w-full !py-1.5 text-sm"
+            placeholder="—" className="field field--dense w-full"
           />
         </td>
       ))}

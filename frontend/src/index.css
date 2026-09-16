@@ -496,15 +496,24 @@ body {
   color: var(--heading);
 }
 
+/* ── Champs de formulaire ────────────────────────────────────────────────────
+   Le champ est une pastille pleine, sans bordure visible au repos : au calme,
+   c'est le remplissage qui dit « on écrit ici », et la page respire. La bordure
+   n'apparaît qu'au survol et au focus — mais elle est bien là dès le départ, en
+   transparent, pour que rien ne se décale au moment où elle se colore.
+
+   La hauteur (0.7rem de padding vertical) est délibérément inchangée : seize
+   barres de filtres alignent leurs champs avec des boutons en `items-end`, et
+   un champ plus haut les désalignerait toutes.                                */
 .field {
   width: 100%;
-  padding: 0.7rem 0.9rem;
-  border-radius: 0.75rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: 9999px;
   font-size: 0.95rem;
   font-weight: 500;
-  background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
+  background: var(--surface-2);
   color: var(--text);
-  border: 1.5px solid var(--border);
+  border: 1.5px solid transparent;
   outline: none;
 }
 .field::placeholder {
@@ -512,17 +521,64 @@ body {
   font-weight: 400;
 }
 .field:hover {
-  border-color: color-mix(in srgb, var(--brand-accent) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--brand-accent) 35%, transparent);
 }
 .field:focus {
   border-color: var(--brand-accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 25%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 22%, transparent);
 }
 .field:disabled,
 .field[readonly] {
   background: color-mix(in srgb, var(--muted-text) 12%, var(--surface));
   color: var(--muted-text);
+}
+
+/* Place pour une icône, à gauche ou à droite.
+   Ces deux règles existent parce que les utilitaires `pl-*` / `pr-*` de Tailwind
+   ne peuvent PAS y suffire : ils ont la même spécificité que `.field`, qui est
+   déclarée après eux dans la feuille et dont le raccourci `padding` écrase donc
+   leur `padding-left`. Le texte passait sous l'icône — c'était déjà le cas sur
+   l'écran de connexion avant cette reprise. Déclarées ici, après `.field`, elles
+   gagnent. */
+.field--icone {
+  padding-left: 2.7rem;
+}
+.field--action {
+  padding-right: 2.7rem;
+}
+
+/* Zone de saisie multiligne : même remplissage, mais une pastille n'a pas de
+   sens sur plusieurs lignes — coins simplement adoucis. */
+.field--zone {
+  border-radius: 1rem;
+}
+
+/* Variante dense, pour les champs logés dans une cellule de tableau (saisie des
+   notes, cahier de textes). La pastille y serait illisible : à cette taille les
+   champs se touchent, et seul un rectangle discret laisse lire la grille. */
+.field--dense {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border-color: var(--border);
+}
+
+/* Cases à cocher et boutons radio. Ils étaient restés bruts partout — une
+   douzaine de cases au bleu du navigateur au milieu d'une interface à l'identité
+   posée. `accent-color` les reprend toutes d'un coup, sans toucher au balisage
+   ni remplacer la case native (qui reste accessible au clavier). */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--brand-accent);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+input[type='checkbox']:disabled,
+input[type='radio']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 main table {

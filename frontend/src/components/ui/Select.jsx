@@ -13,12 +13,12 @@ const Select = forwardRef(function Select(
       )}
       <div className="relative">
         {Icon && (
-          <Icon size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <Icon size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
         )}
         <select
           id={id}
           ref={ref}
-          className={`field ${Icon ? 'pl-9' : ''} ${error ? '!border-red-400' : ''} ${className}`}
+          className={`field ${Icon ? 'field--icone' : ''} ${error ? '!border-red-400' : ''} ${className}`}
           {...props}
         >
           {children}

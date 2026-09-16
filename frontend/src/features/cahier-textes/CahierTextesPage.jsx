@@ -57,7 +57,7 @@ function LigneCahier({ entete, ligne, verrouille, onSaved, onRemoved }) {
             value={valeurs[j.cle] ?? ''}
             onChange={(e) => setValeurs((v) => ({ ...v, [j.cle]: e.target.value }))}
             placeholder="—"
-            className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-primary-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
+            className="field field--dense w-full"
           />
         </td>
       ))}

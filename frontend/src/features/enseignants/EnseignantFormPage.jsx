@@ -131,7 +131,7 @@ export default function EnseignantFormPage() {
         >
           {/* 1 — État civil */}
           <div className={visible(0) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">État civil</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">État civil</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
               <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
@@ -154,7 +154,7 @@ export default function EnseignantFormPage() {
 
           {/* 2 — Coordonnées */}
           <div className={visible(1) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Coordonnées</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Coordonnées</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
               <Input label="Ville" value={form.ville} onChange={(e) => champ('ville', e.target.value)} error={err('ville')} />
@@ -166,7 +166,7 @@ export default function EnseignantFormPage() {
 
           {/* 3 — Carrière */}
           <div className={visible(2) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Carrière</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Carrière</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Select label="Statut" value={form.statut} onChange={(e) => champ('statut', e.target.value)} error={err('statut')}>
                 <option value="">—</option>
@@ -191,7 +191,7 @@ export default function EnseignantFormPage() {
 
           {/* 4 — Administration */}
           <div className={visible(3) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Rattachement administratif</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Rattachement administratif</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Input label="Fonction" value={form.fonction} onChange={(e) => champ('fonction', e.target.value)} error={err('fonction')} />
               <Input label="Emploi" value={form.emploi} onChange={(e) => champ('emploi', e.target.value)} error={err('emploi')} />
@@ -212,7 +212,7 @@ export default function EnseignantFormPage() {
           {/* 5 — Départ (modification seulement) */}
           {enEdition && (
             <div className={visible(4) ? '' : 'hidden'}>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Départ</p>
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Départ</p>
               <p className="mb-3 text-xs text-slate-400">
                 Un enseignant n’est jamais supprimé : son départ se renseigne ici.
               </p>

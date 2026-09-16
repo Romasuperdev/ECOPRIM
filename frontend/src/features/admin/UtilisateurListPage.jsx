@@ -169,7 +169,7 @@ export default function UtilisateurListPage() {
             </h2>
             <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-4">
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Connexion</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Connexion</p>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Login *" value={form.login ?? ''} onChange={(ev) => champ('login', ev.target.value)} error={erreurs.login?.[0]} />
                 <Input label={form.id ? 'Mot de passe (laisser vide pour conserver)' : 'Mot de passe *'}
@@ -177,7 +177,7 @@ export default function UtilisateurListPage() {
                        onChange={(ev) => champ('mot_de_passe', ev.target.value)} error={erreurs.mot_de_passe?.[0]} />
               </div>
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Identité</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Identité</p>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Nom *" value={form.nom ?? ''} onChange={(ev) => champ('nom', ev.target.value)} error={erreurs.nom?.[0]} />
                 <Input label="Prénom" value={form.prenom ?? ''} onChange={(ev) => champ('prenom', ev.target.value)} error={erreurs.prenom?.[0]} />
@@ -186,7 +186,7 @@ export default function UtilisateurListPage() {
                 <Input label="Contact" value={form.contact ?? ''} onChange={(ev) => champ('contact', ev.target.value)} error={erreurs.contact?.[0]} />
               </div>
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Rattachement</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Rattachement</p>
               <div className="grid grid-cols-2 gap-3">
                 <Select label="Établissement" value={form.etab ?? ''} onChange={(ev) => champ('etab', ev.target.value)} error={erreurs.etab?.[0]}>
                   <option value="">— Aucun —</option>
@@ -210,7 +210,7 @@ export default function UtilisateurListPage() {
 
               {!form.id && (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted">
                     Rôle (Enseignant, Parent, Secrétaire…)
                   </p>
                   <p className="-mt-2 text-xs text-slate-400">

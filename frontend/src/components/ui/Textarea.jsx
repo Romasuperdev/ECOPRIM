@@ -12,12 +12,12 @@ const Textarea = forwardRef(function Textarea(
         </label>
       )}
       <div className="relative">
-        {Icon && <Icon size={16} className="pointer-events-none absolute left-3 top-2.5 text-muted" />}
+        {Icon && <Icon size={16} className="pointer-events-none absolute left-4 top-3 text-muted" />}
         <textarea
           id={id}
           ref={ref}
           rows={rows}
-          className={`field ${Icon ? 'pl-9' : ''} ${error ? '!border-red-400' : ''} ${className}`}
+          className={`field field--zone ${Icon ? 'field--icone' : ''} ${error ? '!border-red-400' : ''} ${className}`}
           {...props}
         />
       </div>

@@ -19,7 +19,7 @@ const STYLES = {
 
 export default function Button({ children, variant = 'primary', className = '', ...props }) {
   const base =
-    'px-4 py-2 rounded-xl font-semibold text-sm transition disabled:opacity-50 active:scale-[.98] inline-flex items-center gap-2'
+    'px-5 py-2 rounded-full font-semibold text-sm transition disabled:opacity-50 active:scale-[.98] inline-flex items-center gap-2'
 
   if (variant === 'outline' || variant === 'ghost') {
     return (

@@ -3003,3 +3003,57 @@ Résultat vérifié dans les deux thèmes : plus aucun texte sous **6,4:1** en c
 162 fois ailleurs dans l'application pour des textes secondaires. En mode clair, cela donne
 **2,8:1** — sous le seuil. Un seul token à corriger, mais qui touche une cinquantaine
 d'écrans : à faire sur décision, pas en passant.
+
+## Formulaires : le style de la maquette, appliqué au design system
+
+Maquette fournie : champs en pastille pleine sans bordure visible, libellés au-dessus,
+grille à deux colonnes, fil d'étapes numéroté, titre de section avec une action à droite,
+boutons en pastille. L'inventaire préalable a montré que `.field` n'a que **quatre points
+d'entrée** (Input, Select, Textarea, plus un appel direct) : le style se change donc en un
+endroit et se propage aux ~30 écrans de saisie, sans les éditer un par un.
+
+**Ce que la maquette ne dicte pas et qui a été tranché autrement.** Ses libellés sont en
+gris clair et en graisse normale ; ceux de l'application restent **gras et foncés** — c'est
+la demande formulée juste avant, et elle prime sur la maquette.
+
+**Trois cas que le style de la maquette aurait abîmés**, repérés à l'inventaire :
+
+1. **Les grilles denses.** La saisie des notes et le cahier de textes (deux écrans)
+   logent des champs dans des cellules de tableau, jusqu'à cinq par ligne. Une pastille y
+   serait illisible : les champs se touchent. D'où `.field--dense`, rectangle discret et
+   compact. Au passage, ces trois grilles portaient des styles écrits en dur, hors design
+   system ; elles y reviennent — et un `!py-1.5` qui rattrapait à la main la hauteur de
+   `.field` disparaît.
+2. **Les seize barres de filtres**, qui alignent leurs champs avec des boutons en
+   `items-end`. La hauteur du champ est donc restée **exactement la même** : seuls le rayon,
+   la bordure et le rembourrage horizontal changent.
+3. **La zone multiligne**, où une pastille n'a pas de sens : `.field--zone`, coins adoucis.
+
+**Un bug préexistant trouvé en regardant le rendu** : les icônes dans les champs
+chevauchaient le texte — visible sur l'écran de connexion, où le nom d'utilisateur passait
+sous l'icône. Cause : les utilitaires `pl-*` de Tailwind ont la même spécificité que
+`.field`, déclarée *après* eux, dont le raccourci `padding` écrasait donc leur
+`padding-left`. Aucune classe Tailwind ne pouvait corriger cela ; d'où `.field--icone` et
+`.field--action`, déclarées après `.field`.
+
+**Cases à cocher et boutons radio** : ils étaient restés bruts partout — une douzaine de
+cases au bleu du navigateur au milieu d'une identité posée. `accent-color` les reprend
+toutes d'un coup, sans toucher au balisage ni remplacer la case native, qui reste
+accessible au clavier.
+
+**Fil d'étapes** repris sur la maquette : pastille numérotée, libellé dessous, trait de
+liaison qui se colore à mesure. À six étapes, l'ancienne disposition — libellés à côté des
+pastilles — formait une ligne de texte indistincte. Sous `sm`, seuls les libellés de
+l'étape courante restent affichés : sur un téléphone, six libellés se chevauchaient.
+
+**FormSection** gagne une zone d'action à droite du titre (c'est là qu'irait un
+« + Ajouter une autre ligne »). Il n'était utilisé qu'une fois ; les 23 titres de section
+écrits à la main ailleurs sont passés de `text-slate-400` à `text-muted` — ils étaient à
+**2,8:1**, sous le seuil de lisibilité, ils sont à 7,5:1.
+
+**Non construit, faute d'usage réel** : le bloc répétable de la maquette (« Education » :
+sous-formulaire → ligne ajoutée à une liste, modifiable et supprimable). Aucun formulaire
+de l'application n'en a besoin aujourd'hui — l'enseignant a `diplome` et `formation` en
+champs simples, l'inscription a père et mère en deux étapes fixes. Le construire à vide
+aurait été du décor. Le seul précédent approchant est l'ajout de rôle dans la fiche
+utilisateur.

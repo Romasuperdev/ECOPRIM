@@ -163,7 +163,7 @@ export default function EtablissementListPage() {
             </h2>
             <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-4">
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Identité</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Identité</p>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Code *" value={form.code ?? ''} onChange={(ev) => champ('code', ev.target.value)}
                        error={erreurs.code?.[0]} disabled={!!form.id} />
@@ -178,14 +178,14 @@ export default function EtablissementListPage() {
                 </Select>
               </div>
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Localisation</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Localisation</p>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Adresse *" value={form.adresse ?? ''} onChange={(ev) => champ('adresse', ev.target.value)} error={erreurs.adresse?.[0]} />
                 <Input label="Pays *" value={form.pays ?? ''} onChange={(ev) => champ('pays', ev.target.value)} error={erreurs.pays?.[0]} />
                 <Input label="Ville" value={form.ville ?? ''} onChange={(ev) => champ('ville', ev.target.value)} error={erreurs.ville?.[0]} />
               </div>
 
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Coordonnées</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Coordonnées</p>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Téléphone" value={form.telephone ?? ''} onChange={(ev) => champ('telephone', ev.target.value)} error={erreurs.telephone?.[0]} />
                 <Input label="Email" value={form.email ?? ''} onChange={(ev) => champ('email', ev.target.value)} error={erreurs.email?.[0]} />

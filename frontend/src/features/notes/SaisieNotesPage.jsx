@@ -241,23 +241,21 @@ export default function SaisieNotesPage({
                           type="number" min="0" max={bareme} step="0.25" disabled={l.absent}
                           value={l.note}
                           onChange={(ev) => cellule(e.matricule, 'note', ev.target.value)}
-                          className={`w-24 rounded-lg border px-2 py-1 text-sm disabled:bg-slate-100 ${
-                            faux ? 'border-red-400 bg-red-50' : 'border-slate-200'
-                          }`}
+                          className={`field field--dense w-24 ${faux ? '!border-red-400 bg-red-50' : ''}`}
                         />
                       </td>
                       <td className="px-4 py-2">
                         <input
                           type="checkbox" checked={l.absent}
                           onChange={(ev) => cellule(e.matricule, 'absent', ev.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300"
+                          className="rounded"
                         />
                       </td>
                       <td className="px-4 py-2">
                         <input
                           type="text" maxLength={255} value={l.appreciation}
                           onChange={(ev) => cellule(e.matricule, 'appreciation', ev.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                          className="field field--dense w-full"
                           placeholder="—"
                         />
                       </td>

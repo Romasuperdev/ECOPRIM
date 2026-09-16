@@ -55,7 +55,7 @@ export default function SmsConfigPage() {
         </label>
 
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Opérateur</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Opérateur</p>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Nom de la configuration" value={form.nom ?? ''} onChange={(e) => champ('nom', e.target.value)}
                    error={erreurs.nom?.[0]} placeholder="ex. Orange CI production" />
@@ -73,7 +73,7 @@ export default function SmsConfigPage() {
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Accès API</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Accès API</p>
           <div className="grid grid-cols-2 gap-3">
             <Input label="URL de l’API" value={form.api_url ?? ''} onChange={(e) => champ('api_url', e.target.value)}
                    error={erreurs.api_url?.[0]} placeholder="https://…" />
@@ -89,7 +89,7 @@ export default function SmsConfigPage() {
         </div>
 
         <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Options</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Options</p>
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" checked={!!form.accuses_reception} onChange={(e) => champ('accuses_reception', e.target.checked)} />

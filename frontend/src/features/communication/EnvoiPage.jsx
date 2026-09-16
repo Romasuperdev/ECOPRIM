@@ -62,7 +62,7 @@ export default function EnvoiPage() {
       <div className="space-y-5 rounded-xl border border-slate-200 bg-card p-6">
         {/* Canal */}
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Canal</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Canal</p>
           <div className="flex gap-3">
             {[
               { cle: 'sms', label: 'SMS', icone: MessageSquare },

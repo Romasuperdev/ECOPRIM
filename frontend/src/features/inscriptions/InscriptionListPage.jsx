@@ -364,7 +364,7 @@ export default function InscriptionListPage() {
             >
 
               <div className={visible(0) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Identité de l’élève</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Identité de l’élève</p>
                 {!form.id && (
                   <p className="mb-3 text-xs text-slate-400">
                     Le matricule identifie l’élève de façon unique. Pour un élève déjà connu de
@@ -388,7 +388,7 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(1) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Coordonnées</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Coordonnées</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
                   <Input label="Ville" value={form.ville} onChange={(e) => champ('ville', e.target.value)} error={err('ville')} />
@@ -400,7 +400,7 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(2) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Scolarité</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Scolarité</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Select label="Type de mouvement *" value={form.mouvement}
                           onChange={(e) => champ('mouvement', e.target.value)} error={err('mouvement')}>
@@ -438,7 +438,7 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(3) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Père / Tuteur</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Père / Tuteur</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Nom" value={form.pere_nom} onChange={(e) => champ('pere_nom', e.target.value)} error={err('pere_nom')} />
                   <Input label="Prénom(s)" value={form.pere_prenom} onChange={(e) => champ('pere_prenom', e.target.value)} error={err('pere_prenom')} />
@@ -449,7 +449,7 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(4) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Mère</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Mère</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Input label="Nom" value={form.mere_nom} onChange={(e) => champ('mere_nom', e.target.value)} error={err('mere_nom')} />
                   <Input label="Prénom(s)" value={form.mere_prenom} onChange={(e) => champ('mere_prenom', e.target.value)} error={err('mere_prenom')} />
@@ -460,7 +460,7 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(5) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Photo</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Photo</p>
 
                 <div className="flex flex-wrap items-start gap-6">
                   {/* Aperçu : le fichier choisi, sinon la photo déjà en base */}
