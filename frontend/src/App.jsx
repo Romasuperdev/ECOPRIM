@@ -21,7 +21,6 @@ const MatiereFormPage = lazy(() => import('./features/matieres/MatiereFormPage')
 const NoteListPage = lazy(() => import('./features/notes/NoteListPage'))
 const SaisieNotesPage = lazy(() => import('./features/notes/SaisieNotesPage'))
 const AbsenceListPage = lazy(() => import('./features/absences/AbsenceListPage'))
-const ParentListPage = lazy(() => import('./features/parents/ParentListPage'))
 const NiveauListPage = lazy(() => import('./features/niveaux/NiveauListPage'))
 const AnneeScolaireListPage = lazy(() => import('./features/annees-scolaires/AnneeScolaireListPage'))
 const MoyennesPage = lazy(() => import('./features/rapports/MoyennesPage'))
@@ -213,7 +212,6 @@ export default function App() {
 
               <Route path="/moyennes" element={<MoyennesPage />} />
 
-              <Route path="/parents" element={<ParentListPage />} />
 
 
               <Route path="/assiduite" element={<AssiduitePage />} />

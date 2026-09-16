@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\V1\AnneeScolaireController;
 use App\Http\Controllers\Api\V1\EnseignantController;
 use App\Http\Controllers\Api\V1\MatiereController;
 use App\Http\Controllers\Api\V1\AbsenceController;
-use App\Http\Controllers\Api\V1\ParentController;
 use App\Http\Controllers\Api\V1\RapportController;
 use App\Http\Controllers\Api\V1\InscriptionController;
 use App\Http\Controllers\Api\V1\BulletinController;
@@ -115,9 +114,6 @@ Route::prefix('v1')->group(function () {
         Route::post('absences', [AbsenceController::class, 'store'])->middleware('permission:saisir_absences');
         Route::put('absences/{absence}', [AbsenceController::class, 'update']);
         Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
-        // Parents / tuteurs : annuaire DÉRIVÉ des fiches élèves, en lecture seule.
-        // Les coordonnées se corrigent dans Inscriptions, seule porte d'écriture de T_ETUDIANT.
-        Route::get('parents', [ParentController::class, 'index']);
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
         Route::post('niveaux', [NiveauController::class, 'store']);

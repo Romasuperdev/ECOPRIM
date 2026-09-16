@@ -7,9 +7,12 @@ import { ROLES } from '../../lib/constants'
 
 const CLE_REPLIE = 'nexora-sidebar-repliee'
 
-// Navigation NEXORA. Seules les pages réellement fonctionnelles sont listées : les
-// entrées non construites ont été retirées, à une exception assumée et validée
-// (Espace parent) qui reste affichée en « Bientôt » via `to: null`.
+// Navigation NEXORA. Seules les pages réellement fonctionnelles sont listées ; les
+// entrées non construites ont été retirées. (Le mécanisme « Bientôt » — une entrée
+// `to: null` — reste disponible, mais plus aucune ne l'utilise.)
+// Le groupe « Parents / Tuteurs » a été retiré : son annuaire n'était qu'une relecture
+// des fiches élèves, où ces coordonnées se lisent et se corrigent déjà ; et son entrée
+// « Espace parent » annonçait un portail qui existe désormais pour de bon (/mon-espace).
 // Les pages adossées à des tables inexistantes (documents/annonces/messages) ont été
 // supprimées ; Communication passe par l'envoi SMS/Mail.
 // Le groupe « Affectation » a été retiré : sa seule entrée renvoyait vers /classes, déjà
@@ -57,13 +60,6 @@ const GROUPS = [
       { to: '/notes/consultation', label: 'Consultation des notes' },
       { to: '/moyennes', label: 'Résultats & bulletins' },
       { to: '/assiduite', label: 'Assiduité' },
-    ],
-  },
-  {
-    label: '👨‍👩‍👧 Parents / Tuteurs',
-    items: [
-      { to: '/parents', label: 'Parents / Tuteurs' },
-      { to: null, label: 'Espace parent' },
     ],
   },
   {

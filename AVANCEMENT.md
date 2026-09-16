@@ -2744,3 +2744,26 @@ remplacement automatique : inutile de les faire figurer dans le diff.
 
 **Non vérifié visuellement** : l'environnement de travail n'a pas de navigateur, donc le build
 et le lint passent mais le rendu réel sur téléphone reste à contrôler côté utilisateur.
+
+## Retrait de la rubrique « Parents / Tuteurs »
+
+Constat de l'utilisateur : la rubrique ne sert à rien, ces informations figurent déjà sur la
+fiche de l'élève. C'est exact, et l'en-tête du contrôleur le disait déjà lui-même : l'annuaire
+était **dérivé** des fiches élèves, en lecture seule, les coordonnées se corrigeant de toute
+façon dans Inscriptions — seule porte d'écriture de `T_ETUDIANT`. Une page qui relit ailleurs
+ce qu'on lit déjà à la source.
+
+Vérifié avant de retirer quoi que ce soit : la fonctionnalité était autonome. En particulier le
+module Communication, qui envoie des SMS aux parents, ne s'appuyait pas dessus — il a sa propre
+sélection de destinataires. Aucune autre page, aucun autre contrôleur n'y touchait.
+
+Retiré : l'entrée de menu (et avec elle tout le groupe), la route `/parents` côté écran comme
+côté API, `ParentListPage`/`parentsApi` et `ParentController` — déplacés dans les dossiers
+`_retires/` selon la convention déjà en place dans le projet — et `ParentsAnnuaireTest`
+(7 cas), supprimé : il ne testait que cet annuaire.
+
+Au passage, le groupe portait aussi une entrée « Espace parent » affichée en « Bientôt » depuis
+l'origine. Elle n'a plus lieu d'être : le portail parent existe pour de bon (`/mon-espace`), et
+c'est un compte Parent qui y accède, pas une entrée du menu du personnel. Le commentaire en tête
+de `Sidebar.jsx`, qui présentait cette entrée comme « une exception assumée et validée », a été
+corrigé en conséquence — il serait devenu faux.
