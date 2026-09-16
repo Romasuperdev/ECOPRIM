@@ -2971,3 +2971,35 @@ moteur, et les deux graphiques sont couverts.
 7 nouveaux tests (`TableauDeBordTest`) : périmètre appliqué, changement d'établissement,
 repli quand rien n'est rattaché, assiduité rapportée aux journées, ventilation des
 absences, agenda borné aux échéances à venir.
+
+### Lisibilité du tableau de bord : mesurée, pas estimée
+
+Retour de l'utilisateur : « les couleurs doivent être nettes et claires, la police en gras
+et foncé ». L'écran empilait effectivement beaucoup de gris secondaire en 11-12 px.
+
+Plutôt que de tout passer en gras foncé — ce qui aurait supprimé la hiérarchie, où plus
+rien ne ressort —, la hiérarchie repose désormais sur la **taille et la graisse** plutôt
+que sur la clarté : valeur (extrabold, couleur de titre) > libellé (semibold, couleur de
+titre) > précision (medium, secondaire). Les libellés de tuile, d'axe, de légende et les
+en-têtes de tableau sont passés en couleur de texte courante ; les pastilles de statut
+sont montées d'un cran (fond `-100`, texte `-800` au lieu de `-50`/`-700`).
+
+**Le défaut qu'on ne voit pas à l'œil** a été trouvé en mesurant les contrastes dans le
+navigateur : recharts colore chaque libellé de légende avec la couleur de sa série.
+« Transferts » s'affichait donc en orange sur blanc — **2,1:1**, sous le seuil de lisibilité
+(WCAG AA demande 4,5:1) ; « Réinscriptions » en vert à 2,5:1. La pastille suffit à
+identifier la série : le texte reprend la couleur courante.
+
+`--muted-text` est par ailleurs passé du 500 au 600 en mode clair (4,8:1 → 7,5:1), ce qui
+profite à toute l'application et non au seul tableau de bord. Le mode sombre a demandé un
+réglage séparé : l'échelle y étant inversée, le 600 y valait presque la couleur du texte,
+et le 400 essayé d'abord retombait à 5,7:1 — c'est le 500 qui redonne 7,1:1. L'inversion
+rend l'intuition trompeuse ; il faut mesurer.
+
+Résultat vérifié dans les deux thèmes : plus aucun texte sous **6,4:1** en clair ni sous
+**7,1:1** en sombre, soit largement au-dessus de AA et à hauteur de AAA.
+
+**Reste à traiter, hors périmètre de cette demande** : `text-slate-400` est utilisé
+162 fois ailleurs dans l'application pour des textes secondaires. En mode clair, cela donne
+**2,8:1** — sous le seuil. Un seul token à corriger, mais qui touche une cinquantaine
+d'écrans : à faire sur décision, pas en passant.

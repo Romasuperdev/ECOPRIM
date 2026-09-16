@@ -14,9 +14,9 @@ import { fetchDashboardStats } from './dashboardApi'
 import { Anneau, CarteGraphique, HistogrammeMensuel, Jauge } from './graphiques'
 
 const NATURES = {
-  evaluation: { libelle: 'Évaluation', classes: 'bg-primary-50 text-primary-700' },
-  devoir: { libelle: 'Devoir', classes: 'bg-green-50 text-green-700' },
-  evenement: { libelle: 'Événement', classes: 'bg-amber-50 text-amber-700' },
+  evaluation: { libelle: 'Évaluation', classes: 'bg-primary-100 text-primary-800' },
+  devoir: { libelle: 'Devoir', classes: 'bg-green-100 text-green-800' },
+  evenement: { libelle: 'Événement', classes: 'bg-amber-100 text-amber-800' },
 }
 
 const VUES_MENSUELLES = {
@@ -44,13 +44,13 @@ const VUES_MENSUELLES = {
 function Tuile({ icon: Icon, valeur, libelle, precision }) {
   return (
     <div className="card flex items-center gap-3 rounded-2xl p-4">
-      <div className="shrink-0 rounded-xl bg-primary-50 p-2.5 text-primary-700">
+      <div className="shrink-0 rounded-xl bg-primary-100 p-2.5 text-primary-800">
         <Icon size={20} />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-bold leading-tight text-heading">{valeur ?? '—'}</p>
-        <p className="truncate text-xs text-muted">{libelle}</p>
-        {precision && <p className="truncate text-[11px] text-muted">{precision}</p>}
+        <p className="text-2xl font-extrabold leading-tight text-heading">{valeur ?? '—'}</p>
+        <p className="truncate text-sm font-semibold text-heading">{libelle}</p>
+        {precision && <p className="truncate text-xs font-medium text-muted">{precision}</p>}
       </div>
     </div>
   )
@@ -92,11 +92,11 @@ function Agenda({ lignes }) {
   return (
     <div className="card mt-5 overflow-hidden rounded-2xl">
       <div className="flex items-center gap-2 px-5 pt-5">
-        <CalendarClock size={18} className="text-muted" />
-        <h2 className="text-base font-semibold text-heading">Prochaines échéances</h2>
+        <CalendarClock size={18} className="text-heading" />
+        <h2 className="text-base font-bold text-heading">Prochaines échéances</h2>
       </div>
       {lignes.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-muted">
+        <p className="px-5 py-8 text-center text-sm font-medium text-muted">
           Rien de planifié pour les jours à venir.
         </p>
       ) : (
@@ -104,18 +104,18 @@ function Agenda({ lignes }) {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="text-left">Date</th>
-                <th className="text-left">Nature</th>
-                <th className="text-left">Intitulé</th>
-                <th className="text-left">Classe</th>
+                <th className="text-left font-bold text-heading">Date</th>
+                <th className="text-left font-bold text-heading">Nature</th>
+                <th className="text-left font-bold text-heading">Intitulé</th>
+                <th className="text-left font-bold text-heading">Classe</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {lignes.map((l, i) => {
-                const nature = NATURES[l.nature] ?? { libelle: l.nature, classes: 'bg-slate-100 text-slate-500' }
+                const nature = NATURES[l.nature] ?? { libelle: l.nature, classes: 'bg-slate-100 text-slate-700' }
                 return (
                   <tr key={`${l.date}-${l.titre}-${i}`}>
-                    <td className="whitespace-nowrap text-slate-600">
+                    <td className="whitespace-nowrap font-semibold text-heading">
                       {new Date(l.date).toLocaleDateString('fr-FR', {
                         day: '2-digit',
                         month: 'short',
@@ -123,15 +123,15 @@ function Agenda({ lignes }) {
                       })}
                     </td>
                     <td>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${nature.classes}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${nature.classes}`}>
                         {nature.libelle}
                       </span>
                     </td>
-                    <td className="text-slate-600">
+                    <td className="font-medium text-heading">
                       {l.titre}
-                      {l.type && <span className="ml-1.5 text-xs text-muted">({l.type})</span>}
+                      {l.type && <span className="ml-1.5 text-xs font-semibold text-muted">({l.type})</span>}
                     </td>
-                    <td className="text-slate-600">{l.classe ?? '—'}</td>
+                    <td className="font-medium text-heading">{l.classe ?? '—'}</td>
                   </tr>
                 )
               })}
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white sm:text-2xl">Bonjour, {user?.name} 👋</h1>
-            <p className="mt-1 text-sm" style={{ color: 'var(--sidebar-text)' }}>
+            <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--sidebar-text)' }}>
               {stats?.etablissement?.nom ?? 'Vue société'}
               {stats?.annee_scolaire_active ? ` — ${stats.annee_scolaire_active}` : ''}
             </p>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             <p className="text-4xl font-extrabold leading-none text-white">
               {isLoading ? '…' : (effectifs.total_eleves ?? 0)}
             </p>
-            <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--sidebar-text)' }}>
+            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--sidebar-text)' }}>
               élèves inscrits
             </p>
           </div>
@@ -262,10 +262,10 @@ export default function DashboardPage() {
             {classes.map((c) => (
               <li key={c.classe} className="rounded-xl surface-2 px-3 py-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="min-w-0 truncate font-medium text-heading">{c.classe}</span>
+                  <span className="min-w-0 truncate font-bold text-heading">{c.classe}</span>
                   <span
-                    className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      c.moyenne >= 10 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
+                      c.moyenne >= 10 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {c.moyenne}/20
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                     style={
                       vue === cle
                         ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }
-                        : { color: 'var(--muted-text)' }
+                        : { color: 'var(--text)' }
                     }
                   >
                     {v.libelle}

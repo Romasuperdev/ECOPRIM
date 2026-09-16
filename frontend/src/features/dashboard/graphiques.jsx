@@ -31,10 +31,13 @@ const STYLE_INFOBULLE = {
   borderRadius: '0.75rem',
   color: 'var(--text)',
   fontSize: '0.8rem',
+  fontWeight: 600,
   boxShadow: 'var(--shadow)',
 }
 
-const AXE = { fill: 'var(--muted-text)', fontSize: 11 }
+// Les libellés d'axe portent de l'information chiffrée : ils sont lus, pas survolés.
+// Ils prennent donc la couleur du texte courant, pas la couleur secondaire.
+const AXE = { fill: 'var(--text)', fontSize: 12, fontWeight: 600 }
 
 /**
  * Cadre commun à tous les blocs : titre, actions facultatives, et surtout un état
@@ -50,12 +53,12 @@ export function CarteGraphique({ titre, actions, vide, messageVide, hauteur = 26
   return (
     <div className="card flex flex-col rounded-2xl p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-heading">{titre}</h2>
+        <h2 className="text-base font-bold text-heading">{titre}</h2>
         {actions}
       </div>
       {vide ? (
         <div
-          className="flex flex-1 items-center justify-center rounded-xl border border-dashed px-4 text-center text-sm text-muted"
+          className="flex flex-1 items-center justify-center rounded-xl border border-dashed px-4 text-center text-sm font-medium text-muted"
           style={{ minHeight: hauteur }}
         >
           {messageVide ?? 'Pas encore de données pour cette année.'}
@@ -98,13 +101,15 @@ export function Jauge({ valeur, couleur, libelle, detail }) {
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold text-heading">
+          <span className="text-xl font-extrabold text-heading">
             {valeur === null || valeur === undefined ? '—' : `${valeur}%`}
           </span>
         </div>
       </div>
-      <p className="mt-2 text-center text-xs font-medium text-heading">{libelle}</p>
-      {detail && <p className="text-center text-[11px] text-muted">{detail}</p>}
+      <p className="mt-2 text-center text-sm font-bold text-heading">{libelle}</p>
+      {/* Le détail du calcul doit rester lisible : c'est lui qui rend le
+          pourcentage vérifiable. Il passe donc en couleur de texte courante. */}
+      {detail && <p className="text-center text-xs font-medium" style={{ color: 'var(--text)' }}>{detail}</p>}
     </div>
   )
 }
@@ -136,8 +141,8 @@ export function Anneau({ donnees, cleValeur, cleNom }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-heading">{total}</span>
-          <span className="text-[11px] text-muted">élèves</span>
+          <span className="text-2xl font-extrabold text-heading">{total}</span>
+          <span className="text-xs font-semibold text-muted">élèves</span>
         </div>
       </div>
       <ul className="mt-4 w-full min-w-0 space-y-1.5 sm:ml-5 sm:mt-0">
@@ -147,8 +152,8 @@ export function Anneau({ donnees, cleValeur, cleNom }) {
               className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ background: COULEURS_SERIES[i % COULEURS_SERIES.length] }}
             />
-            <span className="min-w-0 flex-1 truncate text-muted">{d[cleNom]}</span>
-            <span className="font-semibold text-heading">{d[cleValeur]}</span>
+            <span className="min-w-0 flex-1 truncate font-medium text-heading">{d[cleNom]}</span>
+            <span className="font-bold text-heading">{d[cleValeur]}</span>
           </li>
         ))}
       </ul>
@@ -165,10 +170,14 @@ export function HistogrammeMensuel({ donnees, series }) {
         <XAxis dataKey="libelle" tick={AXE} axisLine={false} tickLine={false} />
         <YAxis tick={AXE} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip contentStyle={STYLE_INFOBULLE} cursor={{ fill: 'var(--surface-2)' }} />
+        {/* Par défaut recharts colore CHAQUE libellé de légende avec la couleur de sa
+            série : « Transferts » en orange sur blanc tombait à 2,1:1, illisible. La
+            pastille suffit à identifier la série ; le texte reprend la couleur courante. */}
         <Legend
-          wrapperStyle={{ fontSize: '0.75rem', color: 'var(--muted-text)' }}
+          wrapperStyle={{ fontSize: '0.75rem', fontWeight: 600 }}
           iconType="circle"
           iconSize={8}
+          formatter={(valeur) => <span style={{ color: 'var(--text)' }}>{valeur}</span>}
         />
         {/* maxBarSize : sans plafond, un seul mois de données donne une barre large
             comme tout le graphique, qui ne se lit plus comme une barre. */}

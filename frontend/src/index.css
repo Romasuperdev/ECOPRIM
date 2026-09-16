@@ -196,7 +196,12 @@
   --surface-2: var(--neutral-100);
   --text: var(--neutral-800);
   --heading: var(--neutral-900);
-  --muted-text: var(--neutral-500);
+  /* Le 500 (#64748B) ne donnait que 4,8:1 sur blanc — passable sur le papier,
+     pénible en 12 px, taille à laquelle ce gris sert le plus (libellés de tuile,
+     légendes, précisions). Le 600 monte à 7,5:1 tout en restant nettement plus
+     clair que --text, donc la hiérarchie tient. Le mode sombre garde le 400,
+     qui y vaut déjà 7,1:1 : les deux thèmes sont ainsi au même niveau. */
+  --muted-text: var(--neutral-600);
   --border: var(--neutral-200);
 
   --sidebar: var(--blue-900);
@@ -305,6 +310,11 @@
      supplémentaire : on le pose à la main. */
   --bg: #0f172a;
   --surface: var(--neutral-50);
+  /* L'échelle étant inversée, le 600 du mode clair vaut ici #CBD5E1 — presque la
+     couleur du texte, la hiérarchie disparaîtrait. Le 500 donne 7,1:1 sur les
+     cartes, soit le même niveau qu'en clair. (Le 400, essayé d'abord, retombait
+     à 5,7:1 : l'inversion rend l'intuition trompeuse, il faut mesurer.) */
+  --muted-text: var(--neutral-500);
 
   --bg-grad-1: rgba(59, 130, 246, 0.1);
   --bg-grad-2: rgba(16, 185, 129, 0.06);
