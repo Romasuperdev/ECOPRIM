@@ -2767,3 +2767,56 @@ l'origine. Elle n'a plus lieu d'être : le portail parent existe pour de bon (`/
 c'est un compte Parent qui y accède, pas une entrée du menu du personnel. Le commentaire en tête
 de `Sidebar.jsx`, qui présentait cette entrée comme « une exception assumée et validée », a été
 corrigé en conséquence — il serait devenu faux.
+
+## La saisie des notes revient à l'enseignant, pas à la direction
+
+Règle énoncée par l'utilisateur : le Directeur ne saisit pas les notes, il les consulte ; c'est
+l'enseignant qui saisit. Vérification faite, **l'application faisait exactement l'inverse** :
+
+- la saisie (`POST notes/feuille`) vit dans la zone réservée aux comptes « staff » ; un
+  enseignant, confiné à son portail, n'y avait pas accès — et son portail n'avait aucune route
+  de notes, ni en saisie ni en lecture. **Il ne pouvait donc pas saisir.**
+- le Directeur, comme tout Admin Établissement, court-circuitait `permission:saisir_notes` :
+  dans `aLaPermission()`, les trois niveaux d'administrateur passaient toutes les permissions.
+  **Il pouvait donc saisir.**
+
+Les deux moitiés ne pouvaient pas être traitées séparément : fermer la porte au Directeur sans
+l'ouvrir à l'enseignant aurait laissé *personne* capable de saisir une note.
+
+Décisions prises avec l'utilisateur : fermeture **en dur** côté direction (et non « par défaut,
+réactivable »), et saisie accessible depuis **l'onglet Notes de la classe** côté enseignant.
+
+Construit :
+
+- `Permissions::INTERDITES_AUX_ADMINISTRATEURS` — une liste, aujourd'hui `saisir_notes`.
+  `aLaPermission()` la refuse aux trois niveaux d'administrateur, et **se l'accorder depuis
+  l'écran Permissions ne suffit pas** : c'est une séparation des tâches, pas un réglage.
+- Routes de notes dans le portail Enseignant, délibérément **sans** `permission:` : ici
+  l'autorité n'est pas une permission mais le fait d'enseigner cette matière dans cette classe.
+  Le contrôle est d'ailleurs plus fin qu'ailleurs dans ce portail — on vérifie le **couple**
+  (classe, matière) sur `T_CORPROFCLASSE`, car enseigner une classe ne donne pas le droit d'en
+  noter toutes les matières.
+- L'écran de saisie du personnel est **réutilisé** plutôt que dupliqué : il accepte désormais
+  l'API à appeler, une classe imposée, la source des matières et un en-tête facultatif. Côté
+  enseignant, la classe est celle de la page et seules ses matières sont proposées.
+- Les permissions effectives sont exposées dans le payload de connexion, et le menu masque
+  « Saisie des notes » à qui n'y a pas droit : la direction ne se voit plus proposer un écran
+  qui refuserait d'enregistrer. Une entrée de menu peut maintenant porter une `permission`.
+
+**Le test le plus instructif de la session** : la suite a signalé 12 échecs d'un coup dans
+`SaisieNoteTest`. Ce n'était pas une régression mais le contraire — ces tests saisissaient les
+notes sous un compte Super Admin, ce qui est précisément ce qu'on vient d'interdire. Ils agissent
+désormais sous un rôle « métier » à qui `saisir_notes` est accordé (avec un code de rôle neutre :
+`enseignant` aurait confiné le compte au portail restreint, hors d'atteinte des routes du
+personnel). Le test qui affirmait « un super admin a toujours la permission » a été corrigé : il
+n'est plus vrai, et c'est voulu.
+
+6 nouveaux tests (refus du Directeur même permission accordée, refus du Super Admin, saisie de
+l'enseignant sur sa matière, refus sur une matière ou une classe qui n'est pas la sienne,
+matières proposées).
+
+**À savoir** : dans une petite école, le directeur enseigne souvent lui-même une classe. Avec la
+fermeture en dur, ce directeur-enseignant ne pourra pas saisir *ses propres* notes — il est
+administrateur, donc exclu, et son compte n'étant pas confiné au portail il n'y accède pas non
+plus. Si le cas se présente, retirer `saisir_notes` de `INTERDITES_AUX_ADMINISTRATEURS` suffit à
+revenir au mode « fermé par défaut mais réactivable ».

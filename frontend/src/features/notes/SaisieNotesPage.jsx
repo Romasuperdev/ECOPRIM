@@ -10,6 +10,8 @@ import { enregistrerFeuille, fetchFeuille, fetchStructureNotes } from './saisieN
 const TYPES = ['Devoir', 'Interrogation', 'Composition', 'Examen']
 const SESSIONS = ['S1', 'S2', 'S3']
 
+const API_PERSONNEL = { structure: fetchStructureNotes, feuille: fetchFeuille, enregistrer: enregistrerFeuille }
+
 /**
  * Feuille de notes — la saisie, enfin ouverte.
  *
@@ -20,26 +22,47 @@ const SESSIONS = ['S1', 'S2', 'S3']
  * La structure de ces tables d'ECONOMAT n'étant pas documentée, le serveur la reconnaît à
  * l'exécution. S'il n'y parvient pas, la saisie reste fermée et l'écran dit ce qui manque —
  * mieux vaut une saisie indisponible qu'une ligne fausse en production.
+ *
+ * Le même écran sert à deux publics, d'où les paramètres : le personnel (routes /notes/*,
+ * soumises à `permission:saisir_notes`) et l'enseignant depuis sa classe (routes du portail,
+ * où la classe est déjà connue et où seules SES matières sont proposées).
+ *
+ * @param {object}  api         Les trois appels de saisie ; par défaut ceux du personnel.
+ * @param {?string} classeFixe  Classe imposée : son sélecteur disparaît.
+ * @param {?Function} matieresQuery  Source des matières proposées, à défaut le référentiel complet.
+ * @param {boolean} entete      Affiche le titre de page ; à couper quand l'écran est un onglet.
+ * @param {string}  portee      Discrimine le cache : deux publics, deux jeux de données.
  */
-export default function SaisieNotesPage() {
+export default function SaisieNotesPage({
+  api = API_PERSONNEL,
+  classeFixe = null,
+  matieresQuery = null,
+  entete = true,
+  portee = 'personnel',
+}) {
   const queryClient = useQueryClient()
   const [criteres, setCriteres] = useState({
-    classe: '', matiere: '', session: 'S1', type: 'Devoir',
+    classe: classeFixe ?? '', matiere: '', session: 'S1', type: 'Devoir',
     libelle: '', date: '', coefficient: 1, bareme: 20,
   })
   const [saisie, setSaisie] = useState({})
   const [message, setMessage] = useState(null)
 
-  const { data: structure } = useQuery({ queryKey: ['notes', 'structure'], queryFn: fetchStructureNotes, retry: false })
-  const { data: classes } = useQuery({ queryKey: ['classes', 'all'], queryFn: fetchAllClasses })
-  const { data: matieres } = useQuery({ queryKey: ['matieres', 'all'], queryFn: fetchMatieres })
+  const { data: structure } = useQuery({ queryKey: ['notes', portee, 'structure'], queryFn: api.structure, retry: false })
+  const { data: classes } = useQuery({
+    queryKey: ['classes', 'all'], queryFn: fetchAllClasses, enabled: ! classeFixe,
+  })
+  const { data: matieres } = useQuery({
+    queryKey: ['matieres', portee, classeFixe ?? 'all'],
+    queryFn: matieresQuery ?? fetchMatieres,
+  })
 
   const pret = Boolean(criteres.classe && criteres.matiere && criteres.session)
   const ouvert = structure ? structure.saisie_possible !== false : true
 
   const { data: feuille, isFetching } = useQuery({
-    queryKey: ['notes', 'feuille', criteres],
-    queryFn: () => fetchFeuille(criteres),
+    queryKey: ['notes', portee, 'feuille', criteres],
+    queryFn: () => api.feuille(criteres),
     enabled: pret && ouvert,
     retry: false,
   })
@@ -84,7 +107,7 @@ export default function SaisieNotesPage() {
   }).length
 
   const enregistrement = useMutation({
-    mutationFn: () => enregistrerFeuille({
+    mutationFn: () => api.enregistrer({
       criteres,
       notes: eleves
         .filter((e) => {
@@ -112,6 +135,7 @@ export default function SaisieNotesPage() {
 
   return (
     <div>
+      {entete && (
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Saisie des notes</h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -119,6 +143,7 @@ export default function SaisieNotesPage() {
           aussitôt les moyennes et les bulletins.
         </p>
       </div>
+      )}
 
       {/* Fermé par défaut : on explique pourquoi, on ne laisse pas un écran muet. */}
       {structure && !structure.saisie_possible && (
@@ -136,13 +161,15 @@ export default function SaisieNotesPage() {
       )}
 
       <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4">
-        <Select label="Classe" value={criteres.classe} onChange={(e) => champ('classe', e.target.value)}>
-          <option value="">— Sélectionner —</option>
-          {classes?.map((c) => <option key={c.id} value={c.code}>{c.nom}</option>)}
-        </Select>
+        {! classeFixe && (
+          <Select label="Classe" value={criteres.classe} onChange={(e) => champ('classe', e.target.value)}>
+            <option value="">— Sélectionner —</option>
+            {classes?.map((c) => <option key={c.id} value={c.code}>{c.nom}</option>)}
+          </Select>
+        )}
         <Select label="Matière" value={criteres.matiere} onChange={(e) => champ('matiere', e.target.value)}>
           <option value="">— Sélectionner —</option>
-          {matieres?.map((m) => <option key={m.id} value={m.code}>{m.libelle}</option>)}
+          {matieres?.map((m) => <option key={m.code ?? m.id} value={m.code}>{m.libelle}</option>)}
         </Select>
         <Select label="Session" value={criteres.session} onChange={(e) => champ('session', e.target.value)}>
           {SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}

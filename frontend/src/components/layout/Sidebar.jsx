@@ -56,7 +56,9 @@ const GROUPS = [
     label: '📊 Évaluation & Résultats',
     items: [
       { to: '/evaluations', label: 'Évaluations' },
-      { to: '/notes', label: 'Saisie des notes' },
+      // La saisie revient à l'enseignant, depuis sa classe (portail). La direction consulte :
+      // on ne lui propose pas un écran qui refuserait d'enregistrer.
+      { to: '/notes', label: 'Saisie des notes', permission: 'saisir_notes' },
       { to: '/notes/consultation', label: 'Consultation des notes' },
       { to: '/moyennes', label: 'Résultats & bulletins' },
       { to: '/assiduite', label: 'Assiduité' },
@@ -164,10 +166,17 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
   const location = useLocation()
   const roles = useAuthStore((state) => state.roles)
   const peutConsole = useAuthStore((state) => state.peutConsole)
+  const permissions = useAuthStore((state) => state.permissions)
   const isSuperAdmin = roles.includes(ROLES.SUPER_ADMIN)
-  const visibleGroups = GROUPS.filter(
-    (group) => (!group.superAdminOnly || isSuperAdmin) && (!group.peutConsoleOnly || peutConsole)
-  )
+  // Une entrée peut exiger une permission (`permission`) : on la masque plutôt que de
+  // mener vers un écran qui refusera d'agir. Le groupe disparaît s'il n'en reste aucune.
+  const visibleGroups = GROUPS
+    .filter((group) => (!group.superAdminOnly || isSuperAdmin) && (!group.peutConsoleOnly || peutConsole))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.permission || permissions.includes(item.permission)),
+    }))
+    .filter((group) => group.items.length > 0)
 
   const [repliee, setRepliee] = useState(lireRepliee)
 

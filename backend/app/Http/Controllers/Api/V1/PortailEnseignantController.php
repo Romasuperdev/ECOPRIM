@@ -31,6 +31,7 @@ class PortailEnseignantController extends Controller
         private AbsenceController $absences,
         private EmploiDuTempsController $emploi,
         private EleveController $eleves,
+        private SaisieNoteController $notes,
     ) {}
 
     private function professeur(): ?object
@@ -266,6 +267,84 @@ class PortailEnseignantController extends Controller
             ->first();
 
         return $eleve ? trim((string) $eleve->getRawOriginal('CodeClasse')) : null;
+    }
+
+    // --- Saisie des notes : mes classes ET mes matières seulement ---
+
+    /**
+     * La saisie des notes appartient à l'enseignant qui a fait le cours : c'est ici
+     * qu'elle vit, pas dans l'application du personnel (où un administrateur se la verrait
+     * refuser — voir Permissions::INTERDITES_AUX_ADMINISTRATEURS).
+     *
+     * Le contrôle est plus fin qu'ailleurs dans ce portail : enseigner une classe ne donne
+     * pas le droit d'en noter toutes les matières. On vérifie donc le COUPLE
+     * (classe, matière), tel qu'il est affecté dans T_CORPROFCLASSE.
+     */
+    private function assertMatiereAutorisee(?string $classe, ?string $matiere): void
+    {
+        $prof = $this->professeur();
+        $autorise = false;
+
+        if ($prof && $classe && $matiere) {
+            try {
+                $autorise = DB::connection('economat')->table('T_CORPROFCLASSE')
+                    ->where('CodeProfesseur', $prof->Code)
+                    ->where('CodeClasse', $classe)
+                    ->where('CodeMatiere', $matiere)
+                    ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+                    ->exists();
+            } catch (Throwable $e) {
+                $autorise = false;
+            }
+        }
+
+        if (! $autorise) {
+            throw new HttpException(403, "Vous n'enseignez pas cette matière dans cette classe.");
+        }
+    }
+
+    /** Ce que le serveur a reconnu des tables de notes : la saisie s'ouvre ou s'explique. */
+    public function notesStructure()
+    {
+        return $this->notes->structure();
+    }
+
+    /** La feuille de notes d'une de mes matières, élèves de la classe compris. */
+    public function notesFeuille(Request $request)
+    {
+        $this->assertMatiereAutorisee($request->query('classe'), $request->query('matiere'));
+
+        return $this->notes->feuille($request);
+    }
+
+    /** Enregistre la feuille : mêmes garde-fous métier que côté personnel (barème, absents...). */
+    public function notesEnregistrer(Request $request)
+    {
+        $this->assertMatiereAutorisee($request->input('classe'), $request->input('matiere'));
+
+        return $this->notes->enregistrer($request);
+    }
+
+    /** Les matières que j'enseigne dans cette classe — ce que la feuille propose de noter. */
+    public function mesMatieres(string $classe)
+    {
+        $this->assertClasseAutorisee($classe);
+        $prof = $this->professeur();
+
+        try {
+            $lignes = DB::connection('economat')->table('T_CORPROFCLASSE')
+                ->where('CodeProfesseur', $prof->Code)
+                ->where('CodeClasse', $classe)
+                ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+                ->get();
+        } catch (Throwable $e) {
+            $lignes = collect();
+        }
+
+        return $lignes->map(fn ($l) => [
+            'code' => trim((string) $l->CodeMatiere),
+            'libelle' => $this->libelle('T_MATIERE', 'CodeMatiere', 'LibelleMatiere', $l->CodeMatiere),
+        ])->unique('code')->values();
     }
 
     /**

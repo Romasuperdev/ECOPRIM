@@ -33,6 +33,22 @@ class Permissions
         'consulter_activites' => ["libelle" => "Consulter l'historique d'activité", 'groupe' => 'Administration'],
     ];
 
+    /**
+     * Séparation des tâches : ces actions reviennent à celui qui les a faites en classe,
+     * jamais à celui qui administre l'établissement. Un Super Admin, un Admin Société ou
+     * un Admin Établissement ne les obtient donc JAMAIS — ni par le court-circuit
+     * administrateur, ni en se les accordant depuis l'écran Permissions.
+     *
+     * La saisie des notes appartient à l'enseignant qui a fait le cours ; la direction
+     * les consulte (rien n'est fermé en lecture), elle ne les saisit pas.
+     */
+    public const INTERDITES_AUX_ADMINISTRATEURS = ['saisir_notes'];
+
+    public static function interditeAuxAdministrateurs(string $code): bool
+    {
+        return in_array($code, self::INTERDITES_AUX_ADMINISTRATEURS, true);
+    }
+
     public static function codes(): array
     {
         return array_keys(self::CATALOGUE);

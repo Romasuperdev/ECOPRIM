@@ -29,10 +29,34 @@ class SaisieNoteTest extends TestCase
         $this->setUpMasterDb();
         $this->setUpEconomatDb();
 
-        $rh = RhUser::on('master')->forceCreate([
-            'Id' => 1, 'Login' => 'boss', 'Nom' => 'N', 'Prenom' => 'P', 'Email' => 'b@e.ci',
-            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => true, 'Supprimer' => false,
+        // La saisie des notes est fermée en dur aux administrateurs (séparation des tâches,
+        // voir Permissions::INTERDITES_AUX_ADMINISTRATEURS). Ces tests éprouvent la
+        // mécanique de la feuille, pas l'autorisation : ils agissent donc sous un compte
+        // qui y a droit — un rôle « métier » à qui `saisir_notes` est accordé.
+        config(['database.connections.ecoprim' => [
+            'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true,
+        ]]);
+        DB::purge('ecoprim');
+        \Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--database' => 'ecoprim', '--path' => 'database/migrations/console',
+            '--realpath' => false, '--force' => true,
         ]);
+
+        $rh = RhUser::on('master')->forceCreate([
+            'Id' => 1, 'Login' => 'prof', 'Nom' => 'N', 'Prenom' => 'P', 'Email' => 'b@e.ci',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+
+        $eco2 = fn (string $t) => DB::connection('ecoprim')->table($t);
+        // Un code de rôle neutre : `enseignant` confinerait le compte au portail restreint
+        // (RhUser::typePortail), qui n'atteint pas les routes /notes du personnel.
+        $roleId = $eco2('console_roles')->insertGetId(['code' => 'pedagogie', 'nom' => 'Pédagogie']);
+        $eco2('console_role_permissions')->insert(['role_id' => $roleId, 'permission_code' => 'saisir_notes']);
+        $eco2('console_affectations')->insert([
+            'rh_user_id' => 1, 'societe_code' => 'S1', 'etablissement_code' => 'E1',
+            'role_id' => $roleId, 'actif' => true,
+        ]);
+
         $this->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173']);
         $this->actingAs($rh, 'sanctum');
 

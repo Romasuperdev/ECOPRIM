@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Permissions;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Model;
@@ -228,11 +229,42 @@ class RhUser extends Model implements AuthenticatableContract
      * permission cochée quelque part serait un verrou qu'eux-mêmes devraient lever pour
      * leur propre compte. Les autres (Enseignant, Secrétaire, Comptable...) ne passent que
      * si l'un de leurs rôles actifs accorde ce code.
+     *
+     * UNE exception, dans l'autre sens : les actions de
+     * Permissions::INTERDITES_AUX_ADMINISTRATEURS leur sont fermées en dur — la saisie des
+     * notes revient à l'enseignant, la direction la consulte. Se l'accorder depuis l'écran
+     * Permissions ne suffit pas non plus : c'est une séparation des tâches, pas un réglage.
      */
+    /**
+     * Les permissions effectives de ce compte — ce que l'écran doit lui proposer. Fournie
+     * au front (voir AuthController::userPayload) pour qu'il ne montre pas une action qui
+     * finira en refus ; l'autorisation réelle reste décidée ici, à chaque appel.
+     */
+    public function permissions(): array
+    {
+        // Une seule requête, là où aLaPermission() en fait une ciblée : cette liste est
+        // calculée à chaque chargement de l'application, la parcourir code par code
+        // ferait autant d'allers-retours que le catalogue compte d'entrées.
+        if ($this->isSuperAdmin() || $this->estAdminSociete() || $this->estAdminEtablissement()) {
+            return array_values(array_diff(Permissions::codes(), Permissions::INTERDITES_AUX_ADMINISTRATEURS));
+        }
+
+        try {
+            return DB::connection('ecoprim')->table('console_affectations as a')
+                ->join('console_role_permissions as p', 'p.role_id', '=', 'a.role_id')
+                ->where('a.rh_user_id', $this->Id)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->pluck('p.permission_code')->unique()->values()->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     public function aLaPermission(string $code): bool
     {
         if ($this->isSuperAdmin() || $this->estAdminSociete() || $this->estAdminEtablissement()) {
-            return true;
+            return ! Permissions::interditeAuxAdministrateurs($code);
         }
 
         try {

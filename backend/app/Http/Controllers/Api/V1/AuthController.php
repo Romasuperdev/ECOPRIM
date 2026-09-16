@@ -102,6 +102,10 @@ class AuthController extends Controller
             'admin_societe' => $rhUser->estAdminSociete(),
             'admin_etablissement' => $rhUser->estAdminEtablissement(),
             'peut_console' => $rhUser->peutAccederConsole(),
+            // Ce que l'écran a le droit de proposer (App\Support\Permissions) : il masque
+            // ce qui finirait en refus — la saisie des notes pour un administrateur, par
+            // exemple. Affichage seulement, le serveur revérifie à chaque appel.
+            'permissions' => $rhUser->permissions(),
             // 'staff' (application complète) ou 'enseignant'/'parent' (portail restreint) —
             // affichage seulement, l'accès réel est décidé par PortailMiddleware côté serveur.
             'type_portail' => $rhUser->typePortail(),

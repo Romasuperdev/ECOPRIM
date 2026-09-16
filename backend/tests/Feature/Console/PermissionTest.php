@@ -100,11 +100,12 @@ class PermissionTest extends TestCase
 
     // --- RhUser::aLaPermission() ---
 
-    public function test_un_super_admin_a_toujours_la_permission(): void
+    /** Sauf les actions réservées au terrain — voir la section « séparation des tâches ». */
+    public function test_un_super_admin_a_la_permission_sans_qu_on_la_lui_accorde(): void
     {
         $rh = $this->compte(1, 'boss', true);
 
-        $this->assertTrue($rh->aLaPermission('saisir_notes'));
+        $this->assertTrue($rh->aLaPermission('creer_devoirs'));
         $this->assertTrue($rh->aLaPermission('gerer_utilisateurs'));
     }
 
@@ -217,6 +218,46 @@ class PermissionTest extends TestCase
         $this->postJson('/api/v1/devoirs', [
             'titre' => 'Exercices', 'classe' => 'CM2A', 'matiere' => 'MAT', 'date_remise' => '2026-10-15',
         ])->assertCreated();
+    }
+
+    // --- Séparation des tâches : la saisie des notes échappe aux administrateurs ---
+
+    public function test_un_admin_etablissement_ne_peut_pas_saisir_les_notes(): void
+    {
+        $roleId = $this->role('admin-etablissement', 'Admin Établissement');
+        $rh = $this->compte(10, 'dir');
+        $this->affecter(10, $roleId);
+
+        // Il passe tout le reste par son statut d'administrateur...
+        $this->assertTrue($rh->aLaPermission('creer_devoirs'));
+        // ...mais pas la saisie des notes, qui revient à l'enseignant.
+        $this->assertFalse($rh->aLaPermission('saisir_notes'));
+    }
+
+    public function test_accorder_la_permission_a_un_administrateur_ne_lui_ouvre_pas_la_saisie(): void
+    {
+        $roleId = $this->role('admin-etablissement', 'Admin Établissement');
+        // On la lui accorde explicitement depuis l'écran Permissions : cela ne suffit pas,
+        // c'est une séparation des tâches et non un réglage.
+        $this->accorder($roleId, ['saisir_notes']);
+        $rh = $this->compte(10, 'dir');
+        $this->affecter(10, $roleId);
+        $this->actingAs($rh, 'sanctum');
+
+        $this->assertFalse($rh->aLaPermission('saisir_notes'));
+
+        $this->postJson('/api/v1/notes/feuille', [
+            'classe' => 'CM2A', 'matiere' => 'MAT', 'session' => 'S1',
+            'notes' => [['matricule' => 'EL1', 'note' => 12]],
+        ])->assertStatus(403);
+    }
+
+    public function test_un_super_admin_non_plus_ne_saisit_pas_les_notes(): void
+    {
+        $rh = $this->compte(1, 'boss', true);
+
+        $this->assertTrue($rh->aLaPermission('gerer_utilisateurs'));
+        $this->assertFalse($rh->aLaPermission('saisir_notes'));
     }
 
     public function test_un_admin_etablissement_peut_creer_un_devoir_sans_permission_explicite(): void

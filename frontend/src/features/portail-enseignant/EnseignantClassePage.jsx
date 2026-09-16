@@ -7,7 +7,10 @@ import Select from '../../components/ui/Select'
 import Input from '../../components/ui/Input'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
+import SaisieNotesPage from '../notes/SaisieNotesPage'
 import {
+  apiNotesEnseignant,
+  fetchMesMatieres,
   creerAbsence,
   creerCahier,
   enregistrerLigneCahier,
@@ -34,6 +37,7 @@ const JOURS_CAHIER = [
 
 const TABS = [
   { cle: 'cahier', libelle: 'Cahier de textes' },
+  { cle: 'notes', libelle: 'Notes' },
   { cle: 'devoirs', libelle: 'Devoirs' },
   { cle: 'evaluations', libelle: 'Évaluations' },
   { cle: 'absences', libelle: 'Absences' },
@@ -70,6 +74,17 @@ export default function EnseignantClassePage() {
       </div>
 
       {onglet === 'cahier' && <OngletCahier classe={classe} />}
+      {/* La saisie appartient à l'enseignant : c'est ici qu'elle se fait, la classe étant
+          déjà celle de la page et les matières bornées à celles qu'il y enseigne. */}
+      {onglet === 'notes' && (
+        <SaisieNotesPage
+          api={apiNotesEnseignant}
+          classeFixe={classe}
+          matieresQuery={() => fetchMesMatieres(classe)}
+          entete={false}
+          portee="enseignant"
+        />
+      )}
       {onglet === 'devoirs' && <OngletDevoirs classe={classe} />}
       {onglet === 'evaluations' && <OngletEvaluations classe={classe} />}
       {onglet === 'absences' && <OngletAbsences classe={classe} />}

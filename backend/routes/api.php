@@ -220,6 +220,15 @@ Route::prefix('v1')->group(function () {
             Route::put('absences/{absence}', [PortailEnseignantController::class, 'absencesUpdate']);
             Route::delete('absences/{absence}', [PortailEnseignantController::class, 'absencesDestroy']);
 
+            // Saisie des notes : c'est le métier de l'enseignant. Pas de `permission:` ici —
+            // l'autorité, c'est d'enseigner cette matière dans cette classe, ce que le
+            // contrôleur vérifie sur T_CORPROFCLASSE. Côté personnel, la même saisie reste
+            // soumise à `permission:saisir_notes`, fermée en dur aux administrateurs.
+            Route::get('classes/{classe}/matieres', [PortailEnseignantController::class, 'mesMatieres']);
+            Route::get('notes/structure', [PortailEnseignantController::class, 'notesStructure']);
+            Route::get('notes/feuille', [PortailEnseignantController::class, 'notesFeuille']);
+            Route::post('notes/feuille', [PortailEnseignantController::class, 'notesEnregistrer']);
+
             Route::get('prochains-cours', [PortailEnseignantController::class, 'prochainsCours']);
             Route::get('devoirs', [PortailEnseignantController::class, 'devoirs']);
             Route::get('evaluations-planifiees', [PortailEnseignantController::class, 'evaluationsPlanifiees']);

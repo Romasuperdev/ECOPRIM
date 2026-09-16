@@ -93,3 +93,19 @@ export async function fetchMesEvenements() {
   const { data } = await apiClient.get(`${BASE}/evenements`)
   return data
 }
+
+// --- Saisie des notes : mêmes appels que côté personnel, sur les routes du portail.
+// L'autorité n'est pas une permission mais le fait d'enseigner cette matière dans cette
+// classe : le serveur le vérifie sur T_CORPROFCLASSE à chaque appel.
+
+export async function fetchMesMatieres(classe) {
+  const { data } = await apiClient.get(`${BASE}/classes/${classe}/matieres`)
+  return data
+}
+
+export const apiNotesEnseignant = {
+  structure: async () => (await apiClient.get(`${BASE}/notes/structure`)).data,
+  feuille: async (criteres) => (await apiClient.get(`${BASE}/notes/feuille`, { params: criteres })).data,
+  enregistrer: async ({ criteres, notes }) =>
+    (await apiClient.post(`${BASE}/notes/feuille`, { ...criteres, notes })).data,
+}

@@ -384,4 +384,50 @@ class PortailTest extends TestCase
         $r = $this->get('/api/v1/mon-espace/parent/enfants/EL1/certificat-scolarite')->assertOk();
         $this->assertSame('application/pdf', $r->headers->get('content-type'));
     }
+
+    // --- Saisie des notes : elle appartient à l'enseignant, pas à la direction ---
+
+    private function feuille(array $extra = []): array
+    {
+        return array_merge([
+            'classe' => 'CP1A', 'matiere' => 'MATH', 'session' => 'S1', 'type' => 'Devoir', 'bareme' => 20,
+            'notes' => [['matricule' => 'EL1', 'note' => 15]],
+        ], $extra);
+    }
+
+    public function test_l_enseignant_saisit_les_notes_de_sa_matiere(): void
+    {
+        $this->enseignant();
+
+        $this->postJson('/api/v1/mon-espace/enseignant/notes/feuille', $this->feuille())->assertOk();
+
+        $this->assertDatabaseHas('T_NOTEDETAILS', ['Matricule' => 'EL1', 'Note' => 15], 'economat');
+    }
+
+    public function test_l_enseignant_ne_note_pas_une_matiere_qu_il_n_enseigne_pas(): void
+    {
+        $this->enseignant();
+        DB::connection('economat')->table('T_MATIERE')
+            ->insert(['Code' => 2, 'CodeMatiere' => 'FR', 'LibelleMatiere' => 'Français']);
+
+        // CP1A est bien sa classe, mais le français n'est pas sa matière.
+        $this->postJson('/api/v1/mon-espace/enseignant/notes/feuille', $this->feuille(['matiere' => 'FR']))
+            ->assertStatus(403);
+    }
+
+    public function test_l_enseignant_ne_note_pas_une_classe_qui_n_est_pas_la_sienne(): void
+    {
+        $this->enseignant();
+
+        $this->postJson('/api/v1/mon-espace/enseignant/notes/feuille', $this->feuille(['classe' => 'CP1B']))
+            ->assertStatus(403);
+    }
+
+    public function test_l_enseignant_ne_voit_proposer_que_les_matieres_qu_il_enseigne(): void
+    {
+        $this->enseignant();
+
+        $r = $this->getJson('/api/v1/mon-espace/enseignant/classes/CP1A/matieres')->assertOk();
+        $this->assertSame(['MATH'], collect($r->json())->pluck('code')->all());
+    }
 }
