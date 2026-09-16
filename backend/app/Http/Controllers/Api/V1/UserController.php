@@ -107,6 +107,53 @@ class UserController extends Controller
         return (bool) auth()->user()?->isSuperAdmin();
     }
 
+    /**
+     * Le drapeau Super Admin ne se confère qu'entre Super Admins.
+     *
+     * Il ouvre la console générale et TOUTES les sociétés : un Admin Société, et à plus
+     * forte raison un Admin Établissement, se donnerait par ce seul champ un accès qui
+     * dépasse de très loin son périmètre. Le contrôle existait déjà pour le rôle « Admin
+     * Société » (voir store()) ; ce drapeau-ci avait simplement été oublié, alors qu'il
+     * va plus loin.
+     *
+     * Un `false` ou un champ absent sont retirés sans bruit — l'écran l'envoie par
+     * défaut. Seule une tentative de le poser à vrai est refusée, et elle est dite : une
+     * élévation de privilège silencieusement ignorée laisserait croire qu'elle a marché.
+     */
+    private function filtrerSuperAdmin(array $data): array
+    {
+        if ($this->estSuperAdmin()) {
+            return $data;
+        }
+
+        if (! empty($data['super_admin'])) {
+            throw ValidationException::withMessages([
+                'super_admin' => ['Seul un Super Administrateur peut créer ou promouvoir un Super Administrateur.'],
+            ]);
+        }
+
+        unset($data['super_admin']);
+
+        return $data;
+    }
+
+    /**
+     * Un compte Super Admin ne se gère qu'entre Super Admins.
+     *
+     * Sans cela, il suffisait qu'un Super Admin ait une affectation dans la société pour
+     * qu'un Admin Société puisse le voir — et donc réinitialiser son mot de passe, puis
+     * se connecter à sa place. Le cloisonnement par société ne protège pas de cela : il
+     * décide qui est VISIBLE, pas qui peut être touché.
+     */
+    private function assertCibleGerable(RhUser $rh): void
+    {
+        abort_if(
+            (bool) $rh->SuperAdmin && ! $this->estSuperAdmin(),
+            403,
+            'Seul un Super Administrateur peut agir sur un compte Super Administrateur.'
+        );
+    }
+
     /** Restreint la liste aux comptes affectés dans la société courante. */
     private function cloisonner($query): void
     {
@@ -159,7 +206,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->regles(true));
+        $data = $this->filtrerSuperAdmin($request->validate($this->regles(true)));
 
         if ($this->ecrivain->loginExiste($data['login'])) {
             throw ValidationException::withMessages(['login' => ['Ce login est déjà utilisé.']]);
@@ -209,7 +256,8 @@ class UserController extends Controller
     public function update(Request $request, string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
-        $data = $request->validate($this->regles(false, (int) $rh->Id));
+        $this->assertCibleGerable($rh);
+        $data = $this->filtrerSuperAdmin($request->validate($this->regles(false, (int) $rh->Id)));
 
         if ($this->ecrivain->loginExiste($data['login'], (int) $rh->Id)) {
             throw ValidationException::withMessages(['login' => ['Ce login est déjà utilisé.']]);
@@ -223,6 +271,7 @@ class UserController extends Controller
     public function activer(string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
+        $this->assertCibleGerable($rh);
         $this->ecrivain->definirActif((int) $rh->Id, true);
 
         return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
@@ -232,6 +281,7 @@ class UserController extends Controller
     public function desactiver(string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
+        $this->assertCibleGerable($rh);
         $this->ecrivain->definirActif((int) $rh->Id, false);
 
         return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
@@ -244,6 +294,7 @@ class UserController extends Controller
     public function reinitialiserMotDePasse(Request $request, string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
+        $this->assertCibleGerable($rh);
         $data = $request->validate(['mot_de_passe' => ['required', 'string', 'min:6', 'max:100']]);
 
         $this->ecrivain->modifier((int) $rh->Id, $data);

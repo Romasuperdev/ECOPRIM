@@ -327,6 +327,78 @@ class PerimetreConsoleTest extends TestCase
         $this->assertContains('nouveau', $logins);
     }
 
+    /**
+     * Le drapeau Super Admin ouvre la console générale et TOUTES les sociétés. Le
+     * conférer est donc une élévation de privilège, pas un champ de profil — et il était
+     * jusqu'ici accepté de n'importe quel administrateur, y compris d'établissement.
+     */
+    public function test_seul_un_super_admin_peut_creer_un_super_admin(): void
+    {
+        $this->adminSociete('ABN');
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'pirate', 'mot_de_passe' => 'secret1', 'nom' => 'Pirate',
+            'etablissement_code' => 'E-ABN', 'role_id' => 2, 'super_admin' => true,
+        ])->assertStatus(422)->assertJsonValidationErrors(['super_admin']);
+
+        $this->assertDatabaseMissing('RH_USER', ['Login' => 'pirate'], 'master');
+
+        // Le même geste sans le drapeau passe : c'est bien lui, et lui seul, qui bloque.
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'pirate', 'mot_de_passe' => 'secret1', 'nom' => 'Pirate',
+            'etablissement_code' => 'E-ABN', 'role_id' => 2, 'super_admin' => false,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('RH_USER', ['Login' => 'pirate', 'SuperAdmin' => 0], 'master');
+    }
+
+    public function test_un_admin_etablissement_non_plus_ne_peut_pas_creer_un_super_admin(): void
+    {
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'pirate', 'mot_de_passe' => 'secret1', 'nom' => 'Pirate',
+            'etablissement_code' => 'E-ABN', 'role_id' => 2, 'super_admin' => true,
+        ])->assertStatus(422)->assertJsonValidationErrors(['super_admin']);
+    }
+
+    public function test_le_super_admin_peut_en_creer_un_autre(): void
+    {
+        $this->superAdmin();
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'boss2', 'mot_de_passe' => 'secret1', 'nom' => 'Boss2', 'super_admin' => true,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('RH_USER', ['Login' => 'boss2', 'SuperAdmin' => 1], 'master');
+    }
+
+    /**
+     * Le cloisonnement par société dit qui est VISIBLE, pas qui peut être TOUCHÉ. Il
+     * suffisait donc qu'un Super Admin ait une affectation dans la société pour qu'un
+     * Admin Société puisse réinitialiser son mot de passe — et se connecter à sa place.
+     */
+    public function test_un_admin_societe_ne_peut_pas_toucher_un_compte_super_admin_visible_chez_lui(): void
+    {
+        $this->compte(50, 'grandchef', true);
+        $this->affecter(50, 'ABN', 'E-ABN', 2);
+        $this->adminSociete('ABN');
+
+        // Il le voit bien dans sa liste — c'est le point de départ du problème.
+        $logins = collect($this->getJson('/api/v1/utilisateurs')->json('data'))->pluck('login')->all();
+        $this->assertContains('grandchef', $logins);
+
+        $this->putJson('/api/v1/utilisateurs/50', [
+            'login' => 'grandchef', 'nom' => 'Détourné',
+        ])->assertForbidden();
+        $this->postJson('/api/v1/utilisateurs/50/reinitialiser-mot-de-passe', [
+            'mot_de_passe' => 'jetentre',
+        ])->assertForbidden();
+        $this->postJson('/api/v1/utilisateurs/50/desactiver')->assertForbidden();
+
+        $this->assertDatabaseHas('RH_USER', ['Id' => 50, 'Nom' => 'GRANDCHEF'], 'master');
+    }
+
     // --- Interface de console de l'Admin Société ---
 
     public function test_l_admin_societe_a_son_accueil_de_console_borne_a_sa_societe(): void

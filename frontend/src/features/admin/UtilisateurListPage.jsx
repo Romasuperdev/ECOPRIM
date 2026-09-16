@@ -133,11 +133,19 @@ export default function UtilisateurListPage() {
                 <td className="px-4 py-3 text-right">
                   {peutConsole ? (
                     <div className="flex justify-end gap-2">
+                      {/* Un compte Super Admin ne se gère qu'entre Super Admins : le
+                          serveur le refuse (403), autant ne pas mener jusqu'au refus. */}
                       <Button variant="outline" className="!px-3 !py-1"
+                              disabled={u.super_admin && !superAdmin}
+                              title={u.super_admin && !superAdmin
+                                ? 'Seul un Super Administrateur peut modifier ce compte.' : undefined}
                               onClick={() => { setErreurs({}); setForm({ ...VIDE, ...u, mot_de_passe: '' }) }}>
                         Éditer
                       </Button>
-                      <Button variant="outline" className="!px-3 !py-1" disabled={basculer.isPending}
+                      <Button variant="outline" className="!px-3 !py-1"
+                              disabled={basculer.isPending || (u.super_admin && !superAdmin)}
+                              title={u.super_admin && !superAdmin
+                                ? 'Seul un Super Administrateur peut agir sur ce compte.' : undefined}
                               onClick={() => basculer.mutate({ id: u.id, actif: u.actif })}>
                         {u.actif ? 'Désactiver' : 'Réactiver'}
                       </Button>
@@ -203,10 +211,20 @@ export default function UtilisateurListPage() {
                 <Input label="Application (CodeApp)" value={form.code_app ?? ''} onChange={(ev) => champ('code_app', ev.target.value)} error={erreurs.code_app?.[0]} />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={!!form.super_admin} onChange={(ev) => champ('super_admin', ev.target.checked)} />
-                Super Admin (accès complet à la console)
-              </label>
+              {/* Le drapeau Super Admin ouvre la console générale et TOUTES les sociétés :
+                  seul un Super Admin peut le conférer. La case ne s'affiche donc que pour
+                  lui — et le serveur refuse de toute façon (UserController::filtrerSuperAdmin),
+                  cet écran n'étant qu'une courtoisie. */}
+              {superAdmin && (
+                <label className="flex items-center gap-2 text-sm font-medium text-heading">
+                  <input
+                    type="checkbox"
+                    checked={!!form.super_admin}
+                    onChange={(ev) => champ('super_admin', ev.target.checked)}
+                  />
+                  Super Admin (accès complet à la console, toutes sociétés)
+                </label>
+              )}
 
               {!form.id && (
                 <>

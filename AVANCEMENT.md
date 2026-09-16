@@ -3207,3 +3207,44 @@ l'enfant du parent connecté et à l'année de travail.
 
 À défaut de photo, l'enfant est représenté par ses **initiales** dans une pastille en
 relief — mieux qu'une silhouette grise identique pour tous.
+
+## Élévation de privilège : n'importe quel administrateur pouvait créer un Super Admin
+
+Règle énoncée par l'utilisateur : un Admin Société ne doit pas pouvoir créer un Super
+Admin ; seul un Super Admin en crée un autre. Vérification faite, la règle n'était pas
+seulement absente — elle était ouverte plus largement encore.
+
+**Ce que le code permettait vraiment :**
+
+- Le champ `super_admin` était validé comme un simple booléen (`['nullable', 'boolean']`),
+  **sans aucun contrôle sur qui l'envoie**. Or l'écran Utilisateurs est ouvert aux trois
+  niveaux d'administrateur : un Admin **Établissement** — le plus bas — pouvait donc se
+  créer un compte Super Admin, c'est-à-dire l'accès à la console générale et à **toutes**
+  les sociétés. Le garde-fou existait pour le rôle « Admin Société » (on ne peut pas le
+  conférer sans être au niveau société) ; ce drapeau-ci, qui va bien plus loin, avait été
+  oublié.
+- La case « Super Admin » était affichée à tout le monde dans le formulaire.
+- Pire, et non signalé dans la demande : `update`, `activer`, `desactiver` et
+  `reinitialiser-mot-de-passe` ne vérifiaient que le **cloisonnement par société**. Or
+  celui-ci dit qui est *visible*, pas qui peut être *touché*. Il suffisait donc qu'un
+  Super Admin ait une affectation dans la société pour qu'un Admin Société puisse
+  **réinitialiser son mot de passe** — et se connecter à sa place.
+
+**Corrigé côté serveur d'abord**, l'écran n'étant qu'une courtoisie :
+
+- `filtrerSuperAdmin()` — un `false` ou un champ absent sont retirés sans bruit (l'écran
+  l'envoie par défaut) ; seule une tentative de le poser à vrai est refusée, et elle est
+  **dite**. Une élévation de privilège silencieusement ignorée laisserait croire qu'elle a
+  fonctionné.
+- `assertCibleGerable()` — appliqué aux cinq actions d'écriture : un compte Super Admin ne
+  se gère qu'entre Super Admins.
+
+Côté écran, la case n'apparaît plus que pour un Super Admin, et les boutons Éditer /
+Désactiver sont désactivés sur une ligne Super Admin quand on n'en est pas un — inutile de
+mener l'utilisateur jusqu'au refus.
+
+4 tests. Les trois qui portent la restriction ont été **rejoués sans le correctif** pour
+vérifier qu'ils échouent bien : ce sont de vrais tests de non-régression, pas des tests qui
+passeraient de toute façon. Le quatrième garde le sens inverse — un Super Admin doit
+continuer à pouvoir en créer un autre —, pour qu'un futur durcissement ne ferme pas la porte
+à tout le monde.
