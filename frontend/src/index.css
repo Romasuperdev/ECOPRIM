@@ -261,9 +261,26 @@
      en sombre). Ses accents ne suivent donc pas le mode : ce sont toujours les
      nuances claires, seules lisibles sur ce fond — littérales à dessein, car
      les échelles ci-dessus s'inversent, elles. */
-  --module-parametre-nav: #93c5fd;
-  --module-traitement-nav: #6ee7b7;
-  --module-programme-nav: #fcd34d;
+  --module-parametre-nav: #bfdbfe;
+  --module-traitement-nav: #a7f3d0;
+  --module-programme-nav: #fde68a;
+
+  /* Pastilles d'icône en relief. Trois valeurs par module : le haut du dégradé,
+     le bas, et l'encre du pictogramme. Le relief tient à la seule différence
+     haut/bas — un dégradé trop serré rend la pastille plate, trop large la rend
+     sale. Littérales comme leurs voisines : le menu est sombre dans les deux
+     thèmes, ces teintes ne doivent donc pas suivre le mode. */
+  --module-parametre-haut: #93c5fd;
+  --module-parametre-bas: #2563eb;
+  --module-parametre-encre: #10275c;
+
+  --module-traitement-haut: #6ee7b7;
+  --module-traitement-bas: #059669;
+  --module-traitement-encre: #043d2c;
+
+  --module-programme-haut: #fcd34d;
+  --module-programme-bas: #d97706;
+  --module-programme-encre: #4a2703;
 
   /* Séries de graphiques (recharts) : bleu d'abord, puis vert et orange, puis
      des teintes voisines. Définies avant le premier graphique, pas après. */
@@ -562,6 +579,32 @@ body {
   border-radius: 0.5rem;
   font-size: 0.875rem;
   border-color: var(--border);
+}
+
+/* Pastille d'icône en relief, pour les en-têtes de rubrique du menu.
+   Le volume vient de trois couches superposées, pas d'une image :
+     — un dégradé du clair vers le soutenu, qui simule la lumière du dessus ;
+     — une arête blanche en haut et une ombre interne en bas (`inset`), qui
+       creusent la pastille ;
+     — une ombre portée, qui la décolle du fond.
+   Dessinée en CSS et non en image : elle reste nette à toute densité d'écran,
+   ne pèse rien, et suit la couleur de son module.
+
+   Les variables --pastille-* sont posées par le composant appelant. */
+.pastille-relief {
+  background: linear-gradient(160deg, var(--pastille-haut), var(--pastille-bas));
+  color: var(--pastille-encre);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.22);
+}
+/* Le groupe déplié s'enfonce légèrement : l'état ouvert se voit aussi au relief. */
+details[open] > summary .pastille-relief {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 2px 4px rgba(0, 0, 0, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Cases à cocher et boutons radio. Ils étaient restés bruts partout — une

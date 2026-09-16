@@ -16,7 +16,7 @@ function NavItem({ to, end, children, onNaviguer }) {
       end={end}
       onClick={onNaviguer}
       className={({ isActive }) =>
-        `flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
+        `flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'font-bold' : 'font-medium hover:bg-white/5'}`
       }
       style={({ isActive }) =>
         isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
@@ -30,21 +30,44 @@ function NavItem({ to, end, children, onNaviguer }) {
 
 function GroupSection({ group, hasActiveItem, onNaviguer }) {
   const accent = couleurNav(group.module)
+  const { Icone } = group
+  // Les trois teintes du relief viennent du module ; elles sont posées en
+  // variables plutôt qu'en classes, le dégradé n'étant pas exprimable autrement.
+  const relief = group.module
+    ? {
+        '--pastille-haut': `var(--module-${group.module}-haut)`,
+        '--pastille-bas': `var(--module-${group.module}-bas)`,
+        '--pastille-encre': `var(--module-${group.module}-encre)`,
+      }
+    : undefined
+
   return (
     <details className="group/section" open={hasActiveItem}>
       <summary
-        className="flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-white/5"
-        style={{ color: accent ?? 'color-mix(in srgb, var(--sidebar-text) 70%, transparent)' }}
+        // Sans capitales : à cette taille et en gras, elles élargissent tellement
+        // le mot que « Configuration administrative » ne tenait plus. Le libellé
+        // peut passer sur deux lignes plutôt que d'être coupé — un intitulé
+        // tronqué ne se devine pas.
+        className="flex cursor-pointer select-none items-start gap-2.5 rounded-xl px-2 py-2.5 text-sm font-bold leading-tight hover:bg-white/5"
+        style={{ color: accent ?? 'var(--sidebar-text)' }}
       >
-        {group.label}
-        <ChevronDown size={14} className="transition-transform group-open/section:rotate-180" />
+        {Icone && (
+          <span
+            className="pastille-relief flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+            style={relief}
+          >
+            <Icone size={17} strokeWidth={2.6} />
+          </span>
+        )}
+        <span className="min-w-0 flex-1 pt-1.5">{group.label}</span>
+        <ChevronDown size={15} strokeWidth={2.5} className="mt-2 shrink-0 transition-transform group-open/section:rotate-180" />
       </summary>
       {/* Le filet vertical rattache visuellement les entrées à leur module. Posé
           en marge extérieure, il ne décale pas les libellés entre eux. */}
       <div
-        className="mt-0.5 ml-3 space-y-0.5 pl-2"
+        className="mt-1 ml-6 space-y-0.5 pl-2.5"
         style={{
-          borderLeft: `2px solid ${accent ? `color-mix(in srgb, ${accent} 50%, transparent)` : 'transparent'}`,
+          borderLeft: `2px solid ${accent ? `color-mix(in srgb, ${accent} 70%, transparent)` : 'transparent'}`,
         }}
       >
         {group.items.map((item, index) =>

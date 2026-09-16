@@ -3135,3 +3135,36 @@ d'élèves inscrits, affiché sous le titre.
 **Deux tests en échec, sans rapport** : `SaisieEconomatTest` échoue sur ses deux envois de
 photo `.jpg` (le `.png` passe). Vérifié en rejouant la suite sans mes modifications : ils
 échouaient déjà. C'est la génération de faux JPEG par GD sous Windows, pas le code.
+
+### Les rubriques du menu prennent du relief
+
+Demande : des icônes « en 3D » pour les six rubriques du menu, une police plus grande, en
+gras et plus contrastée.
+
+**Les émojis ne pouvaient pas y arriver.** Les rubriques étaient préfixées d'un émoji
+(⚙️ 📝 📚 📊 🔔 🔐), qui reste plat par nature, se dessine différemment selon le système
+d'exploitation, et ne prend pas la couleur de son module. Ils sont remplacés par des
+pictogrammes vectoriels posés dans une pastille en relief.
+
+Le volume est obtenu en CSS, par trois couches superposées — et non par une image :
+
+- un dégradé du clair vers le soutenu, qui simule une lumière venue du dessus ;
+- une arête blanche en haut et une ombre interne en bas, qui creusent la pastille ;
+- une ombre portée, qui la décolle du fond.
+
+Dessinée plutôt qu'importée, elle reste nette à toute densité d'écran, ne pèse rien, et
+prend la couleur de son module. La rubrique dépliée s'enfonce légèrement — l'état ouvert se
+lit désormais aussi au relief, pas seulement au chevron.
+
+**« Foncé » ne s'applique pas ici**, le menu étant sombre dans les deux thèmes : le texte y
+doit être clair. C'est le contraste qui a été monté — les libellés passent aux nuances
+claires de leur module (7 à 9:1 sur le bleu nuit) —, la taille d'une graduation, et la
+graisse au gras plein. Les entrées sous chaque rubrique suivent d'un demi-cran.
+
+**Un effet de bord corrigé sur pièce** : passés en gras et plus grands, les libellés en
+capitales ne tenaient plus — « ÉVALUATION & … », « CONFIGURATIO… ». Les capitales élargissent
+beaucoup un mot ; elles ont été retirées, et le libellé peut désormais passer sur deux
+lignes plutôt que d'être coupé. Un intitulé tronqué ne se devine pas.
+
+Le filet vertical qui relie les entrées à leur rubrique a été renforcé dans la foulée : à
+50 % d'opacité il virait au gris et ne disait plus rien de son module.

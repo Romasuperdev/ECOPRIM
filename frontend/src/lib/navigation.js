@@ -1,3 +1,13 @@
+import {
+  BarChart3,
+  BookOpen,
+  Building2,
+  ClipboardList,
+  Megaphone,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react'
+
 // Données de navigation de l'application NEXORA (hors console admin et portails,
 // qui ont leurs propres menus). Séparées du composant : l'en-tête de page a
 // besoin de la même carte des modules que le menu, et les dupliquer les aurait
@@ -25,7 +35,8 @@
 // palette, seule la surface d'application les distingue.
 export const GROUPS = [
   {
-    label: '⚙️ Paramètre',
+    label: 'Paramètre',
+    Icone: SlidersHorizontal,
     module: 'parametre',
     items: [
       { to: '/annees-scolaires', label: 'Années scolaires' },
@@ -39,7 +50,8 @@ export const GROUPS = [
     ],
   },
   {
-    label: '📝 Traitement',
+    label: 'Traitement',
+    Icone: ClipboardList,
     module: 'traitement',
     items: [
       { to: '/inscriptions', label: 'Élèves et inscriptions' },
@@ -48,7 +60,8 @@ export const GROUPS = [
     ],
   },
   {
-    label: '📚 Programme',
+    label: 'Programme',
+    Icone: BookOpen,
     module: 'programme',
     items: [
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
@@ -58,7 +71,8 @@ export const GROUPS = [
     ],
   },
   {
-    label: '📊 Évaluation & Résultats',
+    label: 'Évaluation & Résultats',
+    Icone: BarChart3,
     // Vert : notes et résultats relèvent de l'opération quotidienne, pas de la
     // planification pédagogique.
     module: 'traitement',
@@ -73,7 +87,8 @@ export const GROUPS = [
     ],
   },
   {
-    label: '🔔 Communication',
+    label: 'Communication',
+    Icone: Megaphone,
     // Orange : notifications et envois appellent une action.
     module: 'programme',
     items: [
@@ -82,7 +97,8 @@ export const GROUPS = [
     ],
   },
   {
-    label: '⚙️ Administration',
+    label: 'Administration',
+    Icone: Building2,
     module: 'parametre',
     superAdminOnly: true,
     items: [
@@ -95,7 +111,8 @@ export const GROUPS = [
   // peutConsole est vrai (Super Admin, Admin Société ou Admin Établissement) — pas
   // superAdminOnly comme le groupe ci-dessus, qui reste la console générale/société.
   {
-    label: '🔐 Configuration administrative',
+    label: 'Configuration administrative',
+    Icone: ShieldCheck,
     module: 'parametre',
     peutConsoleOnly: true,
     items: [
