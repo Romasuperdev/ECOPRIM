@@ -2820,3 +2820,82 @@ fermeture en dur, ce directeur-enseignant ne pourra pas saisir *ses propres* not
 administrateur, donc exclu, et son compte n'étant pas confiné au portail il n'y accède pas non
 plus. Si le cas se présente, retirer `saisir_notes` de `INTERDITES_AUX_ADMINISTRATEURS` suffit à
 revenir au mode « fermé par défaut mais réactivable ».
+
+## Nouvelle identité visuelle : bleu / vert / orange, et un mode sombre
+
+Palette fournie par l'utilisateur : bleu (école, navigation, action), vert (réussite,
+validation), orange (pédagogie, attention), sur des neutres, dans une proportion d'environ
+60 / 25 / 10 / 5. Décisions prises avec lui : accent de module **discret**, et mode sombre
+**construit maintenant** plutôt que préparé pour plus tard.
+
+**Ce que l'audit a changé au chiffrage.** L'application contenait ~900 classes Tailwind à
+couleur nommée (`text-slate-400`, `bg-green-50`, `text-red-600`…) écrites avant l'existence du
+design system, réparties sur 54 fichiers. Elles auraient dû être éditées une à une — d'autant
+que le mode sombre, lui, ne pardonne rien : une couleur figée reste claire. Sauf que la palette
+demandée **est** l'échelle `slate` de Tailwind (#F8FAFC = slate-50, #1E293B = slate-800,
+#64748B = slate-500, #E2E8F0 = slate-200), de même que #10B981 = emerald-500, #F59E0B =
+amber-500, #EF4444 = red-500. Ces classes ne contredisaient donc plus la palette : elles la
+disaient déjà. Elles contredisaient l'**ancienne** (terre/sauge) — des tableaux gris-bleu sur
+un fond beige.
+
+D'où le choix de méthode : plutôt que réécrire 54 fichiers, **rebrancher les échelles Tailwind
+elles-mêmes** sur des variables de thème (`@theme inline { --color-slate-400: var(--neutral-400) }`).
+`text-slate-400` compile désormais en `color: var(--neutral-400)`, et bascule tout seul. Vérifié
+dans le CSS produit, pas supposé. `emerald-*` est au passage aliasé sur `green-*` : l'application
+utilisait les deux pour dire « succès », il n'en reste qu'un, sans avoir édité une ligne.
+
+⚠️ Le prix de cette astuce, écrit en tête de `index.css` : en mode sombre l'échelle neutre
+**s'inverse**. Elle n'est lisible que parce que ses usages sont scindés proprement — 50→300 sont
+des surfaces et des bordures, 400→900 du texte. Un futur `bg-slate-700` casserait la convention.
+Les nouveaux écrans doivent utiliser les rôles (`bg-card`, `text-muted`, `.card`).
+
+Le fichier s'organise en trois couches : échelles brutes (redéfinies sous `.dark`), rôles
+(`--bg`, `--surface`, `--sidebar`, `--success`…) qui ne pointent que vers des échelles, puis le
+branchement Tailwind. Ajoutés au passage : les trios sémantiques fond/bordure/texte
+(`--success-bg`, `--warning-border`…) qui manquaient — seul `--destructive` existait, et il
+n'était utilisé nulle part — et la palette de séries de graphiques, définie **avant** le premier
+graphique plutôt qu'après (recharts est installé mais encore inutilisé).
+
+**Trois pièges rencontrés, tous invisibles à la compilation :**
+
+1. Le bloc sombre avait d'abord été écrit par symétrie avec le bloc clair. Or l'échelle étant
+   déjà inversée, `--bg: var(--neutral-900)` y donnait un fond **blanc**. Le bloc a été réduit à
+   ce qui doit réellement y figurer : trois valeurs. Tout le reste bascule seul.
+2. Le menu est sombre dans les *deux* thèmes (bleu nuit en clair, ardoise en sombre) alors que
+   l'en-tête de page est clair. Les mêmes nuances de module ne pouvaient pas servir aux deux :
+   d'où `--module-X` (surface claire) et `--module-X-nav` (menu), ces dernières littérales
+   puisque les échelles s'inversent.
+3. Le panneau « Bienvenue » de la connexion et le bandeau d'accueil du tableau de bord tiraient
+   leur dégradé de `--sidebar` : en sombre ils se fondaient dans la carte et disparaissaient.
+   Ils ont désormais leur propre `--brand-surface`, bleu nuit dans les deux thèmes — c'est par
+   ces aplats qu'on reconnaît la plateforme, un parent doit la retrouver identique.
+
+**Accent de module** (choix « discret ») : la couleur ne touche que le titre du groupe dans le
+menu, un filet vertical le long de ses entrées, et un liseré de 3 px sur l'en-tête de page —
+lequel reprend le module de la page courante, seul repère restant quand le menu est replié. Les
+surfaces, boutons et badges restent bleus ou neutres. Sans cette retenue, le vert « module
+Traitement » se confondrait avec le vert « validé ». Les données de navigation ont été sorties
+dans `lib/navigation.js` : l'en-tête a besoin de la même carte des modules que le menu, et les
+dupliquer les aurait fait diverger au premier ajout de rubrique.
+
+**Mode sombre** : `next-themes` (déjà présent comme dépendance de sonner, jamais branché),
+trois états — clair / sombre / système, système par défaut. Un script de 10 lignes dans
+`index.html` pose la classe avant la première peinture, sans quoi l'écran clignoterait en blanc
+à chaque chargement. La bascule est dans les trois en-têtes et sur la page de connexion : on
+doit pouvoir choisir son thème *avant* d'entrer.
+
+**Boutons** : la hiérarchie de la spec est désormais réelle — principale (bleu), `succes`
+(vert), `attention` (orange), `danger` (rouge), `outline` (neutre, et de loin le plus fréquent,
+ce qui est voulu). Les variantes `gold` et `secondary`, mortes, ont disparu.
+
+**Vérifié au rendu, pas au build** : captures en clair et en sombre, puis sonde des 20 tokens
+via le navigateur. Elle a confirmé la bonne résolution de tous — et débusqué le seul vrai
+défaut restant : `--danger` suivait l'échelle rouge, qui s'éclaircit en sombre pour rester
+lisible en *texte* ; le bouton « Supprimer » virait au rose pâle. Il est maintenant littéral :
+un signal de destruction ne s'atténue pas selon le thème. Vérifié aussi : aucun débordement
+horizontal à 390 px (`scrollWidth == clientWidth`), dans les deux thèmes.
+
+**Reste ouvert** : `badge.jsx` et `alert.jsx` (shadcn, déjà tokenisés) ne sont importés nulle
+part, et les ~25 badges de statut et ~15 bandeaux restent écrits à la main. Le rebranchement des
+échelles les a rendus corrects dans les deux thèmes, donc les unifier n'apporterait plus de gain
+visuel — c'est devenu du rangement, à faire au fil de l'eau plutôt qu'en une passe risquée.

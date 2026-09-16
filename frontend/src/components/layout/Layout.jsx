@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import Sidebar from './Sidebar'
+import { couleurModulePourChemin } from '../../lib/navigation'
 import Button from '../ui/Button'
+import BasculeTheme from '../ui/BasculeTheme'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ContexteBarre from '../../features/contexte/ContexteBarre'
@@ -14,6 +16,9 @@ export default function Layout() {
   const { user, roles, logout, niveauSociete } = useAuthStore()
   // Sous `lg`, le menu ne tient pas à côté du contenu : il s'ouvre en tiroir par-dessus.
   const [menuOuvert, setMenuOuvert] = useState(false)
+  // Rappel du module courant sur l'en-tête. Surtout utile quand le menu est
+  // replié ou fermé en tiroir : c'est alors le seul repère de section restant.
+  const accentModule = couleurModulePourChemin(location.pathname)
 
   const handleLogout = async () => {
     await logoutApi()
@@ -42,6 +47,9 @@ export default function Layout() {
             background: 'color-mix(in srgb, var(--bg) 80%, transparent)',
             backdropFilter: 'blur(8px)',
             borderBottom: '1px solid var(--border)',
+            // Le liseré remplace la bordure haute quand on est dans un module ;
+            // hors module (tableau de bord), l'en-tête reste nu.
+            borderTop: accentModule ? `3px solid ${accentModule}` : '3px solid transparent',
           }}
         >
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
@@ -65,10 +73,13 @@ export default function Layout() {
                 Sans objet pour un Admin Établissement, borné à la sienne — masqué pour lui. */}
             {niveauSociete && <SocieteBarre />}
           </div>
-          <Button variant="outline" className="shrink-0" onClick={handleLogout}>
-            <span className="hidden sm:inline">Se déconnecter</span>
-            <span className="sm:hidden">Quitter</span>
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <BasculeTheme />
+            <Button variant="outline" onClick={handleLogout}>
+              <span className="hidden sm:inline">Se déconnecter</span>
+              <span className="sm:hidden">Quitter</span>
+            </Button>
+          </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-8 lg:pt-6">
           <div className="mx-auto w-full max-w-6xl">

@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School, Building2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import BasculeTheme from '../../components/ui/BasculeTheme'
 import { useAuthStore } from '../../store/authStore'
 import { fetchRattachementDuCompte, login, logout } from './authApi'
+import { messageErreurConnexion } from './messageErreurConnexion'
 
 // Deux paires de champs indépendantes (une par face du panneau). Contrôlées via useState,
 // pas React Hook Form : chaque face est montée deux fois en simultané (desktop + mobile,
@@ -88,11 +90,7 @@ export default function LoginPage() {
       setUser(user)
       navigate(kind === 'admin' ? '/admin' : '/', { replace: true })
     } catch (error) {
-      if (error.response?.status === 422 || error.response?.status === 401) {
-        setServerError('Identifiant ou mot de passe incorrect.')
-      } else {
-        setServerError('Une erreur est survenue. Veuillez réessayer.')
-      }
+      setServerError(messageErreurConnexion(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -109,7 +107,7 @@ export default function LoginPage() {
         className="mx-auto flex w-full max-w-[320px] flex-col gap-4"
         noValidate
       >
-        <div className="mb-1 flex items-center gap-2" style={{ color: isConsole ? 'var(--sidebar)' : 'var(--brand-accent)' }}>
+        <div className="mb-1 flex items-center gap-2" style={{ color: isConsole ? 'var(--heading)' : 'var(--brand-accent)' }}>
           {isConsole ? <ShieldCheck size={26} /> : <GraduationCap size={26} />}
           <h2 className="text-2xl font-extrabold text-heading">{isConsole ? 'Console Admin' : 'Établissement'}</h2>
         </div>
@@ -176,12 +174,12 @@ export default function LoginPage() {
         />
 
         {serverError && tab === kind && (
-          <p className="rounded-lg p-2 text-sm text-red-600" style={{ background: 'rgba(220,38,38,.1)' }}>
+          <p className="rounded-lg p-2 text-sm text-red-600" style={{ background: 'var(--danger-bg)' }}>
             {serverError}
           </p>
         )}
 
-        <Button type="submit" variant={isConsole ? 'primary' : 'gold'} disabled={isSubmitting} className="w-full justify-center py-3 text-base">
+        <Button type="submit" variant="primary" disabled={isSubmitting} className="w-full justify-center py-3 text-base">
           {isSubmitting ? 'Connexion…' : isConsole ? 'Accéder à la console' : 'Se connecter'}
         </Button>
       </form>
@@ -191,7 +189,13 @@ export default function LoginPage() {
   const consoleActive = tab === 'admin'
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="relative flex min-h-screen items-center justify-center p-4">
+      {/* Le thème se choisit avant de se connecter : quelqu'un qui travaille en
+          salle sombre ne doit pas avoir à subir un écran blanc pour y arriver. */}
+      <div className="absolute right-3 top-3">
+        <BasculeTheme />
+      </div>
+
       {/* ---------- Grand écran : panneau coulissant ---------- */}
       <div className="card relative hidden overflow-hidden rounded-2xl md:block" style={{ width: 880, height: 560 }}>
         <div className="absolute left-0 top-0 flex h-full items-center justify-center p-10" style={{ width: '50%' }}>
@@ -209,7 +213,7 @@ export default function LoginPage() {
             transition: 'transform .6s cubic-bezier(.6,.05,.2,1)',
             background: consoleActive
               ? 'linear-gradient(135deg, var(--brand-accent), var(--teal))'
-              : 'linear-gradient(135deg, var(--sidebar), var(--sidebar-2))',
+              : 'linear-gradient(135deg, var(--brand-surface), var(--brand-surface-2))',
           }}
         >
           <div className="flex max-w-[300px] flex-col items-center text-center">
@@ -263,7 +267,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => switchTo('admin')}
               className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold"
-              style={consoleActive ? { background: 'var(--sidebar)', color: '#fff' } : { color: 'var(--muted-text)' }}
+              style={consoleActive ? { background: 'var(--brand-surface)', color: 'var(--brand-surface-ink)' } : { color: 'var(--muted-text)' }}
             >
               <ShieldCheck size={16} /> Console
             </button>

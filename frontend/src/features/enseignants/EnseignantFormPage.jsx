@@ -111,7 +111,7 @@ export default function EnseignantFormPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-card p-6">
         <StepIndicator etapes={etapes} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
 
         <form

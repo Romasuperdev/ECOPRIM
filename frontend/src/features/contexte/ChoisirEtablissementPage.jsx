@@ -47,7 +47,7 @@ export default function ChoisirEtablissementPage() {
       )}
 
       {dispos.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">
+        <div className="rounded-xl border border-slate-200 bg-card py-16 text-center">
           <Building2 size={40} className="mx-auto mb-3 text-slate-300" />
           <p className="text-sm font-medium text-slate-500">Aucun établissement disponible</p>
           <p className="mt-1 text-xs text-slate-400">
@@ -61,7 +61,7 @@ export default function ChoisirEtablissementPage() {
             return (
               <div
                 key={e.code}
-                className={`relative rounded-xl border bg-white p-5 transition hover:shadow-md ${
+                className={`relative rounded-xl border bg-card p-5 transition hover:shadow-md ${
                   estActif ? 'border-primary-500 ring-2 ring-primary-100' : 'border-slate-200'
                 }`}
               >

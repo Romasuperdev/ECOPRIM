@@ -70,7 +70,7 @@ export default function SocieteListPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -123,7 +123,7 @@ export default function SocieteListPage() {
 
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code} dans ECOPRIM` : 'Reprendre une société')}</h2>
             <form
               onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}

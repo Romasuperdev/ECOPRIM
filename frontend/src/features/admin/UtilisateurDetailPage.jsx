@@ -165,7 +165,7 @@ export default function UtilisateurDetailPage() {
 
       {resetMdp && <ReinitialiserMotDePasse userId={user.id} onFermer={() => setResetMdp(false)} />}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-slate-200 bg-card p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">Compte (RH_USER — lecture seule)</h2>
         <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Champ label="Login" value={user.login} />
@@ -176,7 +176,7 @@ export default function UtilisateurDetailPage() {
         </dl>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-slate-200 bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">Rôles par établissement</h2>
         </div>

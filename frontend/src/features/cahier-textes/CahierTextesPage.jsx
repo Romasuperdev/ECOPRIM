@@ -94,7 +94,7 @@ function FormEntete({ initial, referentiels, erreurs, onSubmit, onClose, enCours
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-4 text-lg font-bold text-slate-800">
           {initial.id ? 'Modifier la semaine' : 'Nouvelle semaine'}
         </h2>
@@ -204,7 +204,7 @@ export default function CahierTextesPage() {
       </div>
 
       {!classe && (
-        <p className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
           Choisissez une classe pour consulter ou tenir son cahier de textes.
         </p>
       )}
@@ -212,14 +212,14 @@ export default function CahierTextesPage() {
       {classe && isLoading && <p className="text-slate-400">Chargement…</p>}
 
       {classe && !isLoading && entetes.length === 0 && (
-        <p className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
           Aucune semaine enregistrée pour cette classe. Commencez par « Nouvelle semaine ».
         </p>
       )}
 
       {entete && (
         <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-card px-4 py-3">
             <div className="text-sm text-slate-600">
               <span className="font-semibold text-slate-800">{entete.mois}</span>
               {' · semaine '}{entete.semaine}
@@ -253,7 +253,7 @@ export default function CahierTextesPage() {
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">

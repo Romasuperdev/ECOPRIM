@@ -40,7 +40,7 @@ export default function RoleListPage() {
         <Button onClick={() => { setErreurs({}); setForm({ code: '', nom: '' }) }}>+ Nouveau rôle</Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -94,7 +94,7 @@ export default function RoleListPage() {
 
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
             <h2 className="mb-4 text-lg font-bold text-slate-800">Nouveau rôle</h2>
             <form onSubmit={(ev) => { ev.preventDefault(); creer.mutate(form) }} className="space-y-3">
               <Input label="Code *" value={form.code} onChange={(ev) => champ('code', ev.target.value)}

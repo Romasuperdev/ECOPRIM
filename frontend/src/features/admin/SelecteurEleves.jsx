@@ -33,7 +33,7 @@ export default function SelecteurEleves({ selection, onChange }) {
         onChange={(e) => setRecherche(e.target.value)}
       />
       {resultats?.length > 0 && (
-        <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-card shadow-sm">
           {resultats.map((e) => (
             <button
               key={e.matricule} type="button" onClick={() => ajouter(e)}

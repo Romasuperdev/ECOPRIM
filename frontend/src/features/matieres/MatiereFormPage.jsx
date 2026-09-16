@@ -71,7 +71,7 @@ export default function MatiereFormPage() {
 
       <form
         onSubmit={handleSubmit((values) => mutation.mutate(values))}
-        className="space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+        className="space-y-8 rounded-2xl border border-slate-200 bg-card p-8 shadow-sm"
       >
         <FormSection icon={BookOpen} title="Informations générales">
           <div className="grid grid-cols-2 gap-4">

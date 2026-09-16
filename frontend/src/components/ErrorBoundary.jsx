@@ -46,14 +46,14 @@ export default class ErrorBoundary extends Component {
           <summary className="cursor-pointer text-xs font-medium text-red-700">
             Détail technique
           </summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-white/70 p-3 text-xs text-red-900">
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-card/70 p-3 text-xs text-red-900">
             {String(this.state.erreur?.stack || this.state.erreur)}
           </pre>
         </details>
         <button
           type="button"
           onClick={() => this.setState({ erreur: null })}
-          className="mt-4 rounded-xl border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-800 hover:bg-white/60"
+          className="mt-4 rounded-xl border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-800 hover:bg-card/60"
         >
           Réessayer
         </button>

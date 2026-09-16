@@ -1,72 +1,423 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ==== Design System NEXORA École Primaire ====
-   Palette terre/sauge fournie par l'utilisateur (brun taupe, kaki pâle, vert sauge,
-   ocre caramel, pêche clair) — même structure/mêmes classes qu'auparavant, seules les
-   valeurs de couleur changent. */
-@theme {
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+/* ============================================================================
+   Design System NEXORA École Primaire — Bleu / Vert / Orange
+   ============================================================================
 
-  /* Échelle construite à partir du vert sauge de la palette (#5C7A56) */
-  --color-primary-50: #eef2ec;
-  --color-primary-100: #dce7d8;
-  --color-primary-200: #bbd0b3;
-  --color-primary-300: #96b78c;
-  --color-primary-400: #78a06c;
-  --color-primary-500: #5c7a56;
-  --color-primary-600: #4d6849;
-  --color-primary-700: #3f5539;
-  --color-primary-800: #33452f;
-  --color-primary-900: #283725;
+   Identité :
+     🔵 BLEU   = école, navigation, identité, action principale
+     🟢 VERT   = réussite, validation, opération aboutie
+     🟠 ORANGE = pédagogie, attention, action à traiter
+   Proportion visée : ~60 % neutres, 25 % bleu, 10 % vert, 5 % orange.
 
-  /* Accent ocre/caramel de la palette */
-  --color-secondary-400: #d3a468;
-  --color-secondary-500: #c08a45;
+   ── Comment ce fichier est organisé, et pourquoi ────────────────────────────
+   1. Les échelles brutes (`--neutral-*`, `--blue-*`, …) : la seule source de
+      vérité des couleurs. Elles sont redéfinies une deuxième fois sous `.dark`.
+   2. Les rôles (`--bg`, `--surface`, `--text`, `--sidebar`, …) : ce que les
+      écrans utilisent. Ils pointent vers les échelles, jamais vers un hex.
+   3. `@theme inline` : rebranche les utilitaires Tailwind sur ces échelles.
 
-  --color-ink: #7a6a5c;
+   L'étape 3 mérite une explication, car c'est elle qui rend le mode sombre
+   possible sans réécrire l'application. Les écrans contiennent ~900 classes
+   Tailwind à couleur nommée (`text-slate-400`, `bg-green-50`, `text-red-600`…)
+   écrites avant l'existence de ce design system. Ces classes pointeraient vers
+   les couleurs figées de Tailwind : elles resteraient claires en mode sombre,
+   et il aurait fallu les éditer une à une dans 54 fichiers.
+   En redéfinissant ici `--color-slate-400`, `--color-green-50`, etc., ces mêmes
+   classes deviennent theme-aware d'un coup, et restent justes : la palette
+   choisie EST l'échelle `slate` de Tailwind (#F8FAFC = slate-50, #1E293B =
+   slate-800, #64748B = slate-500, #E2E8F0 = slate-200), de même que #10B981 =
+   emerald-500, #F59E0B = amber-500, #EF4444 = red-500.
+
+   ⚠️ Conséquence à connaître : en mode sombre, l'échelle neutre s'INVERSE.
+   Elle n'est lisible que parce que ses usages sont scindés proprement —
+   50→300 servent de surfaces et de bordures, 400→900 servent de texte. Une
+   future classe `bg-slate-700` (fond sombre) casserait cette convention et
+   donnerait un fond clair en mode sombre. Préférer les rôles (`bg-card`,
+   `text-muted`, `.card`) pour tout nouvel écran.
+
+   `emerald-*` est volontairement aliasé sur `green-*` : l'application utilisait
+   les deux pour dire « succès ». Un seul vert désormais, sans rien éditer.
+   ========================================================================== */
+
+/* `dark:` fonctionne par classe sur <html>, posée par next-themes. */
+@custom-variant dark (&:is(.dark *));
+
+/* ── 1. Échelles brutes — mode clair ─────────────────────────────────────── */
+:root {
+  /* Neutres = échelle slate. Le socle des 60 %. */
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  /* Bleu — identité. 600 = #2563EB (principal), 900 = #1E3A8A (sidebar). */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+
+  /* Vert — réussite. 500 = #10B981. */
+  --green-50: #ecfdf5;
+  --green-100: #d1fae5;
+  --green-200: #a7f3d0;
+  --green-300: #6ee7b7;
+  --green-400: #34d399;
+  --green-500: #10b981;
+  --green-600: #059669;
+  --green-700: #047857;
+  --green-800: #065f46;
+  --green-900: #064e3b;
+
+  /* Orange — attention / pédagogie. 500 = #F59E0B. */
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+
+  /* Rouge — erreur / suppression. 500 = #EF4444. */
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --red-900: #7f1d1d;
+
+  /* Violet — hors identité, réservé aux types d'événements du calendrier. */
+  --purple-50: #faf5ff;
+  --purple-100: #f3e8ff;
+  --purple-200: #e9d5ff;
+  --purple-700: #7e22ce;
+  --purple-800: #6b21a8;
 }
 
-:root {
-  --bg: #fbf3e2;
-  --bg-grad-1: rgba(192, 138, 69, 0.1);
-  --bg-grad-2: rgba(92, 122, 86, 0.06);
-  --surface: #ffffff;
-  --surface-2: #f7efdd;
-  --text: #3a2f28;
-  --heading: #2a211c;
-  --muted-text: #8a7a6c;
-  --border: #e5d9c3;
-  --sidebar: #5a4c43;
-  --sidebar-2: #443a33;
-  --sidebar-text: #e8dcc8;
-  --brand-accent: #c08a45;
-  --brand-accent-ink: #2a211c;
-  --teal: #5c7a56;
-  --shadow: 0 1px 3px rgba(58, 47, 40, 0.08), 0 1px 2px rgba(58, 47, 40, 0.05);
+/* ── 1 bis. Échelles brutes — mode sombre ────────────────────────────────────
+   Les neutres s'inversent (surfaces et textes échangent leurs extrémités).
+   Les couleurs vives, elles, ne s'inversent pas : on assombrit seulement leurs
+   teintes de fond (50-200) et on éclaircit celles qui portent du texte
+   (600-900), pour que bleu/vert/orange restent reconnaissables — c'est le but
+   d'une identité : ne pas changer d'un mode à l'autre.                        */
+.dark {
+  --neutral-50: #1e293b;
+  --neutral-100: #263449;
+  --neutral-200: #334155;
+  --neutral-300: #64748b;
+  --neutral-400: #94a3b8;
+  --neutral-500: #a9b6c7;
+  --neutral-600: #cbd5e1;
+  --neutral-700: #e2e8f0;
+  --neutral-800: #f1f5f9;
+  --neutral-900: #f8fafc;
 
-  /* ==== Tokens shadcn/ui, alignés sur la palette NEXORA ci-dessus ==== */
+  --blue-50: #172554;
+  --blue-100: #1e3a8a;
+  --blue-200: #1e40af;
+  --blue-300: #1d4ed8;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #3b82f6;
+  --blue-700: #93c5fd;
+  --blue-800: #bfdbfe;
+  --blue-900: #dbeafe;
+  --blue-950: #0f172a;
+
+  --green-50: #022c22;
+  --green-100: #064e3b;
+  --green-200: #065f46;
+  --green-300: #047857;
+  --green-400: #34d399;
+  --green-500: #10b981;
+  --green-600: #34d399;
+  --green-700: #6ee7b7;
+  --green-800: #a7f3d0;
+  --green-900: #d1fae5;
+
+  --amber-50: #3a1d03;
+  --amber-100: #78350f;
+  --amber-200: #92400e;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #fbbf24;
+  --amber-700: #fcd34d;
+  --amber-800: #fde68a;
+  --amber-900: #fef3c7;
+
+  --red-50: #3f0f0f;
+  --red-100: #7f1d1d;
+  --red-200: #991b1b;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #f87171;
+  --red-600: #fca5a5;
+  --red-700: #fca5a5;
+  --red-800: #fecaca;
+  --red-900: #fee2e2;
+
+  --purple-50: #3b0764;
+  --purple-100: #581c87;
+  --purple-200: #6b21a8;
+  --purple-700: #d8b4fe;
+  --purple-800: #e9d5ff;
+}
+
+/* ── 2. Rôles — mode clair ───────────────────────────────────────────────── */
+:root {
+  --bg: var(--neutral-50);
+  /* Voiles à peine perceptibles : ils donnent de la profondeur au fond sans
+     rompre la règle des 60 % de neutres. */
+  --bg-grad-1: rgba(37, 99, 235, 0.07);
+  --bg-grad-2: rgba(16, 185, 129, 0.05);
+  --surface: #ffffff;
+  --surface-2: var(--neutral-100);
+  --text: var(--neutral-800);
+  --heading: var(--neutral-900);
+  --muted-text: var(--neutral-500);
+  --border: var(--neutral-200);
+
+  --sidebar: var(--blue-900);
+  --sidebar-2: var(--blue-950);
+  --sidebar-text: var(--blue-100);
+
+  /* Surfaces de marque : les grands aplats bleus (bandeau d'accueil, panneau de
+     connexion). Littérales et identiques dans les deux thèmes — ce sont elles
+     qui font reconnaître la plateforme, et un parent doit la retrouver la même
+     qu'il soit en clair ou en sombre. Les laisser suivre le thème les faisait
+     fondre dans le fond en mode sombre : le panneau disparaissait. */
+  --brand-surface: #1e3a8a;
+  --brand-surface-2: #172554;
+  --brand-surface-ink: #ffffff;
+
+  --brand-accent: var(--blue-600);
+  --brand-accent-ink: #ffffff;
+  /* Conservé pour le dégradé du panneau de connexion. */
+  --teal: var(--green-500);
+
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+
+  /* Rôles sémantiques. Chacun vient en trio fond / bordure / texte, pour que
+     bandeaux et badges se composent sans inventer une nuance à chaque écran. */
+  --success: var(--green-500);
+  --success-bg: var(--green-50);
+  --success-border: var(--green-200);
+  --success-text: var(--green-700);
+
+  --warning: var(--amber-500);
+  --warning-bg: var(--amber-50);
+  --warning-border: var(--amber-200);
+  --warning-text: var(--amber-700);
+
+  /* Littéral, contrairement à ses voisins : `--danger` sert de FOND de bouton,
+     et l'échelle rouge s'éclaircit en mode sombre pour rester lisible en TEXTE.
+     L'y raccrocher donnait un « Supprimer » rose pâle. Un signal de destruction
+     ne s'atténue pas selon le thème. */
+  --danger: #ef4444;
+  --danger-bg: var(--red-50);
+  --danger-border: var(--red-200);
+  --danger-text: var(--red-600);
+
+  --info: var(--blue-600);
+  --info-bg: var(--blue-50);
+  --info-border: var(--blue-200);
+  --info-text: var(--blue-700);
+
+  /* Accent par module : repère discret (titre de groupe, liseré d'en-tête),
+     jamais une teinte de surface — sinon le vert « module Traitement » se
+     confondrait avec le vert « validé ». */
+  --module-parametre: var(--blue-600);
+  --module-traitement: var(--green-600);
+  --module-programme: var(--amber-600);
+
+  /* Le menu, lui, est sombre dans les deux thèmes (bleu nuit en clair, ardoise
+     en sombre). Ses accents ne suivent donc pas le mode : ce sont toujours les
+     nuances claires, seules lisibles sur ce fond — littérales à dessein, car
+     les échelles ci-dessus s'inversent, elles. */
+  --module-parametre-nav: #93c5fd;
+  --module-traitement-nav: #6ee7b7;
+  --module-programme-nav: #fcd34d;
+
+  /* Séries de graphiques (recharts) : bleu d'abord, puis vert et orange, puis
+     des teintes voisines. Définies avant le premier graphique, pas après. */
+  --chart-1: var(--blue-600);
+  --chart-2: var(--green-500);
+  --chart-3: var(--amber-500);
+  --chart-4: var(--blue-400);
+  --chart-5: var(--purple-700);
+
+  /* ── Tokens shadcn/ui, alignés sur les rôles ci-dessus ── */
   --background: var(--surface);
   --foreground: var(--text);
   --card: var(--surface);
   --card-foreground: var(--text);
   --popover: var(--surface);
   --popover-foreground: var(--text);
-  --primary: var(--color-primary-500);
-  --primary-foreground: #ffffff;
+  --primary: var(--brand-accent);
+  --primary-foreground: var(--brand-accent-ink);
   --secondary: var(--surface-2);
   --secondary-foreground: var(--heading);
   --muted: var(--surface-2);
   --muted-foreground: var(--muted-text);
-  --accent: color-mix(in srgb, var(--brand-accent) 14%, var(--surface));
+  --accent: color-mix(in srgb, var(--brand-accent) 12%, var(--surface));
   --accent-foreground: var(--heading);
-  --destructive: #b3432f;
+  --destructive: var(--danger);
   --input: var(--border);
   --ring: var(--brand-accent);
   --radius: 0.75rem;
 }
 
+/* ── 2 bis. Rôles — mode sombre ──────────────────────────────────────────────
+   Volontairement court. Les échelles s'étant déjà inversées plus haut, la
+   quasi-totalité des rôles bascule toute seule : `--text: var(--neutral-800)`
+   vaut #1E293B en clair et #F1F5F9 en sombre, sans rien redéfinir ici. Ne
+   figurent ci-dessous que les trois cas où l'échelle n'a pas la valeur voulue.
+
+   ⚠️ Ne pas « compléter » ce bloc par symétrie avec celui du mode clair : y
+   réécrire `--bg: var(--neutral-900)` donnerait un fond BLANC, puisque le 900
+   de l'échelle inversée est la teinte la plus claire. C'est l'erreur qui guette
+   ici, et elle ne se voit qu'à l'exécution.                                    */
+.dark {
+  /* Le fond de page doit être d'un cran plus sombre que les cartes, comme en
+     clair il est d'un cran plus clair qu'elles. L'échelle n'a pas ce cran
+     supplémentaire : on le pose à la main. */
+  --bg: #0f172a;
+  --surface: var(--neutral-50);
+
+  --bg-grad-1: rgba(59, 130, 246, 0.1);
+  --bg-grad-2: rgba(16, 185, 129, 0.06);
+
+  /* Le menu ne peut plus être bleu nuit : il se fondrait dans un fond déjà bleu
+     nuit. Il devient la surface élevée — l'identité bleue passe alors par
+     l'entrée active et par le liseré d'en-tête. */
+  --sidebar: var(--neutral-50);
+  --sidebar-text: var(--neutral-700);
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── 3. Branchement des utilitaires Tailwind sur les échelles ci-dessus ──── */
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
 @theme inline {
+  /* `primary-*` est l'échelle de marque de l'application : désormais le bleu. */
+  --color-primary-50: var(--blue-50);
+  --color-primary-100: var(--blue-100);
+  --color-primary-200: var(--blue-200);
+  --color-primary-300: var(--blue-300);
+  --color-primary-400: var(--blue-400);
+  --color-primary-500: var(--blue-500);
+  --color-primary-600: var(--blue-600);
+  --color-primary-700: var(--blue-700);
+  --color-primary-800: var(--blue-800);
+  --color-primary-900: var(--blue-900);
+
+  /* `secondary-*` : l'accent orange. */
+  --color-secondary-400: var(--amber-400);
+  --color-secondary-500: var(--amber-500);
+  --color-secondary-600: var(--amber-600);
+
+  --color-ink: var(--muted-text);
+
+  /* Échelles nommées : voir l'avertissement en tête de fichier. */
+  --color-slate-50: var(--neutral-50);
+  --color-slate-100: var(--neutral-100);
+  --color-slate-200: var(--neutral-200);
+  --color-slate-300: var(--neutral-300);
+  --color-slate-400: var(--neutral-400);
+  --color-slate-500: var(--neutral-500);
+  --color-slate-600: var(--neutral-600);
+  --color-slate-700: var(--neutral-700);
+  --color-slate-800: var(--neutral-800);
+  --color-slate-900: var(--neutral-900);
+
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
+
+  --color-green-50: var(--green-50);
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-900: var(--green-900);
+
+  /* Alias : un seul vert de succès dans l'application. */
+  --color-emerald-50: var(--green-50);
+  --color-emerald-100: var(--green-100);
+  --color-emerald-200: var(--green-200);
+  --color-emerald-300: var(--green-300);
+  --color-emerald-400: var(--green-400);
+  --color-emerald-500: var(--green-500);
+  --color-emerald-600: var(--green-600);
+  --color-emerald-700: var(--green-700);
+  --color-emerald-800: var(--green-800);
+  --color-emerald-900: var(--green-900);
+
+  --color-amber-50: var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-300: var(--amber-300);
+  --color-amber-400: var(--amber-400);
+  --color-amber-500: var(--amber-500);
+  --color-amber-600: var(--amber-600);
+  --color-amber-700: var(--amber-700);
+  --color-amber-800: var(--amber-800);
+  --color-amber-900: var(--amber-900);
+
+  --color-red-50: var(--red-50);
+  --color-red-100: var(--red-100);
+  --color-red-200: var(--red-200);
+  --color-red-300: var(--red-300);
+  --color-red-400: var(--red-400);
+  --color-red-500: var(--red-500);
+  --color-red-600: var(--red-600);
+  --color-red-700: var(--red-700);
+  --color-red-800: var(--red-800);
+  --color-red-900: var(--red-900);
+
+  --color-purple-50: var(--purple-50);
+  --color-purple-100: var(--purple-100);
+  --color-purple-200: var(--purple-200);
+  --color-purple-700: var(--purple-700);
+  --color-purple-800: var(--purple-800);
+
+  /* Rôles, disponibles en utilitaires : bg-card, text-muted-foreground… */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -85,6 +436,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -93,6 +448,15 @@
 
 * {
   border-color: var(--border);
+}
+
+html {
+  /* Accorde les éléments natifs (barres de défilement, champs de date, menus
+     déroulants système) au thème courant. */
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -143,7 +507,7 @@ body {
 .field:focus {
   border-color: var(--brand-accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 28%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 25%, transparent);
 }
 .field:disabled,
 .field[readonly] {
@@ -170,7 +534,7 @@ main table thead th {
   color: var(--muted-text);
 }
 main table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-accent) 7%, transparent);
 }
 
 ::-webkit-scrollbar {

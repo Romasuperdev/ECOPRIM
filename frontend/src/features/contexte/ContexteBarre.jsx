@@ -50,8 +50,9 @@ export default function ContexteBarre() {
         <label
           className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
           style={{
-            borderColor: clotureeSelectionnee ? '#f59e0b' : 'var(--border)',
-            background: clotureeSelectionnee ? 'rgba(245,158,11,.10)' : 'transparent',
+            borderColor: clotureeSelectionnee ? 'var(--warning)' : 'var(--border)',
+            background: clotureeSelectionnee ? 'var(--warning-bg)' : 'transparent',
+            color: clotureeSelectionnee ? 'var(--warning-text)' : undefined,
           }}
           title={clotureeSelectionnee
             ? 'Année clôturée : consultation seule'

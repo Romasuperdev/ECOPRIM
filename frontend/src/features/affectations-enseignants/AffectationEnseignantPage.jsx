@@ -143,7 +143,7 @@ export default function AffectationEnseignantPage() {
       )}
 
       {!cible && (
-        <p className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
           {parClasse ? 'Choisissez une classe pour voir son équipe pédagogique.' : 'Choisissez un enseignant pour voir son service.'}
         </p>
       )}
@@ -151,7 +151,7 @@ export default function AffectationEnseignantPage() {
       {cible && isLoading && <p className="text-slate-400">Chargement…</p>}
 
       {cible && !isLoading && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>
@@ -238,7 +238,7 @@ export default function AffectationEnseignantPage() {
       {/* Formulaire */}
       {form && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={fermer}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-2xl bg-card p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-slate-800">
               {form.id ? 'Remplacer l’enseignant' : 'Affecter un enseignant'}
             </h2>

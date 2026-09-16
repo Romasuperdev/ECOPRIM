@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import AdminSidebar from './AdminSidebar'
 import Button from '../ui/Button'
+import BasculeTheme from '../ui/BasculeTheme'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ErrorBoundary from '../ErrorBoundary'
@@ -57,10 +58,13 @@ export default function AdminLayout() {
             </span>
             <SocieteBarre />
           </div>
-          <Button variant="outline" className="shrink-0" onClick={handleLogout}>
-            <span className="hidden sm:inline">Se déconnecter</span>
-            <span className="sm:hidden">Quitter</span>
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <BasculeTheme />
+            <Button variant="outline" onClick={handleLogout}>
+              <span className="hidden sm:inline">Se déconnecter</span>
+              <span className="sm:hidden">Quitter</span>
+            </Button>
+          </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-8 lg:pt-6">
           <div className="mx-auto w-full max-w-6xl">

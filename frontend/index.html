@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NEXORA École Primaire</title>
+    <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <!-- Pose la classe de thème avant le premier rendu. Sans ce script, React ne
+         monte qu'après la peinture initiale : l'écran clignoterait en clair avant
+         de passer en sombre, à chaque chargement de page. -->
+    <script>
+      (function () {
+        try {
+          var choix = localStorage.getItem('nexora-theme') || 'system'
+          var sombre =
+            choix === 'dark' ||
+            (choix === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', sombre)
+          document.documentElement.style.colorScheme = sombre ? 'dark' : 'light'
+        } catch (e) {
+          /* Navigation privée ou stockage refusé : on reste en clair. */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

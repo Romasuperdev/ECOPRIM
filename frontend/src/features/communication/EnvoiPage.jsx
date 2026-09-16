@@ -59,7 +59,7 @@ export default function EnvoiPage() {
         </div>
       )}
 
-      <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="space-y-5 rounded-xl border border-slate-200 bg-card p-6">
         {/* Canal */}
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Canal</p>

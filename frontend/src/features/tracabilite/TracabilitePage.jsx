@@ -67,7 +67,7 @@ export default function TracabilitePage() {
           className={`mb-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
             data.strategie === 'impossible'
               ? 'border-amber-200 bg-amber-50 text-amber-800'
-              : 'border-slate-200 bg-white text-slate-600'
+              : 'border-slate-200 bg-card text-slate-600'
           }`}
         >
           {data.strategie === 'impossible' ? <ShieldAlert size={16} className="mt-0.5 shrink-0" /> : <Info size={16} className="mt-0.5 shrink-0" />}
@@ -77,7 +77,7 @@ export default function TracabilitePage() {
 
       {/* Le cloisonnement indirect mérite d'être annoncé : il est moins fiable. */}
       {data?.strategie === 'utilisateur' && (
-        <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-card px-4 py-3 text-sm text-slate-600">
           <Lock size={16} className="mt-0.5 shrink-0" />
           <span>
             Cette table ne porte pas de société : les lignes affichées sont celles des comptes
@@ -131,7 +131,7 @@ export default function TracabilitePage() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -177,7 +177,7 @@ export default function TracabilitePage() {
 
       {/* Vérifiable : la correspondance a été devinée, elle doit pouvoir être contrôlée. */}
       {data?.colonnes_reelles?.length > 0 && (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-card p-4 text-xs text-slate-500">
           <button
             type="button"
             className="font-medium text-slate-600 underline"

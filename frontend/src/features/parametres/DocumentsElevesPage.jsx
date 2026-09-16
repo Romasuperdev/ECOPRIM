@@ -86,7 +86,7 @@ export default function DocumentsElevesPage() {
 
       <MessageRefus message={refus} onFermer={() => setRefus(null)} />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -144,7 +144,7 @@ export default function DocumentsElevesPage() {
 
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
             <h2 className="mb-4 text-lg font-bold text-slate-800">
               {form.id ? 'Modifier le document' : 'Nouveau document / prérequis'}
             </h2>

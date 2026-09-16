@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
     <div>
       <div
         className="relative overflow-hidden rounded-2xl p-8"
-        style={{ background: 'linear-gradient(135deg, var(--sidebar-2), var(--sidebar))', boxShadow: 'var(--shadow)' }}
+        style={{ background: 'linear-gradient(135deg, var(--brand-surface-2), var(--brand-surface))', boxShadow: 'var(--shadow)' }}
       >
         <div className="pointer-events-none absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-primary-500/30 blur-3xl" />
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-primary-400/30 blur-3xl" />

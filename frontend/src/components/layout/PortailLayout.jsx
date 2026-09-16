@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import Button from '../ui/Button'
+import BasculeTheme from '../ui/BasculeTheme'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
@@ -39,7 +40,10 @@ export default function PortailLayout() {
             <div className="text-xs text-muted">{user?.name}</div>
           </div>
         </div>
-        <Button variant="outline" onClick={handleLogout}>Se déconnecter</Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <BasculeTheme />
+          <Button variant="outline" onClick={handleLogout}>Se déconnecter</Button>
+        </div>
       </header>
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-5xl">

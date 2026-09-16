@@ -47,7 +47,7 @@ export default function SmsConfigPage() {
       )}
 
       <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
-            className="space-y-6 rounded-xl border border-slate-200 bg-white p-6">
+            className="space-y-6 rounded-xl border border-slate-200 bg-card p-6">
 
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input type="checkbox" checked={!!form.actif} onChange={(e) => champ('actif', e.target.checked)} />

@@ -112,7 +112,7 @@ export default function EmploiDuTempsPage() {
       )}
 
       {!classe && (
-        <p className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
           Choisissez une classe pour afficher sa grille.
         </p>
       )}
@@ -127,7 +127,7 @@ export default function EmploiDuTempsPage() {
       )}
 
       {classe && !isLoading && heures.length > 0 && jours.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 text-slate-500">
@@ -181,7 +181,7 @@ export default function EmploiDuTempsPage() {
 
       {cellule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={fermer}>
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="mb-1 text-lg font-bold text-slate-800">
               {cellule.creneau ? 'Modifier le créneau' : 'Nouveau créneau'}
             </h2>

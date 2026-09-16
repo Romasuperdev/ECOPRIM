@@ -160,7 +160,7 @@ export default function SaisieNotesPage({
         </div>
       )}
 
-      <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-4">
+      <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-card p-4 md:grid-cols-4">
         {! classeFixe && (
           <Select label="Classe" value={criteres.classe} onChange={(e) => champ('classe', e.target.value)}>
             <option value="">— Sélectionner —</option>
@@ -186,7 +186,7 @@ export default function SaisieNotesPage({
                onChange={(e) => champ('bareme', e.target.value)} />
       </div>
 
-      <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+      <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-card px-4 py-3 text-sm text-slate-600">
         <Info size={16} className="mt-0.5 shrink-0" />
         <span>
           Deux saisies sur la même classe, matière, session, type et intitulé sont la
@@ -210,7 +210,7 @@ export default function SaisieNotesPage({
 
       {pret && (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
                 <tr>

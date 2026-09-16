@@ -45,7 +45,7 @@ export default function MailConfigPage() {
       )}
 
       <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
-            className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+            className="space-y-4 rounded-xl border border-slate-200 bg-card p-6">
         <Input label="Adresse d’envoi *" type="email" value={form.adresse ?? ''}
                onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]}
                placeholder="direction@monecole.ci" />

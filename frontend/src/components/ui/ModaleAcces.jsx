@@ -32,7 +32,7 @@ export default function ModaleAcces({ acces, onFermer }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onFermer}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         {acces.erreur ? (
           <>
             <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-800">

@@ -38,14 +38,14 @@ export default function MoyennesPage() {
 
       {rapport && (
         <>
-          <div className="mb-4 rounded-xl border border-slate-200 bg-white p-5">
+          <div className="mb-4 rounded-xl border border-slate-200 bg-card p-5">
             <p className="text-sm text-slate-500">Moyenne de la classe {rapport.classe}</p>
             <p className="text-2xl font-bold text-slate-800">
               {rapport.moyenne_classe !== null ? `${rapport.moyenne_classe}/20` : '—'}
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
                 <tr>

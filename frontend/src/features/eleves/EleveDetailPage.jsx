@@ -25,7 +25,7 @@ function SectionBulletin({ eleve }) {
   })
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-slate-200 bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-800">Bulletin</h2>
         <Button
@@ -99,7 +99,7 @@ function SectionDocuments({ eleve }) {
   const [motif, setMotif] = useState('')
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-slate-200 bg-card p-6">
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Documents administratifs</h2>
       <Input
         label="Motif (facultatif)"
@@ -140,7 +140,7 @@ export default function EleveDetailPage() {
         </h1>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-slate-200 bg-card p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">Identité</h2>
         <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Champ label="Matricule" value={eleve.matricule} />
@@ -152,7 +152,7 @@ export default function EleveDetailPage() {
         </dl>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-slate-200 bg-card p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">Scolarité</h2>
         <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Champ label="Classe" value={eleve.classe?.nom ?? eleve.classe_code} />
@@ -167,7 +167,7 @@ export default function EleveDetailPage() {
       <SectionBulletin eleve={eleve} />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-slate-200 bg-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">Père / Tuteur</h2>
           <dl className="space-y-3">
             <Champ label="Nom" value={`${eleve.pere_prenom ?? ''} ${eleve.pere_nom ?? ''}`.trim()} />
@@ -176,7 +176,7 @@ export default function EleveDetailPage() {
             <Champ label="Email" value={eleve.pere_email} />
           </dl>
         </section>
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-slate-200 bg-card p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">Mère</h2>
           <dl className="space-y-3">
             <Champ label="Nom" value={`${eleve.mere_prenom ?? ''} ${eleve.mere_nom ?? ''}`.trim()} />

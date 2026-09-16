@@ -5,7 +5,7 @@ import { fetchEtablissementParCode } from './adminApi'
 
 function Section({ titre, children }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-slate-200 bg-card p-6">
       <h2 className="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
         {titre}
       </h2>
