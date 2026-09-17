@@ -3278,3 +3278,26 @@ Le calcul des jours ouvrés, qui vivait dans le tableau de bord, est remonté da
 
 1 test fige le comportement principal — un élève sans absence figure au rapport, avec 100 %,
 et les plus absents restent en tête.
+
+### Deux restes de l'ancienne palette, dont un chez les parents
+
+Signalé : la favicon n'était pas au bleu de l'application. Vérification faite, elle portait
+encore le brun taupe `#443a33` et l'ocre caramel `#c08a45` de l'identité terre/sauge — elle
+avait été oubliée lors du changement de palette, parce qu'elle vit dans un fichier SVG
+statique et non dans le design system.
+
+La recherche des anciennes valeurs dans tout le dépôt en a sorti **une seconde, plus
+visible** : `resources/views/pdf/layout.blade.php`, la mise en page commune des **sept**
+documents imprimables — dont le bulletin, le certificat de scolarité et l'attestation de
+fréquentation, ceux qui partent chez les parents. Elle était à moitié migrée : ses neutres
+étaient déjà les nouveaux (slate), mais le filet d'en-tête, le nom de la marque et les
+titres de section restaient bruns et ocre. Trois valeurs à changer.
+
+**Choix assumé sur la favicon** : le monogramme est en **blanc**, là où le logo de l'écran
+le dessine en bleu accent sur un carré bleu nuit. À 16 px, deux bleus voisins se mélangent
+et la lettre disparaît. Le logo de l'écran dispose, lui, de 30 px sur un fond déjà sombre.
+Le contraste prime donc sur la fidélité exacte — vérifié en rendant l'icône à 16, 32 et
+64 px, sur onglet clair et sur onglet sombre.
+
+Le bleu nuit `#1E3A8A` a été retenu plutôt que le bleu vif : c'est celui des aplats
+d'identité (menu, bandeaux d'accueil, panneau de connexion), donc celui qu'on reconnaît.

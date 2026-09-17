@@ -11,8 +11,8 @@
     @page { margin: 22mm 16mm 18mm 16mm; }
     body { font-family: sans-serif; font-size: 11.5px; color: #1e293b; }
 
-    .entete { border-bottom: 2px solid #c08a45; padding-bottom: 8px; margin-bottom: 16px; }
-    .entete .marque { font-size: 15px; font-weight: bold; color: #5a4c43; }
+    .entete { border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px; }
+    .entete .marque { font-size: 15px; font-weight: bold; color: #1e3a8a; }
     .entete .etab { font-size: 11px; color: #64748b; }
     .entete .annee { float: right; font-size: 11px; color: #64748b; }
 
@@ -22,7 +22,7 @@
     .section { margin-top: 14px; }
     .section-titre {
         font-size: 9.5px; font-weight: bold; text-transform: uppercase;
-        letter-spacing: .07em; color: #c08a45;
+        letter-spacing: .07em; color: #2563eb;
         border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; margin-bottom: 6px;
     }
 
