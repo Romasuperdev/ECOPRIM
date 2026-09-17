@@ -88,23 +88,21 @@ export default function ClasseListPage() {
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Niveau</th>
-              <th className="px-4 py-3 font-medium">Année</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune classe.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Aucune classe.</td></tr>
             )}
             {data?.data?.map((classe) => (
               <tr key={classe.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-slate-600">{classe.code}</td>
                 <td className="px-4 py-3 font-medium text-slate-800">{classe.nom}</td>
                 <td className="px-4 py-3 text-slate-600">{classe.niveau?.libelle ?? classe.niveau_code ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{classe.annee ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
                   <Button
                     variant="outline" className="!px-3 !py-1 mr-2" disabled={verrouille}
