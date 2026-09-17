@@ -7,7 +7,7 @@ import Input from '../../components/ui/Input'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
 
-const VIDE = { code: '', libelle: '', type: '', composition: false }
+const VIDE = { code: '', libelle: '', composition: false }
 
 /**
  * Matières — ECONOMAT.T_MATIERE.
@@ -63,25 +63,23 @@ export default function MatiereListPage() {
             <tr>
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Libellé</th>
-              <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
             )}
             {isError && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-red-500">Erreur de chargement.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-red-500">Erreur de chargement.</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Aucune matière.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Aucune matière.</td></tr>
             )}
             {data?.data?.map((matiere) => (
               <tr key={matiere.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-slate-600">{matiere.code}</td>
                 <td className="px-4 py-3 font-medium text-slate-800">{matiere.libelle}</td>
-                <td className="px-4 py-3 text-slate-600">{matiere.type ?? '—'}</td>
                 <td className="px-4 py-3 text-right">
                   <Button
                     variant="outline" className="!px-3 !py-1 mr-2"
@@ -91,7 +89,6 @@ export default function MatiereListPage() {
                         id: matiere.id,
                         code: matiere.code ?? '',
                         libelle: matiere.libelle ?? '',
-                        type: matiere.type ?? '',
                         composition: Boolean(matiere.composition),
                       })
                     }}
@@ -135,8 +132,6 @@ export default function MatiereListPage() {
                  error={erreurs.code?.[0]} onChange={(e) => champ('code', e.target.value)} />
           <Input label="Libellé" placeholder="Mathématiques" value={form.libelle}
                  error={erreurs.libelle?.[0]} onChange={(e) => champ('libelle', e.target.value)} />
-          <Input label="Type (facultatif)" value={form.type}
-                 error={erreurs.type?.[0]} onChange={(e) => champ('type', e.target.value)} />
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={Boolean(form.composition)}
                    onChange={(e) => champ('composition', e.target.checked)} />

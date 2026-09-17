@@ -265,15 +265,14 @@ export default function InscriptionListPage() {
               <th className="px-4 py-3 font-medium">Matricule</th>
               <th className="px-4 py-3 font-medium">Élève</th>
               <th className="px-4 py-3 font-medium">Classe</th>
-              <th className="px-4 py-3 font-medium">Année</th>
               <th className="px-4 py-3 font-medium">Né(e) le</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune inscription.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune inscription.</td></tr>
             )}
             {data?.data?.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50">
@@ -283,7 +282,6 @@ export default function InscriptionListPage() {
                   <div className="text-xs text-slate-400">{e.sexe ?? ''}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.classe_code ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{e.annee ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.date_naissance ?? '—'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

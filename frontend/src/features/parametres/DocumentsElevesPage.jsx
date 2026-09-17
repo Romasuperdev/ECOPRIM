@@ -6,21 +6,24 @@ import Select from '../../components/ui/Select'
 import { Trash2 } from 'lucide-react'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { createPrerequis, deletePrerequis, fetchPrerequis, updatePrerequis } from './parametresApi'
+import { fetchContexte } from '../contexte/contexteApi'
 import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
-  libelle: '', type: '', code: '', niveau: '', annee: '',
+  libelle: '', type: '', code: '', niveau: '',
   montant: '', quantite: '', a_inscription: true, a_scolarite: false,
 }
 
 export default function DocumentsElevesPage() {
-  const [filtres, setFiltres] = useState({ q: '', annee: '', niveau: '' })
+  const [filtres, setFiltres] = useState({ q: '', niveau: '' })
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
   const [refus, setRefus] = useState(null)
   const qc = useQueryClient()
 
   useEchap(form ? () => setForm(null) : undefined)
+
+  const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
 
   const { data: lignes, isLoading } = useQuery({
     queryKey: ['prerequis', filtres],
@@ -47,7 +50,6 @@ export default function DocumentsElevesPage() {
   })
 
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
-  const annees = [...new Set((lignes ?? []).map((l) => l.annee).filter(Boolean))].sort().reverse()
   const niveaux = [...new Set((lignes ?? []).map((l) => l.niveau).filter(Boolean))].sort()
 
   return (
@@ -60,7 +62,13 @@ export default function DocumentsElevesPage() {
             (source : ECONOMAT.T_PREREQUIS).
           </p>
         </div>
-        <Button onClick={() => { setErreurs({}); setForm({ ...VIDE, annee: filtres.annee }) }}>
+        <Button
+          disabled={!contexte?.annee}
+          title={contexte?.annee
+            ? undefined
+            : 'Choisissez d’abord une année scolaire dans l’en-tête.'}
+          onClick={() => { setErreurs({}); setForm({ ...VIDE, annee: contexte.annee }) }}
+        >
           + Nouveau document
         </Button>
       </div>
@@ -69,12 +77,6 @@ export default function DocumentsElevesPage() {
         <div className="min-w-[220px] flex-1">
           <Input label="Rechercher" placeholder="Libellé du document…" value={filtres.q}
                  onChange={(e) => setFiltres((f) => ({ ...f, q: e.target.value }))} />
-        </div>
-        <div className="min-w-[150px]">
-          <Select label="Année" value={filtres.annee} onChange={(e) => setFiltres((f) => ({ ...f, annee: e.target.value }))}>
-            <option value="">Toutes</option>
-            {annees.map((a) => <option key={a} value={a}>{a}</option>)}
-          </Select>
         </div>
         <div className="min-w-[150px]">
           <Select label="Niveau" value={filtres.niveau} onChange={(e) => setFiltres((f) => ({ ...f, niveau: e.target.value }))}>
@@ -93,23 +95,21 @@ export default function DocumentsElevesPage() {
               <th className="px-4 py-3 font-medium">Document / prérequis</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Niveau</th>
-              <th className="px-4 py-3 font-medium">Année</th>
               <th className="px-4 py-3 font-medium">Montant</th>
               <th className="px-4 py-3 font-medium">Exigé</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
             {!isLoading && lignes?.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucun document paramétré.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun document paramétré.</td></tr>
             )}
             {lignes?.map((l) => (
               <tr key={l.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-800">{l.libelle}</td>
                 <td className="px-4 py-3 text-slate-600">{l.type ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{l.niveau ?? 'Tous'}</td>
-                <td className="px-4 py-3 text-slate-600">{l.annee ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">
                   {l.montant ? `${l.montant.toLocaleString('fr-FR')} F` : '—'}
                 </td>
@@ -155,8 +155,6 @@ export default function DocumentsElevesPage() {
                 <Input label="Type" value={form.type ?? ''} onChange={(ev) => champ('type', ev.target.value)}
                        error={erreurs.type?.[0]} placeholder="ex. DOCUMENT, FOURNITURE" />
                 <Input label="Code" value={form.code ?? ''} onChange={(ev) => champ('code', ev.target.value)} error={erreurs.code?.[0]} />
-                <Input label="Année *" value={form.annee ?? ''} onChange={(ev) => champ('annee', ev.target.value)}
-                       error={erreurs.annee?.[0]} placeholder="ex. 2025-2026" />
                 <Input label="Niveau (vide = tous)" value={form.niveau ?? ''} onChange={(ev) => champ('niveau', ev.target.value)} error={erreurs.niveau?.[0]} />
                 <Input label="Montant (F CFA)" type="number" min="0" value={form.montant ?? ''}
                        onChange={(ev) => champ('montant', ev.target.value)} error={erreurs.montant?.[0]} />
@@ -175,7 +173,9 @@ export default function DocumentsElevesPage() {
                 </label>
               </div>
 
-              {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
+              {(erreurs._ || erreurs.annee) && (
+                <p className="text-sm text-red-600">{(erreurs._ ?? erreurs.annee)[0]}</p>
+              )}
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
                 <Button type="submit" disabled={enregistrer.isPending}>{enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}</Button>
