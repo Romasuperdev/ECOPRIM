@@ -93,32 +93,47 @@ class RapportController extends Controller
             ->when($request->filled('session'), fn ($q) => $q->where('CodeSession', $request->input('session')));
         ContexteScolaire::appliquer($requete, 'AnneeCour');
 
-        $absences = $requete->get();
+        $absences = $requete->get()->groupBy('Matricule');
 
-        // Les noms viennent de T_ETUDIANT : T_ABSENCEELEVE ne porte que le matricule.
-        $eleves = DB::connection('economat')->table('T_ETUDIANT')
-            ->whereIn('Matricule', $absences->pluck('Matricule')->filter()->unique()->all())
-            ->get(['Matricule', 'Nom', 'Prenom'])
-            ->keyBy('Matricule');
+        // On part de la CLASSE, pas des absences. Auparavant le rapport se construisait
+        // en groupant les absences : un élève qui n'en avait aucune n'apparaissait donc
+        // jamais — or c'est justement l'information rassurante qu'on vient chercher —, et
+        // une classe sans aucune absence affichait « Aucun élève dans cette classe », ce
+        // qui est faux.
+        $eleves = ContexteScolaire::appliquer(
+            DB::connection('economat')->table('T_ETUDIANT')->where('CodeClasse', $classe->code),
+            'AnneeAcad'
+        )->orderBy('Nom')->orderBy('Prenom')->get(['Matricule', 'Nom', 'Prenom']);
 
-        $lignes = $absences->groupBy('Matricule')
-            ->map(function ($lot, $matricule) use ($eleves) {
-                $eleve = $eleves[$matricule] ?? null;
+        $joursOuvres = ContexteScolaire::joursOuvresEcoules();
 
-                return [
-                    'matricule' => $matricule,
-                    'nom' => $eleve->Nom ?? null,
-                    'prenom' => $eleve->Prenom ?? null,
-                    'total_absences' => $lot->count(),
-                    'absences_non_justifiees' => $lot->where('Justifier', false)->count(),
-                ];
-            })
+        $lignes = $eleves->map(function ($e) use ($absences, $joursOuvres) {
+            $lot = $absences[$e->Matricule] ?? collect();
+            $total = $lot->count();
+
+            return [
+                'matricule' => $e->Matricule,
+                'nom' => $e->Nom,
+                'prenom' => $e->Prenom,
+                'total_absences' => $total,
+                'absences_non_justifiees' => $lot->where('Justifier', false)->count(),
+                // Une absence est comptée pour une journée. C'est la même convention que
+                // la jauge du tableau de bord ; `jours_ouvres` est renvoyé à côté pour que
+                // le pourcentage reste vérifiable.
+                'taux_presence' => $joursOuvres
+                    ? round(max(0, 100 - ($total / $joursOuvres) * 100), 1)
+                    : null,
+            ];
+        })
             ->sortByDesc('total_absences')
             ->values();
 
         return [
             'classe' => $classe->nom,
             'annee' => ContexteScolaire::annee(),
+            'jours_ouvres' => $joursOuvres,
+            'effectif' => $eleves->count(),
+            'total_absences' => $lignes->sum('total_absences'),
             'eleves' => $lignes,
         ];
     }

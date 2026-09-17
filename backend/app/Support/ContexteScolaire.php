@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AnneeScolaire;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Session;
 use Throwable;
 
@@ -70,6 +71,51 @@ class ContexteScolaire
             [$trouvee->libelle, $trouvee->code_annee],
             fn ($v) => (string) $v !== ''
         )));
+    }
+
+    /**
+     * Nombre de jours ouvrés écoulés depuis le début de l'année de travail, arrêté à
+     * aujourd'hui (ou à la fin de l'année si elle est passée). `null` si l'année n'a pas
+     * de date de début, ou n'a pas encore commencé.
+     *
+     * C'est le dénominateur de tout taux d'assiduité : sans lui, on compare un cumul
+     * d'absences à un effectif, ce qui n'a pas de sens — l'erreur que faisait la première
+     * version du tableau de bord. Les vacances ne sont pas déduites : elles gonflent
+     * légèrement le dénominateur, donc le taux. Les écrans affichent le nombre de jours
+     * à côté du pourcentage pour que la lecture reste vérifiable.
+     */
+    public static function joursOuvresEcoules(): ?int
+    {
+        try {
+            $variantes = self::variantes();
+            $annee = AnneeScolaire::all()->first(
+                fn ($a) => in_array($a->libelle, $variantes, true) || in_array($a->code_annee, $variantes, true)
+            );
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        if (! $annee?->date_debut) {
+            return null;
+        }
+
+        $debut = CarbonImmutable::parse($annee->date_debut);
+        $fin = $annee->date_fin ? CarbonImmutable::parse($annee->date_fin) : null;
+        $aujourdhui = CarbonImmutable::now();
+        $terme = ($fin !== null && $fin->lessThan($aujourdhui)) ? $fin : $aujourdhui;
+
+        if ($terme->lessThan($debut)) {
+            return null; // Année pas encore commencée.
+        }
+
+        $jours = 0;
+        for ($jour = $debut; $jour->lessThanOrEqualTo($terme); $jour = $jour->addDay()) {
+            if (! $jour->isWeekend()) {
+                $jours++;
+            }
+        }
+
+        return $jours ?: null;
     }
 
     /**

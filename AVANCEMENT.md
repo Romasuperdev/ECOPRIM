@@ -3248,3 +3248,33 @@ vérifier qu'ils échouent bien : ce sont de vrais tests de non-régression, pas
 passeraient de toute façon. Le quatrième garde le sens inverse — un Super Admin doit
 continuer à pouvoir en créer un autre —, pour qu'un futur durcissement ne ferme pas la porte
 à tout le monde.
+
+### La page Assiduité montrait l'inverse de ce qu'on vient y chercher
+
+Question posée : « à quoi sert cette page ? ». Réponse : c'est la synthèse par classe des
+absences, contrepartie de la page Absences où l'on saisit au jour le jour. Mais la lecture
+du code a montré trois défauts, dont un qui inversait le sens de l'écran.
+
+1. **Le rapport se construisait à partir des absences, pas de la classe.** Un élève sans
+   aucune absence n'apparaissait donc jamais — alors que « zéro absence » est précisément
+   ce qu'un directeur vient vérifier. Et une classe entièrement assidue affichait
+   « Aucun élève dans cette classe » : un message faux, qui laissait croire à un problème
+   de données. Le rapport part maintenant de l'effectif de la classe.
+2. **La colonne « Retards » ne pouvait pas se remplir.** L'écran affichait `total_retards`,
+   que le serveur n'envoie pas — et `T_ABSENCEELEVE` n'a aucune notion de retard
+   (matricule, classe, date, heure, cause, justifié). Colonne retirée, avec la raison
+   écrite en tête de fichier pour qu'on ne la rajoute pas par réflexe.
+3. Chaque ligne était identifiée par `eleve_id`, que le serveur ne renvoie pas — l'identité
+   est le matricule. Sans effet visible, mais c'est ainsi qu'un tableau se met mal à jour.
+
+Ajouté : un **taux de présence par élève**, rapporté aux jours ouvrés écoulés — même
+convention que la jauge du tableau de bord —, et trois compteurs en tête (effectif,
+absences cumulées, jours ouvrés). La note de bas de tableau dit ce que le taux recouvre
+exactement, vacances non déduites comprises : un pourcentage qu'on ne peut pas vérifier ne
+vaut rien.
+
+Le calcul des jours ouvrés, qui vivait dans le tableau de bord, est remonté dans
+`ContexteScolaire::joursOuvresEcoules()` : deux copies auraient fini par diverger.
+
+1 test fige le comportement principal — un élève sans absence figure au rapport, avec 100 %,
+et les plus absents restent en tête.

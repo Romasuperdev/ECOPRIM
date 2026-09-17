@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -138,31 +136,10 @@ class DashboardController extends Controller
             return null;
         }
 
-        $annee = AnneeScolaire::all()->first(
-            fn ($a) => in_array($a->libelle, ContexteScolaire::variantes(), true)
-                || in_array($a->code_annee, ContexteScolaire::variantes(), true)
-        );
-
-        $debut = $annee?->date_debut ? CarbonImmutable::parse($annee->date_debut) : null;
-        $fin = $annee?->date_fin ? CarbonImmutable::parse($annee->date_fin) : null;
-        if ($debut === null) {
-            return null;
-        }
-
-        $aujourdhui = CarbonImmutable::now();
-        $terme = ($fin !== null && $fin->lessThan($aujourdhui)) ? $fin : $aujourdhui;
-        if ($terme->lessThan($debut)) {
-            return null; // Année pas encore commencée : aucun taux à afficher.
-        }
-
-        $joursOuvres = 0;
-        for ($jour = $debut; $jour->lessThanOrEqualTo($terme); $jour = $jour->addDay()) {
-            if (! $jour->isWeekend()) {
-                $joursOuvres++;
-            }
-        }
-
-        if ($joursOuvres === 0) {
+        // Le calcul des jours ouvrés vit dans ContexteScolaire : la page Assiduité
+        // s'en sert aussi, et deux copies auraient fini par diverger.
+        $joursOuvres = ContexteScolaire::joursOuvresEcoules();
+        if ($joursOuvres === null) {
             return null;
         }
 

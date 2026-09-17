@@ -205,6 +205,36 @@ class PorteeAnneeTest extends TestCase
         $this->assertCount(2, $parCode->json('data'));
     }
 
+    /**
+     * L'assiduité part de la CLASSE, pas des absences.
+     *
+     * Elle groupait auparavant les absences : un élève qui n'en avait aucune était donc
+     * absent du rapport — alors que « zéro absence » est précisément ce qu'on vient y
+     * vérifier — et une classe sans aucune absence affichait « Aucun élève dans cette
+     * classe », ce qui était faux.
+     */
+    public function test_l_assiduite_liste_toute_la_classe_y_compris_les_eleves_sans_absence(): void
+    {
+        // Un second élève dans CB, parfaitement assidu.
+        DB::connection('economat')->table('T_ETUDIANT')->insert([
+            'Code' => 3, 'Matricule' => 'B2', 'Nom' => 'Assidu', 'Prenom' => 'Toujours',
+            'AnneeAcad' => self::B, 'CodeClasse' => 'CB',
+        ]);
+
+        $r = $this->getJson('/api/v1/classes/CB/assiduite')->assertOk();
+
+        $this->assertSame(2, $r->json('effectif'));
+        $matricules = collect($r->json('eleves'))->pluck('matricule')->all();
+        $this->assertContains('B2', $matricules, 'Un élève sans absence doit figurer au rapport.');
+
+        $sansAbsence = collect($r->json('eleves'))->firstWhere('matricule', 'B2');
+        $this->assertSame(0, $sansAbsence['total_absences']);
+        $this->assertSame(100.0, (float) $sansAbsence['taux_presence']);
+
+        // Et les plus absents restent en tête.
+        $this->assertSame('B1', $r->json('eleves.0.matricule'));
+    }
+
     public function test_le_choix_de_l_annee_persiste_entre_les_appels(): void
     {
         $this->choisir(self::A);
