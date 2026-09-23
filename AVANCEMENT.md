@@ -3362,3 +3362,38 @@ Vérifié au rendu : grand écran en clair et en sombre, et largeur mobile.
 **Reste à faire, non demandé** : le composant `Logo.jsx` — utilisé dans le menu latéral et
 dans l'en-tête des espaces Enseignant et Parent — dessine encore un « N » qui n'est pas
 celui de la charte. À reprendre pour que l'identité soit la même partout.
+
+## Évaluations : quatre types officiels, et plusieurs matières à la fois
+
+Premier des quatre chantiers demandés.
+
+**Les types remplacent l'ancienne liste** : Composition, Composition de passage, Examen
+blanc, Examen final — à la place de Devoir, Devoir surveillé, Interrogation écrite,
+Interrogation orale, Composition.
+
+En ouvrant le contrôleur, un défaut est apparu : **`type` n'était pas validé du tout**. La
+liste existait côté PHP et alimentait bien la liste déroulante, mais la règle de validation
+était `['required', 'string', 'max:50']` — n'importe quelle chaîne passait, et un appel
+direct à l'API pouvait enregistrer n'importe quoi. Elle est désormais appliquée.
+
+Conséquence vérifiée avant de retirer quoi que ce soit : **une seule évaluation existe en
+base**, de type « Devoir surveillé », qui disparaît de la liste. Sa valeur n'est pas
+réécrite — rien n'est touché en base —, l'écran l'affiche suivie de « (type retiré — à
+remplacer) » pour que la ligne reste lisible, et sa prochaine modification exigera un type
+valide. C'est le comportement juste : ce type n'existe plus.
+
+**Plusieurs matières à la fois** : une épreuve cochée sur trois matières donne **trois
+évaluations, une par matière** — et non une évaluation à matières multiples. Le choix n'est
+pas anodin : une note se saisit matière par matière, un bulletin se compose matière par
+matière. Une ligne par matière laisse donc tout l'aval intact (notes, moyennes, bulletins),
+là où une table de liaison aurait obligé à les reprendre. La modification, elle, reste sur
+une seule matière : on modifie une ligne, pas le lot qui l'a produite.
+
+Un composant partagé `SelecteurMultiple` a été créé pour l'occasion — il servira aussi aux
+matières de l'enseignant. Un `<select multiple>` natif a été écarté : il oblige à garder
+Ctrl enfoncé, ce que personne ne devine, et n'affiche plus rien une fois refermé. Ici
+chaque ligne se coche, et les matières retenues restent visibles sous le champ, retirables
+d'un clic.
+
+3 tests ajoutés (une évaluation par matière, dédoublonnage de la liste, type hors liste
+refusé), 7 repris. Suite complète : 380 passent.

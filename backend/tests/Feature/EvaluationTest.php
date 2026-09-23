@@ -61,10 +61,20 @@ class EvaluationTest extends TestCase
     private function evaluation(array $extra = []): array
     {
         return array_merge([
-            'titre' => 'Devoir de Mathématiques N°1', 'classe' => 'CM2A', 'matiere' => 'MAT',
-            'enseignant' => 7, 'type' => 'Devoir surveillé', 'date' => '2026-10-15',
+            'titre' => 'Devoir de Mathématiques N°1', 'classe' => 'CM2A', 'matieres' => ['MAT'],
+            'enseignant' => 7, 'type' => 'Composition', 'date' => '2026-10-15',
             'heure_debut' => '08:00', 'heure_fin' => '09:00', 'coefficient' => 2, 'note_maximale' => 20,
         ], $extra);
+    }
+
+    /** La modification ne porte que sur une matière : on modifie une ligne, pas le lot. */
+    private function modification(array $extra = []): array
+    {
+        $d = $this->evaluation($extra);
+        $d['matiere'] = $d['matieres'][0] ?? 'MAT';
+        unset($d['matieres']);
+
+        return $d;
     }
 
     public function test_les_referentiels_exposent_classes_matieres_enseignants_et_types(): void
@@ -74,22 +84,26 @@ class EvaluationTest extends TestCase
         $this->assertSame('CM2 A', $r->json('classes.0.libelle'));
         $this->assertSame('Mathématiques', $r->json('matieres.0.libelle'));
         $this->assertSame('Jean Kouassi', $r->json('enseignants.0.nom'));
-        $this->assertContains('Devoir surveillé', $r->json('types'));
+        $this->assertSame(
+            ['Composition', 'Composition de passage', 'Examen blanc', 'Examen final'],
+            $r->json('types')
+        );
     }
 
     public function test_planifier_une_evaluation(): void
     {
         $r = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertCreated();
 
-        $this->assertSame('Devoir de Mathématiques N°1', $r->json('titre'));
-        $this->assertSame('CM2 A', $r->json('classe_libelle'));
-        $this->assertSame('Mathématiques', $r->json('matiere_libelle'));
-        $this->assertSame('Jean Kouassi', $r->json('enseignant_nom'));
-        $this->assertSame('2026-10-15', $r->json('date'));
-        $this->assertSame('08:00', $r->json('heure_debut'));
-        $this->assertEquals(2, $r->json('coefficient'));
-        $this->assertEquals(20, $r->json('note_maximale'));
-        $this->assertSame(self::ANNEE, $r->json('annee'));
+        $this->assertCount(1, $r->json());
+        $this->assertSame('Devoir de Mathématiques N°1', $r->json('0.titre'));
+        $this->assertSame('CM2 A', $r->json('0.classe_libelle'));
+        $this->assertSame('Mathématiques', $r->json('0.matiere_libelle'));
+        $this->assertSame('Jean Kouassi', $r->json('0.enseignant_nom'));
+        $this->assertSame('2026-10-15', $r->json('0.date'));
+        $this->assertSame('08:00', $r->json('0.heure_debut'));
+        $this->assertEquals(2, $r->json('0.coefficient'));
+        $this->assertEquals(20, $r->json('0.note_maximale'));
+        $this->assertSame(self::ANNEE, $r->json('0.annee'));
 
         $this->assertDatabaseHas('evaluations', ['titre' => 'Devoir de Mathématiques N°1', 'classe_code' => 'CM2A'], 'ecoprim');
     }
@@ -98,7 +112,7 @@ class EvaluationTest extends TestCase
     {
         $this->postJson('/api/v1/evaluations-planifiees', [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['titre', 'classe', 'matiere', 'type', 'date', 'coefficient', 'note_maximale']);
+            ->assertJsonValidationErrors(['titre', 'classe', 'matieres', 'type', 'date', 'coefficient', 'note_maximale']);
     }
 
     public function test_une_classe_ou_une_matiere_inconnue_est_refusee(): void
@@ -106,8 +120,8 @@ class EvaluationTest extends TestCase
         $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['classe' => 'FANTOME']))
             ->assertStatus(422)->assertJsonValidationErrors('classe');
 
-        $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['matiere' => 'FANTOME']))
-            ->assertStatus(422)->assertJsonValidationErrors('matiere');
+        $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['matieres' => ['FANTOME']]))
+            ->assertStatus(422)->assertJsonValidationErrors('matieres.0');
     }
 
     public function test_l_enseignant_est_facultatif(): void
@@ -115,8 +129,8 @@ class EvaluationTest extends TestCase
         $r = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['enseignant' => null]))
             ->assertCreated();
 
-        $this->assertNull($r->json('enseignant'));
-        $this->assertNull($r->json('enseignant_nom'));
+        $this->assertNull($r->json('0.enseignant'));
+        $this->assertNull($r->json('0.enseignant_nom'));
     }
 
     public function test_lister_et_filtrer_par_classe(): void
@@ -131,24 +145,68 @@ class EvaluationTest extends TestCase
 
     public function test_modifier_puis_supprimer_une_evaluation(): void
     {
-        $id = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertCreated()->json('id');
+        $id = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertCreated()->json('0.id');
 
-        $this->putJson("/api/v1/evaluations-planifiees/{$id}", $this->evaluation(['titre' => 'Devoir corrigé']))
+        $this->putJson("/api/v1/evaluations-planifiees/{$id}", $this->modification(['titre' => 'Devoir corrigé']))
             ->assertOk()->assertJsonPath('titre', 'Devoir corrigé');
 
         $this->deleteJson("/api/v1/evaluations-planifiees/{$id}")->assertNoContent();
         $this->assertDatabaseCount('evaluations', 0, 'ecoprim');
     }
 
+    /**
+     * Plusieurs matières donnent plusieurs évaluations, une par matière — et non une
+     * évaluation à matières multiples : une note se saisit matière par matière, un
+     * bulletin se compose matière par matière.
+     */
+    public function test_plusieurs_matieres_donnent_une_evaluation_par_matiere(): void
+    {
+        DB::connection('economat')->table('T_MATIERE')->insert([
+            ['Code' => 2, 'CodeMatiere' => 'FR', 'LibelleMatiere' => 'Français'],
+        ]);
+
+        $r = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation([
+            'matieres' => ['MAT', 'FR'],
+        ]))->assertCreated();
+
+        $this->assertCount(2, $r->json());
+        $this->assertSame(['MAT', 'FR'], collect($r->json())->pluck('matiere')->all());
+        // Même titre, même date : une seule épreuve, déclinée par matière.
+        $this->assertSame(
+            ['Devoir de Mathématiques N°1', 'Devoir de Mathématiques N°1'],
+            collect($r->json())->pluck('titre')->all()
+        );
+        $this->assertDatabaseCount('evaluations', 2, 'ecoprim');
+
+        // Un doublon dans la liste ne crée pas deux fois la même ligne.
+        $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation([
+            'matieres' => ['FR', 'FR'],
+        ]))->assertCreated();
+        $this->assertDatabaseCount('evaluations', 3, 'ecoprim');
+    }
+
+    /**
+     * Le type n'était pas validé : n'importe quelle chaîne passait, alors qu'une liste
+     * existait côté PHP. Elle est désormais appliquée.
+     */
+    public function test_un_type_hors_liste_est_refuse(): void
+    {
+        $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['type' => 'Devoir surveillé']))
+            ->assertStatus(422)->assertJsonValidationErrors('type');
+
+        $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation(['type' => 'Examen final']))
+            ->assertCreated();
+    }
+
     public function test_une_annee_cloturee_verrouille_creation_modification_et_suppression(): void
     {
-        $id = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertCreated()->json('id');
+        $id = $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertCreated()->json('0.id');
 
         $this->postJson('/api/v1/contexte/annee', ['annee' => '2024-2025'])->assertOk();
         $this->postJson('/api/v1/evaluations-planifiees', $this->evaluation())->assertStatus(423);
 
         // Le verrou porte sur l'année de l'évaluation elle-même (toujours 2025-2026, non
         // clôturée), pas sur l'année de travail actuellement affichée : elle reste modifiable.
-        $this->putJson("/api/v1/evaluations-planifiees/{$id}", $this->evaluation(['titre' => 'X']))->assertOk();
+        $this->putJson("/api/v1/evaluations-planifiees/{$id}", $this->modification(['titre' => 'X']))->assertOk();
     }
 }

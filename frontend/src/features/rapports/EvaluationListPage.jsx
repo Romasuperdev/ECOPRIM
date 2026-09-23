@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, Plus, Trash2 } from 'lucide-react'
 import Select from '../../components/ui/Select'
+import SelecteurMultiple from '../../components/ui/SelecteurMultiple'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
@@ -23,7 +24,7 @@ const TYPE_LABELS = {
 }
 
 const VIDE = {
-  titre: '', classe: '', matiere: '', enseignant: '', type: '',
+  titre: '', classe: '', matieres: [], enseignant: '', type: '',
   date: '', heure_debut: '', heure_fin: '', coefficient: '1', note_maximale: '20',
 }
 
@@ -155,7 +156,8 @@ function SectionPlanification() {
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}
           enCours={enregistrer.isPending}
-          valideDesactive={!form.titre || !form.classe || !form.matiere || !form.type || !form.date}
+          valideDesactive={!form.titre || !form.classe || !form.type || !form.date
+            || (form.id ? !form.matiere : !form.matieres?.length)}
         >
           <Input label="Titre *" placeholder="Devoir de Mathématiques N°1" value={form.titre}
                  error={erreurs.titre?.[0]} onChange={(e) => champ('titre', e.target.value)} />
@@ -165,11 +167,21 @@ function SectionPlanification() {
               <option value="">— Choisir —</option>
               {ref?.classes?.map((c) => <option key={c.code} value={c.code}>{c.libelle}</option>)}
             </Select>
-            <Select label="Matière *" value={form.matiere} error={erreurs.matiere?.[0]}
-                    onChange={(e) => champ('matiere', e.target.value)}>
-              <option value="">— Choisir —</option>
-              {ref?.matieres?.map((m) => <option key={m.code} value={m.code}>{m.libelle}</option>)}
-            </Select>
+            {form.id ? (
+              <Select label="Matière *" value={form.matiere} error={erreurs.matiere?.[0]}
+                      onChange={(e) => champ('matiere', e.target.value)}>
+                <option value="">— Choisir —</option>
+                {ref?.matieres?.map((m) => <option key={m.code} value={m.code}>{m.libelle}</option>)}
+              </Select>
+            ) : (
+              <SelecteurMultiple
+                label="Matières *"
+                options={(ref?.matieres ?? []).map((m) => ({ valeur: m.code, libelle: m.libelle }))}
+                selection={form.matieres}
+                onChange={(v) => champ('matieres', v)}
+                error={erreurs.matieres?.[0] ?? erreurs['matieres.0']?.[0]}
+              />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Select label="Enseignant" value={form.enseignant} error={erreurs.enseignant?.[0]}
@@ -181,6 +193,9 @@ function SectionPlanification() {
                     onChange={(e) => champ('type', e.target.value)}>
               <option value="">— Choisir —</option>
               {ref?.types?.map((t) => <option key={t} value={t}>{t}</option>)}
+              {form.type && !(ref?.types ?? []).includes(form.type) && (
+                <option value={form.type}>{form.type} (type retiré — à remplacer)</option>
+              )}
             </Select>
           </div>
           <Input label="Date *" type="date" value={form.date} error={erreurs.date?.[0]}

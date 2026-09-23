@@ -26,7 +26,17 @@ use Throwable;
  */
 class EvaluationController extends Controller
 {
-    private const TYPES = ['Devoir', 'Devoir surveillé', 'Interrogation écrite', 'Interrogation orale', 'Composition'];
+    /**
+     * Les quatre épreuves officielles de l'établissement. Elles remplacent l'ancienne
+     * liste (Devoir, Devoir surveillé, Interrogations), qui n'était de toute façon pas
+     * appliquée : `type` était validé comme une chaîne libre, n'importe quelle valeur
+     * passait. Elle l'est désormais.
+     *
+     * Les évaluations déjà enregistrées sous un ancien type gardent leur valeur en base —
+     * rien n'est réécrit — mais devront recevoir un type valide à la prochaine
+     * modification. L'écran affiche l'ancien libellé pour que la ligne reste lisible.
+     */
+    private const TYPES = ['Composition', 'Composition de passage', 'Examen blanc', 'Examen final'];
 
     /** Classes, matières, enseignants et types proposés, classes bornées à l'année de travail. */
     public function referentiels()
@@ -130,7 +140,7 @@ class EvaluationController extends Controller
             'classe' => ['required', 'string', 'max:50', Rule::exists('economat.T_CLASSE', 'CodeClasse')],
             'matiere' => ['required', 'string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')],
             'enseignant' => ['nullable', 'integer', Rule::exists('economat.T_PROFESSEUR', 'Code')],
-            'type' => ['required', 'string', 'max:50'],
+            'type' => ['required', 'string', Rule::in(self::TYPES)],
             'date' => ['required', 'date'],
             'heure_debut' => ['nullable', 'string', 'max:10'],
             'heure_fin' => ['nullable', 'string', 'max:10'],
@@ -139,20 +149,43 @@ class EvaluationController extends Controller
         ];
     }
 
+    /**
+     * Planifie une épreuve sur UNE OU PLUSIEURS matières.
+     *
+     * Plusieurs matières donnent plusieurs évaluations, une par matière, et non une
+     * évaluation à matières multiples : une note se saisit toujours matière par matière,
+     * un bulletin se compose matière par matière. Une ligne par matière garde donc tout
+     * l'aval intact — notes, moyennes, bulletins — là où une table de liaison aurait
+     * obligé à les reprendre.
+     */
     public function store(Request $request)
     {
-        $d = $request->validate($this->regles());
+        $d = $request->validate($this->reglesCreation());
         $annee = ContexteScolaire::annee();
         AnneeScolaireGuard::assertModifiable($annee, "La planification d'une évaluation");
 
-        $evaluation = Evaluation::create([
-            'titre' => $d['titre'], 'classe_code' => $d['classe'], 'matiere_code' => $d['matiere'],
+        $creees = collect($d['matieres'])->unique()->values()->map(fn ($matiere) => Evaluation::create([
+            'titre' => $d['titre'], 'classe_code' => $d['classe'], 'matiere_code' => $matiere,
             'enseignant_code' => $d['enseignant'] ?? null, 'type' => $d['type'], 'date' => $d['date'],
             'heure_debut' => $d['heure_debut'] ?? null, 'heure_fin' => $d['heure_fin'] ?? null,
             'coefficient' => $d['coefficient'], 'note_maximale' => $d['note_maximale'], 'annee' => $annee,
-        ]);
+        ]));
 
-        return response()->json($this->ligne($evaluation), 201);
+        return response()->json($creees->map(fn ($e) => $this->ligne($e))->all(), 201);
+    }
+
+    /**
+     * À la création, la matière unique cède la place à une liste. La modification, elle,
+     * reste sur une seule matière : on modifie une ligne, pas le lot qui l'a produite.
+     */
+    private function reglesCreation(): array
+    {
+        $regles = $this->regles();
+        unset($regles['matiere']);
+        $regles['matieres'] = ['required', 'array', 'min:1'];
+        $regles['matieres.*'] = ['string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')];
+
+        return $regles;
     }
 
     public function update(Request $request, Evaluation $evaluation)
