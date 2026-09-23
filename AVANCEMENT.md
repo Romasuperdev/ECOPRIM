@@ -3325,3 +3325,40 @@ l'aveugle :
 
 Effet de bord bienvenu : l'application employait `text-slate-400` (130 fois) **et**
 `text-muted` (152 fois) pour dire la même chose. Il n'en reste qu'un.
+
+### Le vrai logo NEXORA sur l'écran de connexion
+
+Le bloc `🎓 NEXORA / ÉCOLE PRIMAIRE` — un émoji et du texte — est remplacé par le logo
+officiel, aux deux endroits où il apparaît.
+
+Le kit de marque n'était pas dans le dépôt ; il a été retrouvé dans les téléchargements
+(`Logo professionnel Nexora/exports/`), en PNG transparents haute définition. Deux
+déclinaisons retenues, parce que le même logo doit tenir sur deux fonds opposés :
+
+- **Panneau coulissant** (bleu nuit, et dégradé bleu-vert sur la face Console) : la
+  **version monochrome blanche de la charte**. Le logo couleur y aurait été illisible, son
+  « NEXORA » étant bleu nuit sur bleu nuit. C'est la déclinaison officielle pour fonds
+  sombres — mieux qu'une inversion fabriquée à la main.
+- **En-tête mobile** (fond clair) : le verrouillage empilé en couleurs.
+
+Deux ajustements imposés par le rendu réel, pas par le code :
+
+1. **Poids.** Les fichiers d'origine pèsent de 0,3 à 7,2 Mo — inacceptable sur un écran de
+   connexion. Redimensionnés à la taille utile (1200 px et 760 px de large, soit trois fois
+   la taille d'affichage, pour les écrans à haute densité) : **33 et 34 Ko**, contre 1,4 Mo
+   pour les deux originaux. Fait au navigateur, sans ajouter de dépendance d'images au
+   projet.
+2. **La signature.** Le verrouillage empilé porte « UNE PLATEFORME. TOUS VOS MÉTIERS. ».
+   À 200 px de large sur mobile, cette ligne devenait une bavure grise illisible, et faisait
+   doublon avec « École Primaire » juste en dessous. La bande de signature a donc été
+   recadrée pour la version mobile. Le kit fournit d'ailleurs lui-même des déclinaisons sans
+   signature (les monochromes) : ce n'est pas un écart à la charte.
+
+« École Primaire » reste affiché sous le logo : le logo est celui du groupe, cette ligne dit
+de quel produit il s'agit.
+
+Vérifié au rendu : grand écran en clair et en sombre, et largeur mobile.
+
+**Reste à faire, non demandé** : le composant `Logo.jsx` — utilisé dans le menu latéral et
+dans l'en-tête des espaces Enseignant et Parent — dessine encore un « N » qui n'est pas
+celui de la charte. À reprendre pour que l'identité soit la même partout.

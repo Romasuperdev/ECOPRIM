@@ -4,6 +4,8 @@ import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School, Build
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import BasculeTheme from '../../components/ui/BasculeTheme'
+import logoNexora from '../../assets/nexora.png'
+import logoNexoraBlanc from '../../assets/nexora-blanc.png'
 import { useAuthStore } from '../../store/authStore'
 import { fetchRattachementDuCompte, login, logout } from './authApi'
 import { messageErreurConnexion } from './messageErreurConnexion'
@@ -217,10 +219,16 @@ export default function LoginPage() {
           }}
         >
           <div className="flex max-w-[300px] flex-col items-center text-center">
-            <span className="text-5xl">🎓</span>
-            <div className="mt-2 text-xl font-extrabold tracking-tight">NEXORA</div>
-            <div className="text-[11px] font-medium uppercase tracking-wider opacity-70">École Primaire</div>
-            <h2 className="mt-4 text-3xl font-extrabold">Bienvenue</h2>
+<img
+              src={logoNexoraBlanc}
+              alt="NEXORA"
+              className="w-full max-w-[280px]"
+            />
+            {/* Le logo est celui du groupe ; cette ligne dit de quel produit il s'agit. */}
+            <div className="mt-2.5 text-[11px] font-bold uppercase tracking-[0.25em] opacity-80">
+              École Primaire
+            </div>
+            <h2 className="mt-5 text-3xl font-extrabold">Bienvenue</h2>
             {consoleActive ? (
               <>
                 <p className="mt-3 text-base text-white/80">Vous gérez un établissement ? Connectez-vous à l'application.</p>
@@ -249,9 +257,10 @@ export default function LoginPage() {
       {/* ---------- Mobile : onglets + formulaire ---------- */}
       <div className="w-full max-w-md md:hidden">
         <div className="mb-5 flex flex-col items-center">
-          <span className="text-5xl">🎓</span>
-          <div className="mt-1 text-xl font-extrabold text-heading">NEXORA</div>
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">École Primaire</div>
+<img src={logoNexora} alt="NEXORA" className="w-[200px]" />
+          <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.25em] text-muted">
+            École Primaire
+          </div>
         </div>
         <div className="card rounded-2xl p-6">
           <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl p-1" style={{ background: 'var(--surface-2)' }}>
