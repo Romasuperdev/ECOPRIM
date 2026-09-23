@@ -37,9 +37,9 @@ export default function HistoriquePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && lignes?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun envoi enregistré.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun envoi enregistré.</td></tr>
             )}
             {lignes?.map((l) => (
               <tr key={l.id} className="hover:bg-slate-50">

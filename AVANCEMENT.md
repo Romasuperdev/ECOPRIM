@@ -3301,3 +3301,27 @@ Le contraste prime donc sur la fidélité exacte — vérifié en rendant l'icô
 
 Le bleu nuit `#1E3A8A` a été retenu plutôt que le bleu vif : c'est celui des aplats
 d'identité (menu, bandeaux d'accueil, panneau de connexion), donc celui qu'on reconnaît.
+
+### Le dernier texte illisible de l'application
+
+Signalé lors de la passe de contraste du tableau de bord, puis laissé en attente parce
+qu'il touchait une cinquantaine d'écrans : `text-slate-400` servait de gris secondaire
+partout ailleurs — « Chargement… », états vides, libellés de fiche, en-têtes de listes.
+
+Mesuré : **2,56:1** sur blanc. Le seuil de lisibilité (WCAG AA, texte normal) est de
+4,5:1. C'était donc le seul endroit de l'application où du texte restait franchement
+illisible, et il y en avait 130 occurrences dans 35 fichiers.
+
+Remplacé par `text-muted`, le rôle prévu pour cela : **7,58:1**, soit au-delà du niveau
+AAA. Le mode sombre y gagne aussi (5,71 → 7,11:1), l'échelle neutre s'y inversant.
+
+Deux vérifications avant le balayage, parce qu'un remplacement en masse ne se fait pas à
+l'aveugle :
+
+- **aucune occurrence sur fond sombre** (menu, bandeaux d'identité, panneau de connexion),
+  où `text-muted` aurait été un contresens ;
+- **aucune variante** (`hover:`, `group-hover:`…), qui n'auraient pas survécu au passage
+  d'un utilitaire Tailwind à une classe CSS simple.
+
+Effet de bord bienvenu : l'application employait `text-slate-400` (130 fois) **et**
+`text-muted` (152 fois) pour dire la même chose. Il n'en reste qu'un.

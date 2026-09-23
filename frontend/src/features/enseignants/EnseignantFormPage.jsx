@@ -107,7 +107,7 @@ export default function EnseignantFormPage() {
           <h1 className="text-2xl font-bold text-slate-800">
             {enEdition ? `${form.nom} ${form.prenom}` : 'Nouvel enseignant'}
           </h1>
-          <p className="text-xs text-slate-400">Fiche alimentée par ECONOMAT.T_PROFESSEUR.</p>
+          <p className="text-xs text-muted">Fiche alimentée par ECONOMAT.T_PROFESSEUR.</p>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ export default function EnseignantFormPage() {
                      error={err('date_embauche')} placeholder="jj/mm/aaaa" />
               <Input label="Année scolaire" value={form.annee_code} onChange={(e) => champ('annee_code', e.target.value)} error={err('annee_code')} />
             </div>
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-muted">
               Le salaire reste géré dans ECONOMAT et n’est jamais modifié depuis NEXORA.
             </p>
           </div>
@@ -213,7 +213,7 @@ export default function EnseignantFormPage() {
           {enEdition && (
             <div className={visible(4) ? '' : 'hidden'}>
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Départ</p>
-              <p className="mb-3 text-xs text-slate-400">
+              <p className="mb-3 text-xs text-muted">
                 Un enseignant n’est jamais supprimé : son départ se renseigne ici.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -241,7 +241,7 @@ export default function EnseignantFormPage() {
             )}
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Étape {etape + 1} sur {etapes.length}</span>
+              <span className="text-xs text-muted">Étape {etape + 1} sur {etapes.length}</span>
               {!derniere ? (
                 <Button type="button" onClick={suivant}>Suivant</Button>
               ) : (

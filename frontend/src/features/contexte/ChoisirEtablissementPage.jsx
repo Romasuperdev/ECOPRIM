@@ -17,7 +17,7 @@ export default function ChoisirEtablissementPage() {
   })
   const quitter = useMutation({ mutationFn: quitterEtablissement, onSuccess: invalider })
 
-  if (isLoading) return <p className="text-slate-400">Chargement…</p>
+  if (isLoading) return <p className="text-muted">Chargement…</p>
 
   const actuel = data?.etablissement_code
   const dispos = data?.disponibles ?? []
@@ -50,7 +50,7 @@ export default function ChoisirEtablissementPage() {
         <div className="rounded-xl border border-slate-200 bg-card py-16 text-center">
           <Building2 size={40} className="mx-auto mb-3 text-slate-300" />
           <p className="text-sm font-medium text-slate-500">Aucun établissement disponible</p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-muted">
             Vous n’êtes affecté à aucun établissement actif. Contactez un administrateur.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function ChoisirEtablissementPage() {
                   <Building2 size={18} />
                 </div>
                 <p className="font-semibold text-slate-800">{e.intitule}</p>
-                <p className="mb-3 font-mono text-xs text-slate-400">{e.code}</p>
+                <p className="mb-3 font-mono text-xs text-muted">{e.code}</p>
                 {e.adresse && (
                   <p className="flex items-center gap-1.5 text-xs text-slate-500">
                     <MapPin size={12} /> {e.adresse}{e.ville ? `, ${e.ville}` : ''}

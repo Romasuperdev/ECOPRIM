@@ -39,7 +39,7 @@ export default function SelecteurEleves({ selection, onChange }) {
               key={e.matricule} type="button" onClick={() => ajouter(e)}
               className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
             >
-              {e.prenom} {e.nom} <span className="text-slate-400">({e.matricule})</span>
+              {e.prenom} {e.nom} <span className="text-muted">({e.matricule})</span>
             </button>
           ))}
         </div>
@@ -49,7 +49,7 @@ export default function SelecteurEleves({ selection, onChange }) {
           {selection.map((e) => (
             <span key={e.matricule} className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
               {`${e.prenom ?? ''} ${e.nom ?? ''}`.trim() || e.matricule}
-              <button type="button" onClick={() => retirer(e.matricule)} className="text-slate-400 hover:text-red-500">
+              <button type="button" onClick={() => retirer(e.matricule)} className="text-muted hover:text-red-500">
                 <X size={12} />
               </button>
             </span>

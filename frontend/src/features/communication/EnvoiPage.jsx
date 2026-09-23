@@ -91,7 +91,7 @@ export default function EnvoiPage() {
           onChange={(e) => setBrut(e.target.value)}
           placeholder={estSms ? '0700000000, 0501020304' : 'parent1@mail.com, parent2@mail.com'}
         />
-        <p className="-mt-3 text-xs text-slate-400">
+        <p className="-mt-3 text-xs text-muted">
           Séparez par une virgule, un point-virgule ou un retour à la ligne.
           {destinataires.length > 0 && ` — ${destinataires.length} destinataire(s) détecté(s).`}
         </p>
@@ -105,7 +105,7 @@ export default function EnvoiPage() {
           <Textarea label="Message *" rows={estSms ? 4 : 8} value={message}
                     onChange={(e) => setMessage(e.target.value)} error={erreurs.message?.[0]} />
           {estSms && (
-            <p className={`mt-1 text-xs ${trop ? 'text-red-600' : 'text-slate-400'}`}>
+            <p className={`mt-1 text-xs ${trop ? 'text-red-600' : 'text-muted'}`}>
               {message.length} / {LIMITE_SMS} caractères
               {trop && ' — trop long pour un SMS.'}
             </p>
@@ -113,7 +113,7 @@ export default function EnvoiPage() {
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted">
             {estSms
               ? 'Les SMS sont déposés dans la file d’envoi et transmis par la passerelle configurée.'
               : 'Les mails partent immédiatement via le serveur SMTP configuré.'}

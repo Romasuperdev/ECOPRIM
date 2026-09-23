@@ -106,9 +106,9 @@ export default function UtilisateurListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun utilisateur.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun utilisateur.</td></tr>
             )}
             {data?.data?.map((u) => (
               <tr key={u.id} className="hover:bg-slate-50">
@@ -231,7 +231,7 @@ export default function UtilisateurListPage() {
                   <p className="text-xs font-bold uppercase tracking-wide text-muted">
                     Rôle (Enseignant, Parent, Secrétaire…)
                   </p>
-                  <p className="-mt-2 text-xs text-slate-400">
+                  <p className="-mt-2 text-xs text-muted">
                     C'est ce rôle qui décide de l'écran que verra ce compte : un compte affecté
                     du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
                     restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
@@ -264,7 +264,7 @@ export default function UtilisateurListPage() {
                 </>
               )}
 
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted">
                 Le compte est enregistré dans RH_USER, partagée avec les autres applications de la suite.
                 Le mot de passe est haché (bcrypt).
               </p>

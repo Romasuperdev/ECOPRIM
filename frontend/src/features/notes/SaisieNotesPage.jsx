@@ -206,7 +206,7 @@ export default function SaisieNotesPage({
         </div>
       )}
 
-      {!pret && <p className="text-slate-400">Choisissez une classe, une matière et une session.</p>}
+      {!pret && <p className="text-muted">Choisissez une classe, une matière et une session.</p>}
 
       {pret && (
         <>
@@ -223,10 +223,10 @@ export default function SaisieNotesPage({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isFetching && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
                 )}
                 {!isFetching && eleves.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucun élève dans cette classe.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Aucun élève dans cette classe.</td></tr>
                 )}
                 {eleves.map((e) => {
                   const l = saisie[e.matricule] ?? { note: '', appreciation: '', absent: false }
@@ -267,7 +267,7 @@ export default function SaisieNotesPage({
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted">
               {renseignees} élève{renseignees > 1 ? 's' : ''} sur {eleves.length} renseigné{renseignees > 1 ? 's' : ''}.
               {invalides.length > 0 && (
                 <span className="ml-1 text-red-600">

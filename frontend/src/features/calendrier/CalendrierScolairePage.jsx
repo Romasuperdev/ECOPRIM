@@ -104,10 +104,10 @@ export default function CalendrierScolairePage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && evenements?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun événement.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun événement.</td></tr>
             )}
             {evenements?.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50">

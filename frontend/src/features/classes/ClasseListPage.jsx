@@ -93,10 +93,10 @@ export default function ClasseListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Aucune classe.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Aucune classe.</td></tr>
             )}
             {data?.data?.map((classe) => (
               <tr key={classe.id} className="hover:bg-slate-50">

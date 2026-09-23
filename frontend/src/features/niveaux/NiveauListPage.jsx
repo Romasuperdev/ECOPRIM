@@ -88,10 +88,10 @@ export default function NiveauListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && niveaux?.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Aucun niveau.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucun niveau.</td></tr>
             )}
             {niveaux?.map((niveau) => (
               <tr key={niveau.id} className="hover:bg-slate-50">

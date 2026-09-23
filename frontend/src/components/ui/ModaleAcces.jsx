@@ -39,7 +39,7 @@ export default function ModaleAcces({ acces, onFermer }) {
               <AlertTriangle size={18} className="text-amber-500" /> Accès non créé
             </h2>
             <p className="text-sm text-slate-600">{acces.erreur}</p>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-muted">
               L'enregistrement, lui, a bien été fait. L'accès pourra être créé plus tard depuis
               Configuration administrative → Utilisateurs.
             </p>
@@ -62,12 +62,12 @@ export default function ModaleAcces({ acces, onFermer }) {
 
             <dl className="space-y-3 rounded-xl border border-slate-200 p-4">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Identifiant</dt>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">Identifiant</dt>
                 <dd className="font-mono text-lg text-slate-800">{acces.login}</dd>
               </div>
               {acces.mot_de_passe && (
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Mot de passe</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">Mot de passe</dt>
                   <dd className="font-mono text-lg tracking-widest text-slate-800">{acces.mot_de_passe}</dd>
                 </div>
               )}

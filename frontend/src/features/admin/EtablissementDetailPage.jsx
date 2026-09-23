@@ -17,7 +17,7 @@ function Section({ titre, children }) {
 function Champ({ label, value, mono = false, lien }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
       <dd className={`text-sm text-slate-800 ${mono ? 'font-mono' : ''}`}>
         {value
           ? (lien ? <a href={lien} className="text-primary-700 hover:underline">{value}</a> : value)
@@ -34,8 +34,8 @@ export default function EtablissementDetailPage() {
     queryFn: () => fetchEtablissementParCode(code),
   })
 
-  if (isLoading) return <p className="text-slate-400">Chargement…</p>
-  if (!e) return <p className="text-slate-400">Établissement introuvable.</p>
+  if (isLoading) return <p className="text-muted">Chargement…</p>
+  if (!e) return <p className="text-muted">Établissement introuvable.</p>
 
   return (
     <div className="space-y-6">
@@ -45,7 +45,7 @@ export default function EtablissementDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{e.intitule}</h1>
-          <p className="font-mono text-xs text-slate-400">{e.code}</p>
+          <p className="font-mono text-xs text-muted">{e.code}</p>
         </div>
         <div className="ml-auto flex gap-2">
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${e.repris ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'}`}>

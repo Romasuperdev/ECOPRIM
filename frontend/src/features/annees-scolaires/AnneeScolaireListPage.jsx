@@ -77,10 +77,10 @@ export default function AnneeScolaireListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && annees?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune année scolaire.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucune année scolaire.</td></tr>
             )}
             {annees?.map((annee) => (
               <tr key={annee.id} className="hover:bg-slate-50">
@@ -135,7 +135,7 @@ export default function AnneeScolaireListPage() {
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         Une année ne peut être supprimée que si rien ne s’y rattache (élèves, classes,
         niveaux, emplois du temps, affectations, documents). Une année clôturée reste
         modifiable, pour pouvoir être rouverte.
@@ -162,12 +162,12 @@ export default function AnneeScolaireListPage() {
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={form.active} onChange={(e) => champ('active', e.target.checked)} />
             Année active
-            <span className="text-xs text-slate-400">(désactive les autres)</span>
+            <span className="text-xs text-muted">(désactive les autres)</span>
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={form.cloturee} onChange={(e) => champ('cloturee', e.target.checked)} />
             Clôturée
-            <span className="text-xs text-slate-400">(consultation seule)</span>
+            <span className="text-xs text-muted">(consultation seule)</span>
           </label>
           {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
         </ModaleFormulaire>

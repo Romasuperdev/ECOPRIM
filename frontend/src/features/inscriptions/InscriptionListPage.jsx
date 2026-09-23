@@ -270,16 +270,16 @@ export default function InscriptionListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune inscription.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Aucune inscription.</td></tr>
             )}
             {data?.data?.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">{e.matricule ?? '—'}</td>
                 <td className="px-4 py-3">
                   <div className="font-medium text-slate-800">{e.nom} {e.prenom}</div>
-                  <div className="text-xs text-slate-400">{e.sexe ?? ''}</div>
+                  <div className="text-xs text-muted">{e.sexe ?? ''}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.classe_code ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{e.date_naissance ?? '—'}</td>
@@ -328,7 +328,7 @@ export default function InscriptionListPage() {
         </div>
       )}
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         Les élèves sont partagés avec ECONOMAT : ils peuvent être créés et modifiés ici, jamais
         supprimés. Le volet financier (scolarité, versements, remises) reste géré dans ECONOMAT.
       </p>
@@ -339,7 +339,7 @@ export default function InscriptionListPage() {
             <h2 className="mb-1 text-lg font-bold text-slate-800">
               {form.id ? `Modifier — ${form.nom} ${form.prenom}` : 'Nouvelle inscription'}
             </h2>
-            <p className="mb-5 text-xs text-slate-400">Formulaire alimenté par ECONOMAT.T_ETUDIANT.</p>
+            <p className="mb-5 text-xs text-muted">Formulaire alimenté par ECONOMAT.T_ETUDIANT.</p>
 
             {dossierVerrouille && (
               <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -375,7 +375,7 @@ export default function InscriptionListPage() {
               <div className={visible(0) ? '' : 'hidden'}>
                 <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Identité de l’élève</p>
                 {!form.id && (
-                  <p className="mb-3 text-xs text-slate-400">
+                  <p className="mb-3 text-xs text-muted">
                     Le matricule identifie l’élève de façon unique. Pour un élève déjà connu de
                     l’établissement, saisissez son matricule et choisissez « Réinscription » à
                     l’étape Scolarité : son dossier sera mis à jour, pas dupliqué.
@@ -506,13 +506,13 @@ export default function InscriptionListPage() {
 
                     {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
 
-                    <p className="mt-3 text-xs text-slate-400">
+                    <p className="mt-3 text-xs text-muted">
                       JPG, PNG ou WebP, 4 Mo maximum. La photo est enregistrée dans le dossier
                       partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
                       remplace la précédente s’il en existait une.
                     </p>
                     {!form.id && (
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-muted">
                         Elle sera envoyée juste après l’enregistrement de l’élève.
                       </p>
                     )}
@@ -533,7 +533,7 @@ export default function InscriptionListPage() {
 
                 <div className="flex items-center gap-2">
                   {enAssistant && (
-                    <span className="text-xs text-slate-400">Étape {etape + 1} sur {ETAPES.length}</span>
+                    <span className="text-xs text-muted">Étape {etape + 1} sur {ETAPES.length}</span>
                   )}
                   {enAssistant && !derniere ? (
                     <Button type="button" onClick={suivant}>Suivant</Button>

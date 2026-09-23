@@ -97,10 +97,10 @@ export default function DevoirListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && devoirs?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun devoir donné.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun devoir donné.</td></tr>
             )}
             {devoirs?.map((d) => {
               const enRetard = !verrouille && !d.annee_cloturee && new Date(d.date_remise) < new Date(new Date().toDateString())

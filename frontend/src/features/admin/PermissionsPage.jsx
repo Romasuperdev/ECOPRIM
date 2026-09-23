@@ -60,7 +60,7 @@ function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
       ))}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted">
           <ShieldCheck size={13} className="mr-1 inline" />
           {roleActuel?.nom ?? 'Ce rôle'} — {coches.size} permission{coches.size > 1 ? 's' : ''} accordée{coches.size > 1 ? 's' : ''}
         </p>
@@ -118,12 +118,12 @@ export default function PermissionsPage() {
       </div>
 
       {!roleId && (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-muted">
           Choisissez un rôle pour voir et modifier ses permissions.
         </p>
       )}
 
-      {roleId && isLoading && <p className="text-sm text-slate-400">Chargement…</p>}
+      {roleId && isLoading && <p className="text-sm text-muted">Chargement…</p>}
 
       {roleId && permissions && (
         <EditeurPermissions

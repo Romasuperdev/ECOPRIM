@@ -204,15 +204,15 @@ export default function CahierTextesPage() {
       </div>
 
       {!classe && (
-        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-muted">
           Choisissez une classe pour consulter ou tenir son cahier de textes.
         </p>
       )}
 
-      {classe && isLoading && <p className="text-slate-400">Chargement…</p>}
+      {classe && isLoading && <p className="text-muted">Chargement…</p>}
 
       {classe && !isLoading && entetes.length === 0 && (
-        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-muted">
           Aucune semaine enregistrée pour cette classe. Commencez par « Nouvelle semaine ».
         </p>
       )}
@@ -223,7 +223,7 @@ export default function CahierTextesPage() {
             <div className="text-sm text-slate-600">
               <span className="font-semibold text-slate-800">{entete.mois}</span>
               {' · semaine '}{entete.semaine}
-              {entete.prof_nom && <span className="ml-2 text-slate-400">— {entete.prof_nom}</span>}
+              {entete.prof_nom && <span className="ml-2 text-muted">— {entete.prof_nom}</span>}
             </div>
             <div className="flex gap-2">
               <Button
@@ -267,7 +267,7 @@ export default function CahierTextesPage() {
               <tbody className="divide-y divide-slate-100">
                 {entete.lignes.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted">
                       Aucune matière affectée à cette classe : voir « Affectation enseignant – classe ».
                     </td>
                   </tr>

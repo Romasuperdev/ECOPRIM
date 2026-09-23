@@ -101,9 +101,9 @@ export default function DocumentsElevesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && lignes?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucun document paramétré.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun document paramétré.</td></tr>
             )}
             {lignes?.map((l) => (
               <tr key={l.id} className="hover:bg-slate-50">
@@ -117,7 +117,7 @@ export default function DocumentsElevesPage() {
                   <div className="flex flex-wrap gap-1">
                     {l.a_inscription && <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">Inscription</span>}
                     {l.a_scolarite && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Scolarité</span>}
-                    {!l.a_inscription && !l.a_scolarite && <span className="text-xs text-slate-400">—</span>}
+                    {!l.a_inscription && !l.a_scolarite && <span className="text-xs text-muted">—</span>}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -137,7 +137,7 @@ export default function DocumentsElevesPage() {
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         Ces lignes sont partagées avec ECONOMAT : elles peuvent être créées, modifiées et
         retirées ici — le retrait étant refusé dès qu'un élève a déjà ce document au dossier.
       </p>

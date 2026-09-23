@@ -45,7 +45,7 @@ export default function NoteListPage() {
         </Select>
       </div>
 
-      {!classeCode && <p className="text-slate-400">Sélectionne une classe pour voir les notes.</p>}
+      {!classeCode && <p className="text-muted">Sélectionne une classe pour voir les notes.</p>}
 
       {classeCode && (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
@@ -62,10 +62,10 @@ export default function NoteListPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
               )}
               {!isLoading && data?.data?.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">Aucune note.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucune note.</td></tr>
               )}
               {data?.data?.map((n) => (
                 <tr key={n.id} className="hover:bg-slate-50">

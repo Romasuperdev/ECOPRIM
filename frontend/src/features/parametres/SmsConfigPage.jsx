@@ -28,7 +28,7 @@ export default function SmsConfigPage() {
 
   const champ = (k, v) => setModifs((m) => ({ ...m, [k]: v }))
 
-  if (isLoading || !form) return <p className="text-slate-400">Chargement…</p>
+  if (isLoading || !form) return <p className="text-muted">Chargement…</p>
 
   return (
     <div className="max-w-3xl">
@@ -83,7 +83,7 @@ export default function SmsConfigPage() {
             <Input label="Secret API (laisser vide pour conserver)" type="password" value={form.api_secret ?? ''}
                    onChange={(e) => champ('api_secret', e.target.value)} error={erreurs.api_secret?.[0]} />
           </div>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-muted">
             La clé et le secret ne sont jamais réaffichés après enregistrement.
           </p>
         </div>

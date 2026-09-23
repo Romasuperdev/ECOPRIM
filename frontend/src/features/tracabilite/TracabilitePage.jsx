@@ -88,7 +88,7 @@ export default function TracabilitePage() {
       )}
 
       {id && data?.utilisateur?.identifiants_cherches?.length > 0 && (
-        <p className="mb-4 text-xs text-slate-400">
+        <p className="mb-4 text-xs text-muted">
           Recherché sous : {data.utilisateur.identifiants_cherches.join(', ')} — ECONOMAT
           n’enregistre pas partout le même identifiant.
         </p>
@@ -143,11 +143,11 @@ export default function TracabilitePage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && lignes.length === 0 && (
               <tr>
-                <td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-muted">
                   Aucune trace pour ces critères.
                 </td>
               </tr>
@@ -167,7 +167,7 @@ export default function TracabilitePage() {
 
       {data && data.last_page > 1 && (
         <div className="mt-4 flex items-center justify-end gap-3">
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted">
             Page {data.current_page} sur {data.last_page} · {data.total} trace{data.total > 1 ? 's' : ''}
           </span>
           <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Précédent</Button>
@@ -195,11 +195,11 @@ export default function TracabilitePage() {
               <ul className="space-y-1">
                 {Object.entries(colonnes).map(([role, colonne]) => (
                   <li key={role}>
-                    <span className="text-slate-400">{role}</span> → <code>{colonne}</code>
+                    <span className="text-muted">{role}</span> → <code>{colonne}</code>
                   </li>
                 ))}
               </ul>
-              <p className="text-slate-400">
+              <p className="text-muted">
                 Colonnes réelles : {data.colonnes_reelles.join(', ')}
               </p>
             </div>

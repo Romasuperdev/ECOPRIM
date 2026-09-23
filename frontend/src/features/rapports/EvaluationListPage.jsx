@@ -103,10 +103,10 @@ function SectionPlanification() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={9} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={9} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && evaluations?.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-6 text-center text-slate-400">Aucune évaluation planifiée.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-6 text-center text-muted">Aucune évaluation planifiée.</td></tr>
             )}
             {evaluations?.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50">
@@ -250,14 +250,14 @@ export default function EvaluationListPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted">
                   Chargement…
                 </td>
               </tr>
             )}
             {!isLoading && evaluations?.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted">
                   Aucune évaluation pour l'instant.
                 </td>
               </tr>

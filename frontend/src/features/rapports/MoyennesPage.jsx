@@ -33,8 +33,8 @@ export default function MoyennesPage() {
         </Select>
       </div>
 
-      {!classeCode && <p className="text-slate-400">Sélectionne une classe pour voir le classement.</p>}
-      {isLoading && <p className="text-slate-400">Chargement…</p>}
+      {!classeCode && <p className="text-muted">Sélectionne une classe pour voir le classement.</p>}
+      {isLoading && <p className="text-muted">Chargement…</p>}
 
       {rapport && (
         <>
@@ -58,7 +58,7 @@ export default function MoyennesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rapport.classement.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">Aucune moyenne pour cette classe.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Aucune moyenne pour cette classe.</td></tr>
                 )}
                 {rapport.classement.map((row) => (
                   <tr key={row.code_eleve ?? `${row.matricule}-${row.rang}`} className="hover:bg-slate-50">

@@ -112,12 +112,12 @@ export default function EmploiDuTempsPage() {
       )}
 
       {!classe && (
-        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-muted">
           Choisissez une classe pour afficher sa grille.
         </p>
       )}
 
-      {classe && isLoading && <p className="text-slate-400">Chargement…</p>}
+      {classe && isLoading && <p className="text-muted">Chargement…</p>}
 
       {classe && !isLoading && (heures.length === 0 || jours.length === 0) && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">
@@ -163,7 +163,7 @@ export default function EmploiDuTempsPage() {
                             <>
                               <span className="text-xs font-semibold text-primary-800">{c.matiere_libelle}</span>
                               {c.enseignant && <span className="text-[11px] text-slate-500">{c.enseignant}</span>}
-                              {c.salle_libelle && <span className="text-[11px] text-slate-400">{c.salle_libelle}</span>}
+                              {c.salle_libelle && <span className="text-[11px] text-muted">{c.salle_libelle}</span>}
                             </>
                           ) : (
                             !verrouille && <Plus size={14} className="mx-auto text-slate-300" />
@@ -185,7 +185,7 @@ export default function EmploiDuTempsPage() {
             <h2 className="mb-1 text-lg font-bold text-slate-800">
               {cellule.creneau ? 'Modifier le créneau' : 'Nouveau créneau'}
             </h2>
-            <p className="mb-4 text-xs text-slate-400">
+            <p className="mb-4 text-xs text-muted">
               {jours.find((j) => j.code === cellule.jour)?.libelle}
               {' · '}
               {heures.find((h) => h.code === cellule.heure)?.libelle}
@@ -215,7 +215,7 @@ export default function EmploiDuTempsPage() {
 
               {erreur && <p className="text-sm text-red-600">{erreur}</p>}
 
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted">
                 Un conflit de classe, de salle ou d’enseignant est refusé, avec le motif précis.
               </p>
 

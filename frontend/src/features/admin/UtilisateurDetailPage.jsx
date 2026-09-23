@@ -51,7 +51,7 @@ function ReinitialiserMotDePasse({ userId, onFermer }) {
 function Champ({ label, value }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
       <dd className="text-sm text-slate-800">{value || '—'}</dd>
     </div>
   )
@@ -72,7 +72,7 @@ function EnfantsAffectation({ affectation, onSaved }) {
   if (! edition) {
     return (
       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        {(affectation.eleves ?? []).length === 0 && <span className="text-xs text-slate-400">Aucun enfant rattaché.</span>}
+        {(affectation.eleves ?? []).length === 0 && <span className="text-xs text-muted">Aucun enfant rattaché.</span>}
         {(affectation.eleves ?? []).map((e) => (
           <span key={e.eleve_matricule} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
             {e.eleve_matricule}
@@ -138,8 +138,8 @@ export default function UtilisateurDetailPage() {
     onSuccess: invalider,
   })
 
-  if (isLoading) return <p className="text-slate-400">Chargement…</p>
-  if (!user) return <p className="text-slate-400">Utilisateur introuvable.</p>
+  if (isLoading) return <p className="text-muted">Chargement…</p>
+  if (!user) return <p className="text-muted">Utilisateur introuvable.</p>
 
   const affectations = user.affectations ?? []
 
@@ -180,7 +180,7 @@ export default function UtilisateurDetailPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">Rôles par établissement</h2>
         </div>
-        <p className="mb-4 text-xs text-slate-400">
+        <p className="mb-4 text-xs text-muted">
           Un compte affecté du SEUL rôle Enseignant ou Parent est dirigé vers son portail
           restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
           l'application complète.
@@ -221,12 +221,12 @@ export default function UtilisateurDetailPage() {
               ))}
             </tbody>
           </table>
-        ) : <p className="text-sm text-slate-400">Aucune affectation. Ajoutez un premier rôle ci-dessous.</p>}
+        ) : <p className="text-sm text-muted">Aucune affectation. Ajoutez un premier rôle ci-dessous.</p>}
 
         <div className="mt-6 border-t border-slate-100 pt-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-700">Ajouter un rôle</h3>
           {societeCode && (
-            <p className="mb-3 text-xs text-slate-400">Établissements limités à la société {societeCode} (un utilisateur ne peut appartenir qu'à une seule société).</p>
+            <p className="mb-3 text-xs text-muted">Établissements limités à la société {societeCode} (un utilisateur ne peut appartenir qu'à une seule société).</p>
           )}
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[220px] flex-1">

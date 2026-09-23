@@ -54,7 +54,7 @@ const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfa
 const queryClient = new QueryClient()
 
 function PageLoader() {
-  return <div className="flex min-h-[40vh] items-center justify-center text-slate-400">Chargement…</div>
+  return <div className="flex min-h-[40vh] items-center justify-center text-muted">Chargement…</div>
 }
 
 // Accueil de /mon-espace : le portail dépend du type de compte, pas de la route.
@@ -77,7 +77,7 @@ export default function App() {
   }, [setUser])
 
   if (checkingSession) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-400">Chargement…</div>
+    return <div className="flex min-h-screen items-center justify-center text-muted">Chargement…</div>
   }
 
   return (

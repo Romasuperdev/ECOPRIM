@@ -143,12 +143,12 @@ export default function AffectationEnseignantPage() {
       )}
 
       {!cible && (
-        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-muted">
           {parClasse ? 'Choisissez une classe pour voir son équipe pédagogique.' : 'Choisissez un enseignant pour voir son service.'}
         </p>
       )}
 
-      {cible && isLoading && <p className="text-slate-400">Chargement…</p>}
+      {cible && isLoading && <p className="text-muted">Chargement…</p>}
 
       {cible && !isLoading && (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
@@ -166,7 +166,7 @@ export default function AffectationEnseignantPage() {
             <tbody className="divide-y divide-slate-100">
               {lignes.length === 0 && (
                 <tr>
-                  <td colSpan={parClasse ? 5 : 6} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={parClasse ? 5 : 6} className="px-4 py-6 text-center text-muted">
                     Aucune affectation.
                   </td>
                 </tr>
@@ -230,7 +230,7 @@ export default function AffectationEnseignantPage() {
         </div>
       )}
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         Source : ECONOMAT.T_CORPROFCLASSE. Une matière n’a qu’un enseignant par classe et par
         année : pour changer de professeur, on remplace l’affectation plutôt que d’en ajouter une.
       </p>
@@ -279,7 +279,7 @@ export default function AffectationEnseignantPage() {
                   onChange={(e) => champ('principale', e.target.checked)}
                 />
                 Titulaire de la classe
-                <span className="text-xs text-slate-400">(un seul par classe)</span>
+                <span className="text-xs text-muted">(un seul par classe)</span>
               </label>
 
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}

@@ -84,8 +84,8 @@ export default function SocieteListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
-            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucune société.</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
+            {!isLoading && data?.data?.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Aucune société.</td></tr>}
             {data?.data?.map((s) => (
               <tr key={s.code} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-800">{s.code}</td>
@@ -165,7 +165,7 @@ export default function SocieteListPage() {
               </div>
               <Input label="Adresse" value={form.adresse ?? ''} onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]} />
               {!form.id && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted">
                   Reprise : seule la copie ECOPRIM est créée, US_SOCIETE reste inchangée. ECOPRIM
                   n'invente jamais de société — la liste ci-dessus vient exclusivement de US_SOCIETE.
                 </p>

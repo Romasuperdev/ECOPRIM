@@ -68,13 +68,13 @@ export default function MatiereListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {isError && (
               <tr><td colSpan={3} className="px-4 py-6 text-center text-red-500">Erreur de chargement.</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Aucune matière.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucune matière.</td></tr>
             )}
             {data?.data?.map((matiere) => (
               <tr key={matiere.id} className="hover:bg-slate-50">

@@ -99,9 +99,9 @@ export default function EtablissementListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Aucun établissement.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Aucun établissement.</td></tr>
             )}
             {data?.data?.map((e) => (
               <tr key={e.code} className="hover:bg-slate-50">
@@ -110,12 +110,12 @@ export default function EtablissementListPage() {
                   <Link to={`/admin/etablissements/${e.code}`} className="font-medium text-primary-700 hover:underline">
                     {e.intitule}
                   </Link>
-                  <div className="text-xs text-slate-400">{[e.ville, e.pays].filter(Boolean).join(', ') || '—'}</div>
+                  <div className="text-xs text-muted">{[e.ville, e.pays].filter(Boolean).join(', ') || '—'}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.societe_code ?? '—'}</td>
                 <td className="px-4 py-3 text-xs text-slate-600">
                   <div>{e.telephone ?? '—'}</div>
-                  <div className="text-slate-400">{e.email ?? ''}</div>
+                  <div className="text-muted">{e.email ?? ''}</div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.utilisateurs_count ?? 0}</td>
                 <td className="px-4 py-3">
@@ -193,7 +193,7 @@ export default function EtablissementListPage() {
               </div>
 
               {!form.id && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted">
                   {form.repris
                     ? 'Reprise : seule la copie ECOPRIM est créée, BEtablissements reste inchangée.'
                     : 'Nouvel établissement : il sera enregistré dans BEtablissements puis dans ECOPRIM.'}

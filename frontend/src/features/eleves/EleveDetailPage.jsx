@@ -10,7 +10,7 @@ import { imprimerAttestationFrequentation, imprimerCertificatScolarite } from '.
 function Champ({ label, value }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
       <dd className="text-sm text-slate-800">{value || '—'}</dd>
     </div>
   )
@@ -39,10 +39,10 @@ function SectionBulletin({ eleve }) {
       </div>
 
       {!eleve.classe_code && (
-        <p className="text-sm text-slate-400">Cet élève n’est rattaché à aucune classe.</p>
+        <p className="text-sm text-muted">Cet élève n’est rattaché à aucune classe.</p>
       )}
 
-      {eleve.classe_code && isLoading && <p className="text-sm text-slate-400">Chargement…</p>}
+      {eleve.classe_code && isLoading && <p className="text-sm text-muted">Chargement…</p>}
 
       {eleve.classe_code && data && (
         <>
@@ -51,17 +51,17 @@ function SectionBulletin({ eleve }) {
               <div className="text-2xl font-bold text-slate-800">
                 {data.moyenneGenerale !== null ? Number(data.moyenneGenerale).toFixed(2) : '—'}
               </div>
-              <div className="text-xs text-slate-400">Moyenne générale / 20</div>
+              <div className="text-xs text-muted">Moyenne générale / 20</div>
             </div>
             <div className="rounded-lg bg-slate-50 px-4 py-3 text-center">
               <div className="text-2xl font-bold text-slate-800">{data.rang ?? '—'}</div>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-muted">
                 Rang{data.effectif ? ` / ${data.effectif}` : ''}
               </div>
             </div>
             <div className="rounded-lg bg-slate-50 px-4 py-3 text-center">
               <div className="text-2xl font-bold text-slate-800">{data.moyennesParMatiere.length}</div>
-              <div className="text-xs text-slate-400">Matière(s) évaluée(s)</div>
+              <div className="text-xs text-muted">Matière(s) évaluée(s)</div>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ function SectionBulletin({ eleve }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {data.moyennesParMatiere.length === 0 && (
-                <tr><td colSpan={4} className="py-4 text-center text-slate-400">Aucune note enregistrée pour cette année.</td></tr>
+                <tr><td colSpan={4} className="py-4 text-center text-muted">Aucune note enregistrée pour cette année.</td></tr>
               )}
               {data.moyennesParMatiere.map((m) => (
                 <tr key={m.matiere_code}>
@@ -126,8 +126,8 @@ export default function EleveDetailPage() {
   const { id } = useParams()
   const { data: eleve, isLoading } = useQuery({ queryKey: ['eleves', id], queryFn: () => fetchEleve(id) })
 
-  if (isLoading) return <p className="text-slate-400">Chargement…</p>
-  if (!eleve) return <p className="text-slate-400">Élève introuvable.</p>
+  if (isLoading) return <p className="text-muted">Chargement…</p>
+  if (!eleve) return <p className="text-muted">Élève introuvable.</p>
 
   return (
     <div className="space-y-6">

@@ -26,7 +26,7 @@ export default function MailConfigPage() {
 
   const champ = (k, v) => setModifs((m) => ({ ...m, [k]: v }))
 
-  if (isLoading || !form) return <p className="text-slate-400">Chargement…</p>
+  if (isLoading || !form) return <p className="text-muted">Chargement…</p>
 
   return (
     <div className="max-w-2xl">
@@ -58,7 +58,7 @@ export default function MailConfigPage() {
         <Input label={form.mot_de_passe_defini ? 'Mot de passe (déjà défini — laisser vide pour conserver)' : 'Mot de passe'}
                type="password" value={form.mot_de_passe ?? ''} onChange={(e) => champ('mot_de_passe', e.target.value)}
                error={erreurs.mot_de_passe?.[0]} />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted">
           Le mot de passe n’est jamais réaffiché après enregistrement. Les envois utilisent TLS.
         </p>
 

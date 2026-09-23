@@ -51,9 +51,9 @@ export default function RoleListPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {isLoading && <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>}
+            {isLoading && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && roles?.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">
                 Aucun rôle. Créez-en un, ou lancez <code>php artisan console:importer</code> pour semer le catalogue par défaut.
               </td></tr>
             )}
@@ -62,7 +62,7 @@ export default function RoleListPage() {
                 <td className="px-4 py-3 font-mono text-xs text-slate-800">{r.code}</td>
                 <td className="px-4 py-3 font-medium text-slate-700">{r.nom}</td>
                 <td className="px-4 py-3 text-slate-500">
-                  {r.societe_code ?? <span className="italic text-slate-400">Général</span>}
+                  {r.societe_code ?? <span className="italic text-muted">Général</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
@@ -87,7 +87,7 @@ export default function RoleListPage() {
         </table>
       </div>
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         Retirer un rôle du catalogue n’efface aucun compte : seules les affectations qui l’utilisent
         deviennent invalides. Les rôles sont propres à NEXORA et n’altèrent pas RH_USER.
       </p>

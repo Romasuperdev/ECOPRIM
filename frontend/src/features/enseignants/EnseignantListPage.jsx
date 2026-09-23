@@ -51,10 +51,10 @@ export default function EnseignantListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">Aucun enseignant.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Aucun enseignant.</td></tr>
             )}
             {data?.data?.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50">

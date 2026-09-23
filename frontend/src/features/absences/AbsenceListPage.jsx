@@ -132,10 +132,10 @@ export default function AbsenceListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Chargement…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
             {!isLoading && data?.data?.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Aucune absence.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Aucune absence.</td></tr>
             )}
             {data?.data?.map((a) => (
               <tr key={a.id} className="hover:bg-slate-50">
@@ -190,7 +190,7 @@ export default function AbsenceListPage() {
         </div>
       )}
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-muted">
         La classe et l’année sont déduites de l’élève et de l’année de travail : elles ne se
         saisissent pas. Un même élève ne peut avoir qu’une absence par jour et par heure.
       </p>
