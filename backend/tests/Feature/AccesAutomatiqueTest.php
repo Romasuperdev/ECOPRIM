@@ -174,6 +174,46 @@ class AccesAutomatiqueTest extends TestCase
         $this->assertSame('enseignant', $enseignant->typePortail());
     }
 
+    /**
+     * Sans établissement de travail, l'accès ne peut pas être créé : les deux colonnes de
+     * l'affectation sont obligatoires. Ce qui comptait ici, c'est de le constater AVANT
+     * d'écrire quoi que ce soit.
+     *
+     * L'ordre était : créer le compte RH_USER, puis l'affectation. L'affectation échouait
+     * sur une contrainte NOT NULL, et laissait derrière elle un compte sans rôle dont le
+     * mot de passe — tiré au hasard, jamais stocké en clair — était perdu : le réessai
+     * retrouvait ce compte par son téléphone et n'affichait donc plus aucun mot de passe.
+     * Vu en conditions réelles, avec le message SQL brut à l'écran.
+     */
+    public function test_sans_etablissement_aucun_compte_n_est_cree_et_le_message_est_clair(): void
+    {
+        // Un compte qui n'a ni établissement en session ni Etab sur sa fiche.
+        $sansEtab = RhUser::on('master')->forceCreate([
+            'Id' => 2, 'Login' => 'nomade', 'Nom' => 'Sans', 'Prenom' => 'Etab',
+            'Email' => 'n@e.ci', 'MotDePasse' => Hash::make('x'),
+            'SuperAdmin' => true, 'Supprimer' => false, 'Etab' => null,
+        ]);
+        $this->actingAs($sansEtab, 'sanctum');
+
+        $r = $this->postJson('/api/v1/enseignants', [
+            'matricule' => 'P9', 'nom' => 'Koffi', 'prenom' => 'Ama',
+            'cellulaire' => '0102030405', 'annee_code' => self::ANNEE,
+        ])->assertCreated();
+
+        // La fiche, elle, est bien enregistrée : l'accès ne doit pas faire tomber l'acte.
+        $this->assertDatabaseHas('T_PROFESSEUR', ['MatriculeProfesseur' => 'P9'], 'economat');
+
+        // Le message dit quoi faire, et ne laisse pas fuiter le SQL.
+        $erreur = $r->json('acces_enseignant.erreur');
+        $this->assertNotNull($erreur);
+        $this->assertStringContainsString('aucun établissement de travail', $erreur);
+        $this->assertStringNotContainsString('SQLSTATE', $erreur);
+
+        // Et surtout : rien n'a été écrit. Pas de compte orphelin au mot de passe perdu.
+        $this->assertDatabaseMissing('RH_USER', ['Login' => '0102030405'], 'master');
+        $this->assertDatabaseHas('T_PROFESSEUR', ['MatriculeProfesseur' => 'P9', 'LOGIN' => null], 'economat');
+    }
+
     public function test_un_enseignant_sans_numero_n_a_pas_de_compte(): void
     {
         $this->postJson('/api/v1/enseignants', [

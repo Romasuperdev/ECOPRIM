@@ -8,6 +8,7 @@ use App\Models\Console\Etablissement;
 use App\Models\Console\Role;
 use App\Models\RhUser;
 use Illuminate\Support\Facades\Session;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -160,6 +161,25 @@ class AccesAutomatique
         string $telephone, ?string $nom, ?string $prenom, ?string $email, string $codeRole, string $nomRole
     ): array {
         $perimetre = $this->perimetre();
+
+        // Contrôlé AVANT toute écriture, et pas seulement parce que le message SQL brut
+        // (« Cannot insert the value NULL into column etablissement_code ») n'apprenait
+        // rien à personne : le compte RH_USER se crée quelques lignes plus bas, l'affectation
+        // ensuite. Échouer à l'affectation laissait donc un compte orphelin, sans rôle, dont
+        // le mot de passe tiré au hasard était perdu — et le réessai, retrouvant ce compte
+        // par son téléphone, n'en affichait plus aucun. On ne commence pas ce qu'on ne peut
+        // pas finir.
+        if (! $perimetre['etablissement'] || ! $perimetre['societe']) {
+            throw new RuntimeException(
+                $perimetre['etablissement']
+                    ? "l'établissement « {$perimetre['etablissement']} » n'est rattaché à aucune société "
+                      .'dans la console. Complétez-le dans Administration → Établissements, puis créez '
+                      ."l'accès depuis Configuration administrative → Utilisateurs."
+                    : "aucun établissement de travail n'est sélectionné. Choisissez-en un en haut de "
+                      ."l'écran, puis créez l'accès depuis Configuration administrative → Utilisateurs."
+            );
+        }
+
         $existant = $this->trouverParTelephone($telephone);
 
         if ($existant) {

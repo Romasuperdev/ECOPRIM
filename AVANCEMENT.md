@@ -3435,3 +3435,35 @@ historique, c'est la description de l'enseignant à l'instant présent. Les lign
 ne sont pas réécrites, ce qui laisse intactes les colonnes qu'ECONOMAT remplit lui-même.
 
 6 tests. Suite complète : 386 passent.
+
+### Accès enseignant : un message SQL brut cachait un compte orphelin
+
+Signalé en conditions réelles, à la création d'un enseignant :
+
+> L'accès de l'enseignant n'a pas pu être créé : SQLSTATE[23000] … Cannot insert the value
+> NULL into column 'etablissement_code'…
+
+**Cause** : l'affectation console exige un établissement ET une société, tous deux
+obligatoires en base. Le service les résout depuis l'établissement choisi en en-tête, avec
+repli sur celui du compte connecté. Quand les deux sont vides — aucun établissement
+sélectionné —, l'insertion partait avec des NULL.
+
+**Le vrai défaut n'était pas le message.** L'ordre des écritures était : créer le compte
+RH_USER, *puis* l'affectation. Échouer à la seconde laissait donc derrière soi **un compte
+sans rôle, dont le mot de passe était perdu** — tiré au hasard, jamais stocké en clair,
+affiché une seule fois dans une réponse qui n'arrivait jamais. Et le réessai retrouvait ce
+compte par son téléphone, ne le recréait pas, et n'affichait donc plus aucun mot de passe :
+un accès impossible à ouvrir sans passer par une réinitialisation.
+
+Le périmètre est désormais contrôlé **avant toute écriture** : on ne commence pas ce qu'on
+ne peut pas finir. Le message dit quoi faire (« aucun établissement de travail n'est
+sélectionné : choisissez-en un en haut de l'écran… ») et ne laisse plus fuiter de SQL. La
+fiche de l'enseignant, elle, reste enregistrée comme avant : l'accès ne doit pas faire
+tomber l'acte principal.
+
+Vérifié en base : la tentative signalée n'avait pas laissé d'orphelin — le compte visé
+existait déjà et portait une affectation. Le scénario destructeur restait néanmoins ouvert
+pour tout nouveau numéro.
+
+1 test, qui vérifie les trois garanties : la fiche est enregistrée, le message est
+actionnable et sans SQL, et **aucun compte n'est créé**.
