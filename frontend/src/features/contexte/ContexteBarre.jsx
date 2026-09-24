@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Building2, CalendarDays, Lock } from 'lucide-react'
+import { AlertTriangle, Building2, CalendarDays, Lock } from 'lucide-react'
 import { definirAnnee, fetchContexte } from './contexteApi'
 
 /**
@@ -31,18 +31,29 @@ export default function ContexteBarre() {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Établissement */}
+      {/* Sans établissement de travail, plusieurs actes échouent — la création de l'accès
+          d'un enseignant ou d'un parent, notamment, faute de savoir à quelle école le
+          rattacher. La pastille annonçait « Aucun établissement » en gris discret : un
+          constat, que rien ne désignait comme l'endroit où le corriger. Elle devient une
+          invitation, et se signale comme le fait un avertissement. */}
       <Link
         to="/choisir-etablissement"
-        className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition hover:opacity-80"
-        style={{ borderColor: 'var(--border)' }}
-        title={data.etablissement_par_defaut
-          ? 'Établissement de rattachement de votre compte — cliquez pour en changer'
-          : "Changer d'établissement"}
+        className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold transition hover:opacity-80"
+        style={data.etablissement_nom
+          ? { borderColor: 'var(--border)' }
+          : {
+              borderColor: 'var(--warning)',
+              background: 'var(--warning-bg)',
+              color: 'var(--warning-text)',
+            }}
+        title={data.etablissement_nom
+          ? (data.etablissement_par_defaut
+            ? 'Établissement de rattachement de votre compte — cliquez pour en changer'
+            : "Changer d'établissement")
+          : "Aucun établissement de travail : cliquez pour en choisir un. Certaines actions, comme la création des accès, en dépendent."}
       >
-        <Building2 size={13} />
-        {data.etablissement_nom
-          ? <span>{data.etablissement_nom}</span>
-          : <span className="text-muted">Aucun établissement</span>}
+        {data.etablissement_nom ? <Building2 size={13} /> : <AlertTriangle size={13} />}
+        <span>{data.etablissement_nom || 'Choisir un établissement'}</span>
       </Link>
 
       {/* Année scolaire */}

@@ -3467,3 +3467,21 @@ pour tout nouveau numéro.
 
 1 test, qui vérifie les trois garanties : la fiche est enregistrée, le message est
 actionnable et sans SQL, et **aucun compte n'est créé**.
+
+### « Aucun établissement » : un constat devenu une invitation
+
+Suite du correctif précédent. Le message est désormais clair — « aucun établissement de
+travail n'est sélectionné » — mais il restait à pouvoir en choisir un facilement.
+
+L'en-tête portait bien une pastille cliquable menant à l'écran de choix. Elle affichait
+« Aucun établissement » en **gris discret** : un constat, que rien ne désignait comme
+l'endroit où corriger le problème. Elle annonce maintenant « **Choisir un établissement** »
+sur fond d'avertissement, avec le triangle correspondant, et son infobulle dit ce qui en
+dépend. Une fois un établissement retenu, elle reprend son apparence neutre.
+
+**Pourquoi ne pas sélectionner automatiquement** : vérifié en base, deux établissements
+sont proposés — *Flygroup* (société AURIAK) et *Siège Social Principal* (société C2I). Ils
+appartiennent à des **sociétés différentes** : en choisir un d'office rattacherait les
+comptes créés à la mauvaise école, silencieusement. C'est un vrai choix, il doit rester
+explicite. La sélection automatique n'aurait été défendable qu'avec un seul établissement
+disponible.
