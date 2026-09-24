@@ -8,6 +8,8 @@ import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
 import StepIndicator from '../../components/ui/StepIndicator'
 import ModaleAcces from '../../components/ui/ModaleAcces'
+import SelecteurMultiple from '../../components/ui/SelecteurMultiple'
+import { fetchMatieres } from '../reference/referenceApi'
 import { fetchEnseignant, createEnseignant, updateEnseignant } from './enseignantsApi'
 
 const VIDE = {
@@ -15,7 +17,7 @@ const VIDE = {
   situation_matrimoniale: '',
   adresse: '', ville: '', telephone: '', cellulaire: '', email: '',
   statut: '', corps: '', grade: '', echelon: '', diplome: '', formation: '',
-  matiere: '', volume_horaire: '', date_embauche: '', annee_code: '',
+  matieres: [], volume_horaire: '', date_embauche: '', annee_code: '',
   fonction: '', emploi: '', dren: '', dden: '', service: '',
   date_premiere_prise_service: '', ecole_prise_service: '', annees_service: '', date_arrivee_poste: '',
   date_depart: '', motif_depart: '', etab_accueil: '',
@@ -55,6 +57,8 @@ export default function EnseignantFormPage() {
     queryFn: () => fetchEnseignant(id),
     enabled: enEdition,
   })
+
+  const { data: matieres } = useQuery({ queryKey: ['matieres', 'all'], queryFn: fetchMatieres })
 
   const base = enseignant
     ? { ...VIDE, ...Object.fromEntries(Object.entries(enseignant).map(([k, v]) => [k, v ?? ''])) }
@@ -177,7 +181,17 @@ export default function EnseignantFormPage() {
               <Input label="Échelon" value={form.echelon} onChange={(e) => champ('echelon', e.target.value)} error={err('echelon')} />
               <Input label="Diplôme / titre" value={form.diplome} onChange={(e) => champ('diplome', e.target.value)} error={err('diplome')} />
               <Input label="Formation professionnelle" value={form.formation} onChange={(e) => champ('formation', e.target.value)} error={err('formation')} />
-              <Input label="Matière enseignée" value={form.matiere} onChange={(e) => champ('matiere', e.target.value)} error={err('matiere')} />
+              {/* Les matières se cochent dans le référentiel, au lieu d'être tapées à la
+                  main : l'ancien champ libre acceptait n'importe quoi, ne tenait qu'une
+                  valeur, et n'était rattaché à aucune matière créée. */}
+              <SelecteurMultiple
+                label="Matières enseignées"
+                options={(matieres ?? []).map((m) => ({ valeur: m.code, libelle: m.libelle }))}
+                selection={form.matieres ?? []}
+                onChange={(v) => champ('matieres', v)}
+                placeholder="— Cocher les matières —"
+                error={err('matieres') ?? err('matieres.0')}
+              />
               <Input label="Volume horaire (h/sem.)" type="number" min="0" max="60" value={form.volume_horaire}
                      onChange={(e) => champ('volume_horaire', e.target.value)} error={err('volume_horaire')} />
               <Input label="Date d’embauche" value={form.date_embauche} onChange={(e) => champ('date_embauche', e.target.value)}

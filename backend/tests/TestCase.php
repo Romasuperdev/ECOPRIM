@@ -175,6 +175,19 @@ abstract class TestCase extends BaseTestCase
             $t->boolean('Principale')->nullable();
         });
 
+        // Matières enseignées par un professeur, indépendamment des classes. À ne pas
+        // confondre avec T_CORPROFCLASSE ci-dessus : ici, pas de CodeClasse renseigné, et
+        // le professeur est identifié par son MATRICULE — la table n'a pas de colonne
+        // CodeProfesseur.
+        Schema::connection('economat')->create('T_CORPROFMAT', function ($t) {
+            $t->increments('Code');
+            $t->string('LOGIN')->nullable();
+            $t->string('CodeMatiere')->nullable();
+            $t->string('MatriculeProfesseur')->nullable();
+            $t->string('ANNEE')->nullable();
+            $t->string('CodeClasse')->nullable();
+        });
+
         Schema::connection('economat')->create('T_PREREQUIS', function ($t) {
             $t->integer('CODES');
             $t->string('CODENIVEAU')->nullable();

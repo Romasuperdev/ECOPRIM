@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Enseignant;
 use App\Services\AccesAutomatique;
+use App\Services\MatieresEnseignantEcrivain;
 use App\Services\ProfesseurEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -21,6 +23,7 @@ class EnseignantController extends Controller
     public function __construct(
         private ProfesseurEcrivain $ecrivain,
         private AccesAutomatique $acces,
+        private MatieresEnseignantEcrivain $matieres,
     ) {}
 
     /**
@@ -30,6 +33,7 @@ class EnseignantController extends Controller
     private function reponse(Enseignant $enseignant, array $data, int $statut = 200)
     {
         return response()->json(array_merge($enseignant->toArray(), [
+            'matieres' => $this->matieres->pour($enseignant->matricule, $enseignant->annee_code),
             'acces_enseignant' => $this->acces->pourEnseignant($data, (int) $enseignant->getKey()),
         ]), $statut);
     }
@@ -42,7 +46,15 @@ class EnseignantController extends Controller
                 ->orWhere('PrenomProfesseur', 'like', "%{$q}%")
                 ->orWhere('MatriculeProfesseur', 'like', "%{$q}%"));
         })
-            ->when($request->filled('matiere'), fn ($q) => $q->where('Matiere', $request->input('matiere')))
+            ->when($request->filled('matiere'), function ($q) use ($request) {
+                $matiere = $request->input('matiere');
+                // Un enseignant peut désormais avoir plusieurs matières : on cherche dans
+                // la liste (T_CORPROFMAT) autant que dans l'ancienne colonne, qui ne
+                // retient que la principale.
+                $matricules = $this->matieres->matriculesEnseignant($matiere, ContexteScolaire::annee());
+                $q->where(fn ($w) => $w->where('Matiere', $matiere)
+                    ->when($matricules !== [], fn ($x) => $x->orWhereIn('MatriculeProfesseur', $matricules)));
+            })
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'CodeAnnee'))
             ->orderBy('NomProfesseur')
             ->paginate(min($request->integer('per_page', 15), 200));
@@ -50,7 +62,9 @@ class EnseignantController extends Controller
 
     public function show(Enseignant $enseignant)
     {
-        return $enseignant;
+        return array_merge($enseignant->toArray(), [
+            'matieres' => $this->matieres->pour($enseignant->matricule, $enseignant->annee_code),
+        ]);
     }
 
     /**
@@ -88,6 +102,8 @@ class EnseignantController extends Controller
             'diplome' => ['nullable', 'string', 'max:'.$l['diplome']],
             'formation' => ['nullable', 'string', 'max:'.$l['formation']],
             'matiere' => ['nullable', 'string', 'max:'.$l['matiere']],
+            'matieres' => ['nullable', 'array'],
+            'matieres.*' => ['string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')],
             'volume_horaire' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'string', 'max:'.$l['date_embauche']],
             'annee_code' => ['nullable', 'string', 'max:'.$l['annee_code']],
@@ -110,6 +126,29 @@ class EnseignantController extends Controller
         ];
     }
 
+    /**
+     * Enregistre la liste des matières, et garde l'ancienne colonne cohérente.
+     *
+     * T_PROFESSEUR.Matiere continue de recevoir la PREMIÈRE matière de la liste : c'est
+     * une colonne partagée avec ECONOMAT, qui l'affiche telle quelle. Y écrire une liste
+     * séparée par des virgules l'aurait polluée, et elle ne tient de toute façon que
+     * 50 caractères.
+     */
+    private function enregistrerMatieres(Enseignant $enseignant, array $data): void
+    {
+        if (! array_key_exists('matieres', $data)) {
+            return;
+        }
+
+        $codes = collect($data['matieres'] ?? [])->filter()->unique()->values();
+        $this->matieres->definir($enseignant->matricule, $enseignant->annee_code, $codes->all());
+
+        $principale = (string) ($codes->first() ?? '');
+        if ($principale !== (string) ($enseignant->matiere ?? '')) {
+            $this->ecrivain->modifier((int) $enseignant->getKey(), ['matiere' => $principale]);
+        }
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate($this->regles());
@@ -120,8 +159,10 @@ class EnseignantController extends Controller
         }
 
         $code = $this->ecrivain->creer($data);
+        $enseignant = Enseignant::findOrFail($code);
+        $this->enregistrerMatieres($enseignant, $data);
 
-        return $this->reponse(Enseignant::findOrFail($code), $data, 201);
+        return $this->reponse($enseignant->refresh(), $data, 201);
     }
 
     public function update(Request $request, Enseignant $enseignant)
@@ -137,8 +178,10 @@ class EnseignantController extends Controller
         }
 
         $this->ecrivain->modifier($code, $data);
+        $enseignant = Enseignant::findOrFail($code);
+        $this->enregistrerMatieres($enseignant, $data);
 
         // Un numéro renseigné après coup ouvre l'accès à ce moment-là.
-        return $this->reponse(Enseignant::findOrFail($code), $data);
+        return $this->reponse($enseignant->refresh(), $data);
     }
 }

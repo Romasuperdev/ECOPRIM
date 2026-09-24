@@ -3397,3 +3397,41 @@ d'un clic.
 
 3 tests ajoutés (une évaluation par matière, dédoublonnage de la liste, type hors liste
 refusé), 7 repris. Suite complète : 380 passent.
+
+## Matières d'un enseignant : une liste à cocher, dans le référentiel
+
+Deuxième des quatre chantiers. Le champ « Matière enseignée » était un **champ de texte
+libre** : une seule valeur, tapée à la main, sans lien avec les matières créées. Rien
+n'empêchait d'y écrire « maths » là où le référentiel dit « MAT ».
+
+Il devient une **liste déroulante à cocher**, alimentée par les matières du référentiel —
+le composant `SelecteurMultiple` créé pour les évaluations, réutilisé tel quel.
+
+**Où stocker plusieurs matières.** `T_PROFESSEUR.Matiere` est un `varchar(50)` : y entasser
+une liste séparée par des virgules déborderait au troisième ou quatrième intitulé, et
+silencieusement. La table `T_CORPROFMAT` d'ECONOMAT est prévue exactement pour cela et
+n'était **pas exploitée** (0 ligne). C'est elle qui porte désormais la liste.
+
+À ne pas confondre avec `T_CORPROFCLASSE`, qui dit « ce professeur enseigne cette matière
+**dans cette classe** ». Ici on décrit ce qu'il enseigne, indépendamment des classes —
+`CodeClasse` reste vide. Les deux coexistent sans se contredire.
+
+Trois points traités parce qu'ils auraient mordu plus tard :
+
+1. **L'ancienne colonne reste alimentée** avec la première matière de la liste. Elle est
+   partagée avec ECONOMAT, qui l'affiche de son côté : la laisser vide ou y écrire une
+   liste à virgules aurait dégradé l'autre application.
+2. **Le filtre par matière de la liste des enseignants** ne regardait que cette colonne : il
+   n'aurait donc plus trouvé personne sur une matière secondaire. Il cherche maintenant
+   dans la liste **et** dans la colonne.
+3. **L'identifiant dans `T_CORPROFMAT` est le MATRICULE**, pas le code interne — la table
+   n'a pas de colonne `CodeProfesseur`. Je l'avais d'abord écrit de travers ; le schéma
+   réel l'a démenti. Une fiche ancienne sans matricule ne peut donc pas porter de liste :
+   le cas est rendu explicite plutôt qu'avalé.
+
+Décocher une matière la retire réellement — troisième exception assumée à la règle « jamais
+de DELETE dans ECONOMAT », après l'emploi du temps et les affectations : ce n'est pas un
+historique, c'est la description de l'enseignant à l'instant présent. Les lignes inchangées
+ne sont pas réécrites, ce qui laisse intactes les colonnes qu'ECONOMAT remplit lui-même.
+
+6 tests. Suite complète : 386 passent.
