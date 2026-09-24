@@ -3485,3 +3485,32 @@ appartiennent à des **sociétés différentes** : en choisir un d'office rattac
 comptes créés à la mauvaise école, silencieusement. C'est un vrai choix, il doit rester
 explicite. La sélection automatique n'aurait été défendable qu'avec un seul établissement
 disponible.
+
+### Un avertissement qui promettait une correction impossible
+
+L'établissement de travail une fois choisi, le tableau de bord affiche son avertissement de
+périmètre — et il proposait un lien « **Corriger les classes** » vers l'écran des classes.
+
+Ce lien ne menait nulle part d'utile : le rattachement d'une classe à un établissement
+(`T_CLASSE.CODEETABLISSEMENT`) **appartient à ECONOMAT**. `ReferentielEcrivain` exclut
+délibérément ces colonnes de tout ce que NEXORA écrit — c'est une règle posée à la
+conception, pour que les autres applications de la suite restent maîtresses de ce qu'elles
+y déposent. L'écran des classes ne pouvait donc pas régler le problème vers lequel je
+l'envoyais. Décision de l'utilisateur, confirmée : **ECONOMAT reste propriétaire**.
+
+Le message ne promet plus rien qu'il ne puisse tenir. Il nomme le **code attendu**
+(`SIEGE01` dans le cas signalé) au lieu de dire « le code de cet établissement », explique
+qu'un élève est rattaché *par sa classe*, et indique que cela se règle dans ECONOMAT.
+
+**État réel des données, relevé à cette occasion** :
+
+| Année | Code établissement | Classes |
+|---|---|---|
+| Année Scolaire 2026-2027 | *(vide)* | **6** |
+| 20262027 | `AUR01` | 4 |
+| 2024/2025 | `ETAB001` | 16 |
+
+Deux incohérences à connaître, au-delà des 6 classes sans code : les classes portent
+`AUR01` et `GSD`, **inconnus de la console** (qui ne connaît que `ETAB001` et `SIEGE01`) ;
+et **aucune classe ne porte `SIEGE01`**. Tagger les 6 classes ne suffirait donc pas — encore
+faut-il décider du bon code. Rien n'a été modifié : l'utilisateur vérifie d'abord.
