@@ -26,18 +26,6 @@ use Throwable;
  */
 class EvaluationController extends Controller
 {
-    /**
-     * Les quatre épreuves officielles de l'établissement. Elles remplacent l'ancienne
-     * liste (Devoir, Devoir surveillé, Interrogations), qui n'était de toute façon pas
-     * appliquée : `type` était validé comme une chaîne libre, n'importe quelle valeur
-     * passait. Elle l'est désormais.
-     *
-     * Les évaluations déjà enregistrées sous un ancien type gardent leur valeur en base —
-     * rien n'est réécrit — mais devront recevoir un type valide à la prochaine
-     * modification. L'écran affiche l'ancien libellé pour que la ligne reste lisible.
-     */
-    private const TYPES = ['Composition', 'Composition de passage', 'Examen blanc', 'Examen final'];
-
     /** Classes, matières, enseignants et types proposés, classes bornées à l'année de travail. */
     public function referentiels()
     {
@@ -46,7 +34,7 @@ class EvaluationController extends Controller
         return [
             'annee' => $annee,
             'annee_cloturee' => AnneeScolaireGuard::estCloturee($annee),
-            'types' => self::TYPES,
+            'types' => Evaluation::TYPES,
             'classes' => $this->lire('T_CLASSE', 'LibelleClasse', fn ($l) => [
                 'code' => trim((string) $l->CodeClasse), 'libelle' => $l->LibelleClasse ?: $l->CodeClasse,
             ], 'ANNEE'),
@@ -140,7 +128,7 @@ class EvaluationController extends Controller
             'classe' => ['required', 'string', 'max:50', Rule::exists('economat.T_CLASSE', 'CodeClasse')],
             'matiere' => ['required', 'string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')],
             'enseignant' => ['nullable', 'integer', Rule::exists('economat.T_PROFESSEUR', 'Code')],
-            'type' => ['required', 'string', Rule::in(self::TYPES)],
+            'type' => ['required', 'string', Rule::in(Evaluation::TYPES)],
             'date' => ['required', 'date'],
             'heure_debut' => ['nullable', 'string', 'max:10'],
             'heure_fin' => ['nullable', 'string', 'max:10'],

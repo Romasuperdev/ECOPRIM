@@ -3559,3 +3559,112 @@ consulte sans entrave. Suite complète : 391 passent.
 `CahierTextesController`, chemins d'API `/cahier-textes`) restent inchangés. Les renommer
 aurait touché trois portails, leurs fichiers d'API et leurs tests, pour zéro gain visible —
 du brassage à risque. Le nom affiché, lui, est juste partout.
+
+## Import / Export Excel : l'année entière, ou juste ce qu'on veut
+
+Dernier des quatre chantiers demandés. Un seul écran, **/echanges**, parce que l'export et
+l'import forment un aller-retour : on exporte pour corriger dans un tableur, et on
+réimporte. Les séparer aurait obligé à chercher le second après avoir fait le premier.
+
+### Huit jeux de données, déclarés une seule fois
+
+Élèves, notes, absences, évaluations, enseignants, classes, matières, niveaux. Sans rien
+cocher, c'est toute l'année qui part dans un classeur — une feuille par jeu, en-têtes en
+gras et figés. En cochant, on n'emporte que ce qu'on veut.
+
+Les colonnes de chaque jeu sont déclarées à **un seul endroit** (`CatalogueDonnees`), d'où
+dérivent l'export, le modèle vierge et l'import. Séparés, ils auraient divergé dès la
+première colonne ajoutée : on aurait exporté une colonne que le modèle n'annonce pas, ou
+attendu à l'import un en-tête que l'export n'écrit jamais.
+
+**L'export rend exactement ce que les écrans montrent** : même année de travail, même
+établissement. Un export qui déborderait du périmètre serait une porte dérobée autour de
+celui-ci, pas une commodité. Une année clôturée s'exporte en revanche normalement — c'est
+justement une fois close qu'on veut l'archiver.
+
+### L'import annonce avant d'écrire
+
+En deux temps, jamais en un seul geste. On dépose le fichier, on **lit le rapport**, puis
+on applique. Le rapport dit, ligne par ligne, ce qui serait créé, mis à jour ou écarté —
+et pourquoi. Sans ce temps d'arrêt, rien ne permettrait de s'apercevoir que la colonne
+Classe était décalée d'un cran, et **il n'y a pas de retour en arrière** : NEXORA ne
+supprime jamais dans ECONOMAT.
+
+Le fichier déposé est conservé et repéré par un jeton ; l'application relit *ce*
+fichier-là. Redemander le fichier au moment d'appliquer aurait laissé la place à un second
+fichier, voisin mais différent, et le rapport qu'on vient de lire n'aurait plus décrit ce
+qui s'écrit. Le fichier est effacé sitôt appliqué, et de toute façon au bout de deux heures :
+il contient des noms d'élèves et des coordonnées de parents.
+
+L'analyse et l'application appellent **la même méthode** (`verdicts()`) : l'analyse s'arrête
+là, l'application exécute. Deux jeux de règles parallèles auraient divergé au premier cas
+particulier, et l'écran aurait promis 95 créations pour en faire 91.
+
+**Un import ne supprime rien.** Un élève absent du fichier reste inscrit : l'absence d'une
+ligne n'est pas une instruction, c'est le plus souvent un fichier partiel.
+
+### Trois jeux s'importent, cinq non — et l'écran dit pourquoi
+
+S'importent : **élèves** (par `EtudiantEcrivain`), **notes** (par `NoteEcrivain`) et
+**évaluations** (table propre à NEXORA). Ce sont les seuls pour lesquels un chemin
+d'écriture contrôlé existe déjà, avec sa liste blanche de colonnes. Les autres sont des
+modèles en lecture seule sur ECONOMAT : les rendre importables reviendrait à inventer des
+écritures dans une base de production partagée, ce que le projet s'interdit depuis le
+premier jour. L'écran l'explique jeu par jeu, plutôt que de laisser chercher un bouton
+absent.
+
+Les rejets sont **dits, pas rattrapés** : classe inconnue, matricule vide, matricule en
+double dans le fichier, valeur trop longue pour sa colonne, note hors barème, élève
+appartenant à une autre classe. La ligne est écartée et la raison donnée ; les autres
+passent. Créer quand même un élève avec une classe fausse le rendrait invisible partout —
+écrans, effectifs et bulletins passent tous par la classe — et personne ne saurait qu'il
+manque.
+
+Le **modèle vierge** se télécharge depuis le même écran : sans lui, remplir un fichier
+d'import revient à deviner l'orthographe exacte de vingt colonnes. Les en-têtes sont
+d'ailleurs tolérants — « Prénom », « PRENOM » et « prenom » désignent la même colonne. La
+tolérance s'arrête là : une colonne que le catalogue ne connaît pas est **signalée**,
+jamais devinée.
+
+### Deux permissions, pas une
+
+`exporter_donnees` et `importer_donnees`. Exporter, c'est lire : une secrétaire peut avoir
+besoin de sortir la liste d'une classe. Importer, c'est écrire en masse et sans retour en
+arrière. Les confondre aurait donné le second à qui n'a besoin que du premier.
+
+Une **année clôturée refuse tout import** — le verrou est posé sur la classe de base des
+trois importateurs, pas répété trois fois.
+
+### Ce que la vérification contre la vraie base a changé
+
+L'export interrogeait ECONOMAT avec les noms de colonnes tels que déclarés. Si l'un d'eux
+différait en production, la requête échouait et la feuille arrivait **vide, en silence** —
+le pire des résultats, puisqu'on croit alors que la donnée n'existe pas.
+
+Les colonnes réelles sont désormais relevées à l'exécution, comme le fait déjà
+`SchemaNotes` pour les tables de notes : une colonne absente donne une cellule vide,
+l'en-tête reste (sinon le fichier exporté et le modèle d'import n'auraient plus les mêmes
+colonnes), et l'écran nomme les colonnes concernées.
+
+Confrontation faite contre la base réelle : **les huit jeux répondent, et aucune colonne
+déclarée ne manque**. Le classeur complet a été produit et relu — 9 élèves, 16 notes,
+3 absences, 6 enseignants, 6 classes, 9 niveaux. Un détail en est sorti : SQL Server rend
+un `bit` en 1 / 0, et « Justifiée » sortait donc en chiffres sur une feuille faite pour
+être lue. Les colonnes oui/non sont maintenant déclarées comme telles — déclarées et non
+devinées au type, car « Ordre » ou « Coefficient » y seraient passés aussi.
+
+### Au passage
+
+La liste des types d'évaluation était une constante **privée d'un contrôleur**. L'import en
+a besoin pour refuser un type inconnu : elle rejoint le modèle `Evaluation`, où le projet
+met déjà ce genre de liste (`Evenement::TYPES`). Un service qui dépend d'un contrôleur,
+c'est la dépendance à l'envers.
+
+`NoteEcrivain::entetePour()` créait l'entête si elle n'existait pas. L'analyse a besoin de
+savoir si elle existe **sans écrire** — un rapport qui devrait créer la ligne pour savoir
+quoi annoncer ne serait plus un rapport. La recherche est isolée dans
+`enteteExistante()`, que les deux chemins partagent : ils ne peuvent donc pas diverger sur
+la définition de l'identité d'une évaluation.
+
+31 tests ajoutés (`EchangeTest`). Suite complète : 421 passent — les 2 échecs restants sont
+les faux JPEG de `SaisieEconomatTest`, antérieurs et liés à l'environnement Windows.

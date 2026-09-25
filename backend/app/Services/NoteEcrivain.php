@@ -103,7 +103,13 @@ class NoteEcrivain
      * de notes, pas deux. Un second devoir se distingue par son libellé, et l'écran le
      * propose ; s'il diffère, l'entête aussi.
      */
-    public function entetePour(array $criteres): int
+    /**
+     * L'entête déjà saisie pour cette identité, ou null. Isolée d'`entetePour()` pour que
+     * l'analyse d'un import puisse annoncer « création » ou « modification » SANS écrire :
+     * un rapport qui devrait créer la ligne pour savoir quoi annoncer ne serait plus un
+     * rapport. Les deux chemins partagent forcément la même définition de l'identité.
+     */
+    public function enteteExistante(array $criteres): ?int
     {
         $this->exiger();
         $roles = $this->entete();
@@ -120,8 +126,29 @@ class NoteEcrivain
         }
 
         $existante = $requete->first();
-        if ($existante) {
-            $code = (int) $existante->{$roles['id']};
+
+        return $existante ? (int) $existante->{$roles['id']} : null;
+    }
+
+    /** Cet élève a-t-il déjà une note sur cette entête ? Même usage que ci-dessus. */
+    public function noteExistante(int $entete, string $eleve): bool
+    {
+        $this->exiger();
+        $roles = $this->detail();
+
+        return $this->table('detail')->requete()
+            ->where($roles['entete'], $entete)
+            ->where($roles['eleve'], $eleve)
+            ->exists();
+    }
+
+    public function entetePour(array $criteres): int
+    {
+        $this->exiger();
+        $roles = $this->entete();
+
+        $code = $this->enteteExistante($criteres);
+        if ($code !== null) {
             // Le coefficient et le barème peuvent être ajustés sans recréer l'évaluation.
             $maj = $this->ligne(array_intersect_key($roles, array_flip(['coefficient', 'bareme', 'professeur'])), $criteres);
             if ($maj !== []) {

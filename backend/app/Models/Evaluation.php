@@ -17,6 +17,18 @@ class Evaluation extends Model
 {
     protected $connection = 'ecoprim';
 
+    /**
+     * Les quatre épreuves officielles de l'établissement. Elles remplacent l'ancienne
+     * liste (Devoir, Devoir surveillé, Interrogations), qui n'était de toute façon pas
+     * appliquée : `type` était validé comme une chaîne libre, n'importe quelle valeur
+     * passait. Elle l'est désormais.
+     *
+     * Les évaluations déjà enregistrées sous un ancien type gardent leur valeur en base —
+     * rien n'est réécrit — mais devront recevoir un type valide à la prochaine
+     * modification. L'écran affiche l'ancien libellé pour que la ligne reste lisible.
+     */
+    public const TYPES = ['Composition', 'Composition de passage', 'Examen blanc', 'Examen final'];
+
     protected $fillable = [
         'titre', 'classe_code', 'matiere_code', 'enseignant_code', 'type',
         'date', 'heure_debut', 'heure_fin', 'coefficient', 'note_maximale', 'annee',

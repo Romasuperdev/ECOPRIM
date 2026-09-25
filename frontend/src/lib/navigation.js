@@ -57,6 +57,9 @@ export const GROUPS = [
       { to: '/inscriptions', label: 'Élèves et inscriptions' },
       { to: '/enseignants', label: 'Enseignants' },
       { to: '/absences', label: 'Absences' },
+      // L'écran porte les deux sens ; l'entrée n'apparaît qu'avec le droit d'exporter,
+      // le plus courant des deux. La partie import s'affiche, elle, selon `importer_donnees`.
+      { to: '/echanges', label: 'Import / Export Excel', permission: 'exporter_donnees' },
     ],
   },
   {

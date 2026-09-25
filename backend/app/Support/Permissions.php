@@ -31,6 +31,12 @@ class Permissions
         'gerer_roles' => ['libelle' => 'Gérer les rôles', 'groupe' => 'Administration'],
         'modifier_parametres_ecole' => ['libelle' => "Modifier les paramètres de l'école", 'groupe' => 'Administration'],
         'consulter_statistiques' => ['libelle' => 'Consulter les statistiques', 'groupe' => 'Administration'],
+        // Deux permissions et non une : exporter, c'est lire — une secrétaire peut avoir
+        // besoin de sortir la liste d'une classe. Importer, c'est écrire en masse dans une
+        // base partagée, et sans retour en arrière possible. Les confondre reviendrait à
+        // donner le second à qui n'a besoin que du premier.
+        'exporter_donnees' => ['libelle' => 'Exporter les données (Excel)', 'groupe' => 'Administration'],
+        'importer_donnees' => ['libelle' => 'Importer des données (Excel)', 'groupe' => 'Administration'],
         'consulter_activites' => ["libelle" => "Consulter l'historique d'activité", 'groupe' => 'Administration'],
     ];
 

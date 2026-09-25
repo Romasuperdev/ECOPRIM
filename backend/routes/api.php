@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\EchangeController;
 use App\Http\Controllers\Api\V1\EleveController;
 use App\Http\Controllers\Api\V1\ClasseController;
 use App\Http\Controllers\Api\V1\NoteController;
@@ -166,6 +167,18 @@ Route::prefix('v1')->group(function () {
         Route::get('impressions/enseignants/{enseignant}', [ImpressionController::class, 'enseignant']);
         Route::get('impressions/emploi-du-temps', [ImpressionController::class, 'emploiDuTemps']);
         Route::get('impressions/liste-classe', [ImpressionController::class, 'listeClasse']);
+
+        // Import / Export Excel. L'export LIT — même année et même établissement que les
+        // écrans. L'import ÉCRIT en masse, et sans retour en arrière possible puisque
+        // NEXORA ne supprime jamais dans ECONOMAT : d'où deux permissions distinctes, et
+        // deux temps — on analyse, on lit le rapport, puis on applique.
+        Route::get('echanges/catalogue', [EchangeController::class, 'catalogue'])->middleware('permission:exporter_donnees');
+        Route::get('echanges/export', [EchangeController::class, 'exporter'])->middleware('permission:exporter_donnees');
+        Route::get('echanges/modele', [EchangeController::class, 'modele'])->middleware('permission:exporter_donnees');
+        Route::middleware('permission:importer_donnees')->group(function () {
+            Route::post('echanges/import/{jeu}/analyse', [EchangeController::class, 'analyser']);
+            Route::post('echanges/import', [EchangeController::class, 'appliquer']);
+        });
 
         Route::get('eleves/{eleve}/bulletin', [BulletinController::class, 'show']);
         Route::get('eleves/{eleve}/bulletin/donnees', [BulletinController::class, 'donnees']);
