@@ -87,7 +87,11 @@ function SectionExport({ catalogue }) {
           onClick={() => { setRefus(null); exporter.mutate() }}
         >
           <Download size={16} />
-          {exporter.isPending ? 'Préparation…' : `Exporter ${lignes} ligne${lignes > 1 ? 's' : ''}`}
+          {exporter.isPending
+            ? 'Préparation…'
+            : tout
+              ? `Exporter toute l’année (${lignes} lignes)`
+              : `Exporter ${lignes} ligne${lignes > 1 ? 's' : ''}`}
         </Button>
       </header>
 
@@ -143,44 +147,40 @@ function SectionExport({ catalogue }) {
   )
 }
 
-/** Le rapport d'analyse : ce qui se passerait, avant que quoi que ce soit ne se passe. */
-function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
-  const aEcrire = rapport.creations + rapport.modifications
-
+/** Le détail d'une feuille du rapport. Une seule pour un jeu, trois pour une année. */
+function FeuilleRapport({ feuille, montrerTitre }) {
   return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-card p-5">
-      <h3 className="mb-1 text-base font-bold text-heading">
-        Rapport d’analyse — {rapport.jeu_libelle}
-      </h3>
-      <p className="mb-4 text-sm font-medium text-muted">
-        {rapport.lignes} ligne{rapport.lignes > 1 ? 's' : ''} lue
-        {rapport.lignes > 1 ? 's' : ''}. Rien n’a encore été écrit.
-      </p>
+    <div className="mt-4">
+      {montrerTitre && (
+        <h4 className="mb-2 flex flex-wrap items-baseline gap-2 text-sm font-bold text-heading">
+          <span>{feuille.jeu_libelle}</span>
+          <span className="text-xs font-semibold text-muted">
+            onglet « {feuille.feuille} » · {feuille.lignes} ligne{feuille.lignes > 1 ? 's' : ''} ·{' '}
+            {feuille.creations} création{feuille.creations > 1 ? 's' : ''}, {feuille.modifications} mise
+            {feuille.modifications > 1 ? 's' : ''} à jour, {feuille.rejets} écartée
+            {feuille.rejets > 1 ? 's' : ''}
+          </span>
+        </h4>
+      )}
 
-      <div className="grid grid-cols-3 gap-3">
-        <Compteur valeur={rapport.creations} libelle="Créations" couleur="var(--success)" />
-        <Compteur valeur={rapport.modifications} libelle="Mises à jour" couleur="var(--brand-accent)" />
-        <Compteur valeur={rapport.rejets} libelle="Écartées" couleur="var(--danger)" />
-      </div>
-
-      {rapport.colonnes_inconnues.length > 0 && (
-        <p className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+      {feuille.colonnes_inconnues.length > 0 && (
+        <p className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />
           <span>
-            Colonnes non reconnues, donc ignorées : <strong>{rapport.colonnes_inconnues.join(', ')}</strong>.
+            Colonnes non reconnues, donc ignorées : <strong>{feuille.colonnes_inconnues.join(', ')}</strong>.
           </span>
         </p>
       )}
 
-      {rapport.colonnes_absentes.length > 0 && (
-        <p className="mt-3 text-sm font-medium text-muted">
+      {feuille.colonnes_absentes.length > 0 && (
+        <p className="mb-3 text-sm font-medium text-muted">
           Colonnes absentes du fichier (les valeurs existantes ne seront pas touchées) :{' '}
-          {rapport.colonnes_absentes.join(', ')}.
+          {feuille.colonnes_absentes.join(', ')}.
         </p>
       )}
 
-      {rapport.apercu.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+      {feuille.apercu.length > 0 && (
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-muted">
               <tr>
@@ -191,7 +191,7 @@ function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rapport.apercu.map((l) => (
+              {feuille.apercu.map((l) => (
                 <tr key={l.ligne}>
                   <td className="px-3 py-2 font-semibold text-muted">{l.ligne}</td>
                   <td className="px-3 py-2"><Etiquette action={l.action} /></td>
@@ -201,14 +201,50 @@ function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
               ))}
             </tbody>
           </table>
-          {rapport.lignes > rapport.apercu.length && (
+          {feuille.lignes > feuille.apercu.length && (
             <p className="border-t border-slate-200 px-3 py-2 text-xs font-semibold text-muted">
-              {rapport.apercu.length} lignes affichées sur {rapport.lignes} — les lignes écartées
+              {feuille.apercu.length} lignes affichées sur {feuille.lignes} — les lignes écartées
               d’abord.
             </p>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Le rapport d'analyse : ce qui se passerait, avant que quoi que ce soit ne se passe. */
+function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
+  const aEcrire = rapport.creations + rapport.modifications
+  const plusieurs = rapport.feuilles.length > 1
+
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-card p-5">
+      <h3 className="mb-1 text-base font-bold text-heading">
+        Rapport d’analyse — {rapport.jeu_libelle}
+      </h3>
+      <p className="mb-4 text-sm font-medium text-muted">
+        {rapport.lignes} ligne{rapport.lignes > 1 ? 's' : ''} lue
+        {rapport.lignes > 1 ? 's' : ''}
+        {plusieurs && ` sur ${rapport.feuilles.length} feuilles`}. Rien n’a encore été écrit.
+      </p>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Compteur valeur={rapport.creations} libelle="Créations" couleur="var(--success)" />
+        <Compteur valeur={rapport.modifications} libelle="Mises à jour" couleur="var(--brand-accent)" />
+        <Compteur valeur={rapport.rejets} libelle="Écartées" couleur="var(--danger)" />
+      </div>
+
+      {rapport.feuilles_absentes?.length > 0 && (
+        <p className="mt-4 text-sm font-medium text-muted">
+          Feuilles absentes du classeur, donc laissées de côté :{' '}
+          <strong>{rapport.feuilles_absentes.join(', ')}</strong>. Rien n’y sera touché.
+        </p>
+      )}
+
+      {rapport.feuilles.map((f) => (
+        <FeuilleRapport key={f.jeu} feuille={f} montrerTitre={plusieurs} />
+      ))}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button
@@ -246,6 +282,8 @@ function SectionImport({ catalogue }) {
     () => (catalogue?.jeux ?? []).filter((j) => j.importable),
     [catalogue],
   )
+  const annee = catalogue?.import_annee
+  const codeAnnee = annee?.code
   const fermes = useMemo(
     () => (catalogue?.jeux ?? []).filter((j) => !j.importable),
     [catalogue],
@@ -257,8 +295,11 @@ function SectionImport({ catalogue }) {
     if (champFichier.current) champFichier.current.value = ''
   }
 
+  // Le classeur d'année entière porte la feuille Notes : le barème le concerne aussi.
+  const concerneLesNotes = jeu === 'notes' || jeu === codeAnnee
+
   const analyser = useMutation({
-    mutationFn: () => analyserImport(jeu, fichier, jeu === 'notes' ? { bareme } : {}),
+    mutationFn: () => analyserImport(jeu, fichier, concerneLesNotes ? { bareme } : {}),
     onSuccess: (data) => { setRapport(data); setBilan(null); setRefus(null) },
     onError: (e) => { setRapport(null); setRefus(messageErreur(e)) },
   })
@@ -321,11 +362,21 @@ function SectionImport({ catalogue }) {
             Import terminé : <strong>{bilan.bilan.creees}</strong> création
             {bilan.bilan.creees > 1 ? 's' : ''}, <strong>{bilan.bilan.modifiees}</strong> mise
             {bilan.bilan.modifiees > 1 ? 's' : ''} à jour
+            {bilan.bilan_par_jeu?.length > 1 && (
+              <>
+                {' '}({bilan.bilan_par_jeu
+                  .map((b) => `${b.jeu_libelle} : ${b.creees} + ${b.modifiees}`)
+                  .join(' · ')})
+              </>
+            )}
             {bilan.bilan.echecs.length > 0 && (
               <>
                 {' '}— <strong>{bilan.bilan.echecs.length}</strong> ligne
                 {bilan.bilan.echecs.length > 1 ? 's' : ''} en échec :{' '}
-                {bilan.bilan.echecs.slice(0, 3).map((e) => `ligne ${e.ligne} (${e.motif})`).join(' ; ')}
+                {bilan.bilan.echecs
+                  .slice(0, 3)
+                  .map((e) => `${e.jeu ? `${e.jeu}, ` : ''}ligne ${e.ligne} (${e.motif})`)
+                  .join(' ; ')}
               </>
             )}
             .
@@ -340,12 +391,15 @@ function SectionImport({ catalogue }) {
           onChange={(e) => { setJeu(e.target.value); reinitialiser(); setBilan(null) }}
         >
           <option value="">— Choisir —</option>
+          {/* En tête de liste : c'est le geste de début d'année, et celui qui répond à
+              l'export « toute l'année » d'à côté. */}
+          {annee && <option value={annee.code}>{annee.libelle} ({annee.feuilles.join(' + ')})</option>}
           {importables.map((j) => (
-            <option key={j.code} value={j.code}>{j.libelle}</option>
+            <option key={j.code} value={j.code}>{j.libelle} uniquement</option>
           ))}
         </Select>
 
-        {jeu === 'notes' && (
+        {concerneLesNotes && (
           <Input
             label="Barème des notes du fichier"
             type="number"
@@ -385,9 +439,16 @@ function SectionImport({ catalogue }) {
           </div>
 
           <p className="mt-2 text-xs font-semibold text-muted">
-            .xlsx, .xls ou .csv, jusqu’à {catalogue?.lignes_max_import} lignes. La casse et les
-            accents des en-têtes n’ont pas d’importance ; une colonne inconnue est signalée, pas
-            devinée.
+            .xlsx, .xls ou .csv, jusqu’à {catalogue?.lignes_max_import} lignes par feuille. La
+            casse et les accents des en-têtes n’ont pas d’importance ; une colonne inconnue est
+            signalée, pas devinée.
+            {jeu === codeAnnee && (
+              <>
+                {' '}Un onglet manquant est simplement laissé de côté. Les feuilles sont reprises
+                dans l’ordre <strong>{annee.feuilles.join(' → ')}</strong> : une note doit pouvoir
+                se poser sur un élève que la feuille précédente vient de créer.
+              </>
+            )}
           </p>
         </>
       )}

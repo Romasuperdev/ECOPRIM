@@ -318,7 +318,7 @@ class EchangeTest extends TestCase
 
         $this->assertSame(1, $rapport['rejets']);
         $this->assertSame(0, $rapport['creations']);
-        $this->assertStringContainsString('CE1Z', $rapport['apercu'][0]['motif']);
+        $this->assertStringContainsString('CE1Z', $rapport['feuilles'][0]['apercu'][0]['motif']);
     }
 
     public function test_un_matricule_en_double_dans_le_fichier_est_rejete(): void
@@ -332,7 +332,7 @@ class EchangeTest extends TestCase
 
         $this->assertSame(1, $rapport['creations']);
         $this->assertSame(1, $rapport['rejets']);
-        $this->assertStringContainsString('ligne 2', $rapport['apercu'][0]['motif']);
+        $this->assertStringContainsString('ligne 2', $rapport['feuilles'][0]['apercu'][0]['motif']);
     }
 
     public function test_un_eleve_cree_sans_classe_est_rejete(): void
@@ -362,7 +362,7 @@ class EchangeTest extends TestCase
         ])->assertOk()->json();
 
         $this->assertSame(1, $rapport['creations']);
-        $this->assertSame([], $rapport['colonnes_inconnues']);
+        $this->assertSame([], $rapport['feuilles'][0]['colonnes_inconnues']);
     }
 
     public function test_une_colonne_inconnue_est_signalee_sans_bloquer(): void
@@ -374,7 +374,7 @@ class EchangeTest extends TestCase
         ])->assertOk()->json();
 
         $this->assertSame(1, $rapport['creations']);
-        $this->assertSame(['Scolarité payée'], $rapport['colonnes_inconnues']);
+        $this->assertSame(['Scolarité payée'], $rapport['feuilles'][0]['colonnes_inconnues']);
     }
 
     // --- Import : notes ---------------------------------------------------------------
@@ -407,6 +407,43 @@ class EchangeTest extends TestCase
         $this->assertEqualsWithDelta(14.0, $details->first()->Note, 0.001);
     }
 
+    /**
+     * ECONOMAT note l'année tantôt en code (« 2025 »), tantôt en libellé
+     * (« 2025-2026 ») — les deux coexistent dans les mêmes tables. Une recherche stricte
+     * manquait l'entête déjà saisie et en créait une SECONDE, qu'ECONOMAT aurait comptée en
+     * plus de la première dans la moyenne. Défaut relevé en réimportant un export : les 16
+     * notes qui venaient d'en sortir revenaient toutes en « création ».
+     */
+    public function test_une_entete_ecrite_avec_le_code_de_l_annee_est_retrouvee(): void
+    {
+        $eco = fn (string $t) => DB::connection('economat')->table($t);
+
+        // Entête posée par ECONOMAT, avec le CODE de l'année et non son libellé.
+        $eco('T_NOTEENTETE')->insert([
+            'Code' => 500, 'CodeClasse' => 'CP1A', 'CodeMatiere' => 'MATH',
+            'CodeSession' => 'S1', 'CodeAnnee' => '2025', 'TypeNote' => 'Composition',
+        ]);
+        $eco('T_NOTEDETAILS')->insert([
+            'Code' => 900, 'CodeNote' => 500, 'Matricule' => 'E-11', 'Note' => 8,
+        ]);
+
+        $rapport = $this->postJson('/api/v1/echanges/import/notes/analyse', [
+            'fichier' => $this->fichier($this->entetesNotes(), [
+                ['E-11', 'CP1A', 'MATH', 'S1', 'Composition', '16'],
+            ]),
+        ])->assertOk()->json();
+
+        $this->assertSame(0, $rapport['creations']);
+        $this->assertSame(1, $rapport['modifications']);
+
+        $this->postJson('/api/v1/echanges/import', ['jeton' => $rapport['jeton']])->assertOk();
+
+        // Une seule entête, une seule note : rien n'a été dupliqué.
+        $this->assertSame(1, $eco('T_NOTEENTETE')->count());
+        $this->assertSame(1, $eco('T_NOTEDETAILS')->count());
+        $this->assertEqualsWithDelta(16.0, $eco('T_NOTEDETAILS')->value('Note'), 0.001);
+    }
+
     public function test_une_note_portee_sur_un_eleve_d_une_autre_classe_est_rejetee(): void
     {
         $rapport = $this->postJson('/api/v1/echanges/import/notes/analyse', [
@@ -416,7 +453,7 @@ class EchangeTest extends TestCase
         ])->assertOk()->json();
 
         $this->assertSame(1, $rapport['rejets']);
-        $this->assertStringContainsString('CP2A', $rapport['apercu'][0]['motif']);
+        $this->assertStringContainsString('CP2A', $rapport['feuilles'][0]['apercu'][0]['motif']);
     }
 
     public function test_une_note_hors_bareme_est_rejetee(): void
@@ -449,7 +486,7 @@ class EchangeTest extends TestCase
         ])->assertOk()->json();
 
         $this->assertSame(1, $rapport['rejets']);
-        $this->assertStringContainsString('Session', $rapport['apercu'][0]['motif']);
+        $this->assertStringContainsString('Session', $rapport['feuilles'][0]['apercu'][0]['motif']);
     }
 
     // --- Import : évaluations ---------------------------------------------------------
@@ -467,7 +504,7 @@ class EchangeTest extends TestCase
 
         $this->assertSame(1, $rapport['creations']);
         $this->assertSame(1, $rapport['rejets']);
-        $this->assertStringContainsString('Interrogation', $rapport['apercu'][0]['motif']);
+        $this->assertStringContainsString('Interrogation', $rapport['feuilles'][0]['apercu'][0]['motif']);
     }
 
     public function test_reimporter_le_meme_fichier_met_a_jour_au_lieu_de_dupliquer(): void
@@ -487,6 +524,165 @@ class EchangeTest extends TestCase
         $this->assertSame(1, $importer()['creees']);
         $this->assertSame(1, $importer()['modifiees']);
         $this->assertSame(1, DB::connection('ecoprim')->table('evaluations')->count());
+    }
+
+    // --- Import d'une année entière ---------------------------------------------------
+
+    /** Un classeur à plusieurs feuilles, comme celui que l'export produit. */
+    private function classeurMultiFeuilles(array $feuilles, string $nom = 'annee.xlsx'): UploadedFile
+    {
+        $classeur = new Spreadsheet;
+        $classeur->removeSheetByIndex(0);
+
+        foreach ($feuilles as $titre => $contenu) {
+            $feuille = $classeur->createSheet();
+            $feuille->setTitle($titre);
+            $feuille->fromArray($contenu, null, 'A1');
+        }
+
+        $chemin = tempnam(sys_get_temp_dir(), 'nx').'.xlsx';
+        IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+
+        return new UploadedFile($chemin, $nom, null, null, true);
+    }
+
+    private function classeurAnnee(): UploadedFile
+    {
+        return $this->classeurMultiFeuilles([
+            'Eleves' => [
+                $this->entetesEleves(),
+                ['E-11', 'Kouassi', 'Awa Corrigée', 'F', '12/03/2018', 'CP1A'],
+                ['E-99', 'Nouveau', 'Venu', 'M', '01/09/2019', 'CP1A'],
+            ],
+            'Notes' => [
+                $this->entetesNotes(),
+                ['E-11', 'CP1A', 'MATH', 'S1', 'Composition', '12'],
+                // Élève créé par la feuille d'à côté : il n'existe pas encore en base.
+                ['E-99', 'CP1A', 'MATH', 'S1', 'Composition', '15'],
+            ],
+            'Evaluations' => [
+                ['Titre', 'Classe', 'Matière', 'Type', 'Date', 'Coefficient', 'Note maximale'],
+                ['Compo 1', 'CP1A', 'MATH', 'Composition', '15/12/2025', '2', '20'],
+            ],
+        ]);
+    }
+
+    public function test_l_annee_entiere_s_analyse_feuille_par_feuille(): void
+    {
+        $rapport = $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurAnnee(),
+        ])->assertOk()->json();
+
+        $this->assertSame('annee', $rapport['jeu']);
+        $this->assertCount(3, $rapport['feuilles']);
+        $this->assertSame(
+            ['eleves', 'notes', 'evaluations'],
+            array_column($rapport['feuilles'], 'jeu'),
+        );
+
+        // Totaux : 1 élève créé + 1 mis à jour, 2 notes, 1 évaluation.
+        $this->assertSame(5, $rapport['lignes']);
+        $this->assertSame(4, $rapport['creations']);
+        $this->assertSame(1, $rapport['modifications']);
+        $this->assertSame(0, $rapport['rejets']);
+    }
+
+    /**
+     * Le cas qui rend l'année entière utilisable : sans lui, la feuille Notes serait
+     * analysée avant que les élèves n'existent, et toutes ses lignes seraient écartées.
+     */
+    public function test_une_note_portant_sur_un_eleve_cree_par_la_feuille_d_a_cote_passe(): void
+    {
+        $rapport = $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurAnnee(),
+        ])->assertOk()->json();
+
+        $notes = collect($rapport['feuilles'])->firstWhere('jeu', 'notes');
+        $this->assertSame(0, $notes['rejets']);
+        $this->assertSame(2, $notes['creations']);
+    }
+
+    public function test_l_annee_entiere_s_applique_dans_l_ordre_eleves_puis_notes(): void
+    {
+        $jeton = $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurAnnee(),
+        ])->assertOk()->json('jeton');
+
+        $reponse = $this->postJson('/api/v1/echanges/import', ['jeton' => $jeton])
+            ->assertOk()->json();
+
+        $this->assertSame([], $reponse['bilan']['echecs']);
+        $this->assertSame(4, $reponse['bilan']['creees']);
+        $this->assertSame(1, $reponse['bilan']['modifiees']);
+        $this->assertSame(
+            ['eleves', 'notes', 'evaluations'],
+            array_column($reponse['bilan_par_jeu'], 'jeu'),
+        );
+
+        // L'élève créé par la première feuille porte bien la note de la seconde.
+        $this->assertTrue(
+            DB::connection('economat')->table('T_ETUDIANT')->where('Matricule', 'E-99')->exists()
+        );
+        $this->assertEqualsWithDelta(15.0, DB::connection('economat')->table('T_NOTEDETAILS')
+            ->where('Matricule', 'E-99')->value('Note'), 0.001);
+    }
+
+    public function test_une_feuille_absente_du_classeur_est_dite_sans_bloquer_les_autres(): void
+    {
+        $rapport = $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurMultiFeuilles([
+                'Eleves' => [
+                    $this->entetesEleves(),
+                    ['E-99', 'Nouveau', 'Venu', 'M', '01/09/2019', 'CP1A'],
+                ],
+            ]),
+        ])->assertOk()->json();
+
+        $this->assertCount(1, $rapport['feuilles']);
+        $this->assertSame(['Notes', 'Evaluations'], $rapport['feuilles_absentes']);
+        $this->assertSame(1, $rapport['creations']);
+    }
+
+    public function test_le_nom_des_onglets_tolere_la_casse_et_les_accents(): void
+    {
+        $rapport = $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurMultiFeuilles([
+                'ÉLÈVES' => [
+                    $this->entetesEleves(),
+                    ['E-99', 'Nouveau', 'Venu', 'M', '01/09/2019', 'CP1A'],
+                ],
+            ]),
+        ])->assertOk()->json();
+
+        $this->assertSame('eleves', $rapport['feuilles'][0]['jeu']);
+        $this->assertSame('ÉLÈVES', $rapport['feuilles'][0]['feuille']);
+    }
+
+    public function test_un_classeur_sans_aucune_feuille_reconnue_est_refuse(): void
+    {
+        $this->postJson('/api/v1/echanges/import/annee/analyse', [
+            'fichier' => $this->classeurMultiFeuilles([
+                'Comptabilité' => [['Compte', 'Montant'], ['411', '1000']],
+            ]),
+        ])->assertStatus(422)->assertJsonValidationErrors('fichier');
+    }
+
+    public function test_le_modele_d_annee_porte_les_trois_feuilles_importables(): void
+    {
+        $reponse = $this->get('/api/v1/echanges/modele?jeux=annee')->assertOk();
+        $classeur = $this->classeur($reponse);
+
+        $this->assertSame(['Eleves', 'Notes', 'Evaluations'], $classeur->getSheetNames());
+        // Vierge : les en-têtes, et rien d'autre.
+        $this->assertCount(1, $classeur->getSheetByName('Notes')->toArray());
+    }
+
+    public function test_le_catalogue_annonce_l_import_d_annee_entiere(): void
+    {
+        $annee = $this->getJson('/api/v1/echanges/catalogue')->assertOk()->json('import_annee');
+
+        $this->assertSame('annee', $annee['code']);
+        $this->assertSame(['Eleves', 'Notes', 'Evaluations'], $annee['feuilles']);
     }
 
     // --- Refus ------------------------------------------------------------------------

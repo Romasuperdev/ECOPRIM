@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ContexteScolaire;
 use App\Support\SchemaNotes;
 use RuntimeException;
 
@@ -122,6 +123,17 @@ class NoteEcrivain
 
         $requete = $this->table('entete')->requete();
         foreach ($identite as $role) {
+            // L'ANNÉE se cherche sur ses DEUX écritures. ECONOMAT la note tantôt en code
+            // (« 2026 »), tantôt en libellé (« Année Scolaire 2026-2027 ») — les deux
+            // coexistent dans les mêmes tables. Une égalité stricte manquait donc l'entête
+            // déjà saisie et en créait une seconde, que la moyenne calculée par ECONOMAT
+            // aurait comptée en plus de la première. Même raison qu'ailleurs dans
+            // l'application, d'où le même outil : ContexteScolaire::variantesDe().
+            if ($role === 'annee') {
+                $requete->whereIn($roles[$role], ContexteScolaire::variantesDe((string) $criteres[$role]));
+
+                continue;
+            }
             $requete->where($roles[$role], $criteres[$role]);
         }
 

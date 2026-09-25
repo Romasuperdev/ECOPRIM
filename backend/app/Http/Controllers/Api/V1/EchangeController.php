@@ -45,6 +45,16 @@ class EchangeController extends Controller
             'annee_cloturee' => AnneeScolaireGuard::estCloturee($annee),
             'etablissement' => PerimetreEtablissement::nom(),
             'lignes_max_import' => LecteurClasseur::LIGNES_MAX,
+            // L'année entière n'est pas un jeu de plus : c'est le classeur complet, dont on
+            // reprend toutes les feuilles importables, dans l'ordre du catalogue.
+            'import_annee' => [
+                'code' => ServiceImport::JEU_ANNEE,
+                'libelle' => ServiceImport::LIBELLE_ANNEE,
+                'feuilles' => array_map(
+                    fn (string $code) => CatalogueDonnees::jeu($code)['feuille'],
+                    CatalogueDonnees::importables(),
+                ),
+            ],
             'jeux' => collect(CatalogueDonnees::codes())->map(function (string $code) {
                 $jeu = CatalogueDonnees::jeu($code);
 
@@ -80,7 +90,11 @@ class EchangeController extends Controller
      */
     public function modele(Request $request)
     {
-        $jeux = array_values(array_intersect($this->jeuxDemandes($request), CatalogueDonnees::importables()));
+        // « annee » n'est pas un jeu du catalogue mais le classeur entier : le modèle porte
+        // alors une feuille par jeu importable, et l'import les reprend toutes.
+        $jeux = $request->input('jeux') === ServiceImport::JEU_ANNEE
+            ? CatalogueDonnees::importables()
+            : array_values(array_intersect($this->jeuxDemandes($request), CatalogueDonnees::importables()));
 
         if ($jeux === []) {
             throw ValidationException::withMessages([
@@ -100,7 +114,9 @@ class EchangeController extends Controller
         $this->validerJeuImportable($jeu);
 
         $data = $request->validate([
-            'fichier' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:10240'],
+            // 20 Mo : un classeur d'année entière porte plusieurs feuilles, là où un jeu
+            // seul en portait une.
+            'fichier' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:20480'],
             'bareme' => ['nullable', 'numeric', 'min:1', 'max:100'],
         ]);
 
@@ -158,6 +174,10 @@ class EchangeController extends Controller
 
     private function validerJeuImportable(string $jeu): void
     {
+        if ($jeu === ServiceImport::JEU_ANNEE) {
+            return;
+        }
+
         if (! CatalogueDonnees::existe($jeu) || ! CatalogueDonnees::jeu($jeu)['importable']) {
             throw ValidationException::withMessages([
                 'jeu' => "Le jeu « {$jeu} » ne s'importe pas.",

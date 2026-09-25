@@ -3668,3 +3668,74 @@ la définition de l'identité d'une évaluation.
 
 31 tests ajoutés (`EchangeTest`). Suite complète : 421 passent — les 2 échecs restants sont
 les faux JPEG de `SaisieEconomatTest`, antérieurs et liés à l'environnement Windows.
+
+## Import d'une année scolaire entière, et un doublon d'évaluation évité de justesse
+
+L'export savait déjà rendre l'année entière — un classeur, une feuille par jeu. L'import,
+lui, restait borné à un jeu à la fois : il fallait déposer trois fichiers là où l'export en
+avait produit un. **On peut désormais redéposer ce classeur tel quel.**
+
+Dans « Que voulez-vous importer ? », une entrée en tête de liste : **Année scolaire entière
+(Eleves + Notes + Evaluations)**. Le classeur est lu une seule fois, et chaque onglet
+reconnu est repris. Un onglet manquant est simplement laissé de côté et dit — ce n'est pas
+une erreur, c'est un classeur partiel. Le nom des onglets tolère la casse et les accents,
+comme les en-têtes : « ÉLÈVES » et « Eleves » désignent le même.
+
+### L'ordre n'est pas indifférent
+
+Les feuilles sont reprises dans l'ordre du catalogue : **élèves, puis notes, puis
+évaluations**. Une note doit pouvoir se poser sur un élève que la feuille précédente vient
+de créer.
+
+Mais cela ne suffisait pas. À l'ANALYSE, la feuille Notes était jugée sur les élèves
+présents en base — donc, pour une année neuve, **toutes ses lignes auraient été écartées**
+pour « matricule inconnu », alors que la feuille d'à côté allait précisément les créer. Le
+rapport doit dire ce qui va se passer, pas ce qui se passerait si on n'importait que les
+notes : l'analyse des notes tient maintenant compte des élèves que la feuille Élèves
+s'apprête à écrire, et si celle-ci change un élève de classe, c'est la nouvelle classe qui
+vaut pour ses notes.
+
+Le rapport a la **même forme** pour un jeu seul et pour l'année entière : des totaux, puis
+une entrée par feuille. Deux formes auraient donné deux façons de l'afficher, qui auraient
+divergé.
+
+### Ce que l'aller-retour contre la vraie base a révélé
+
+Épreuve faite : exporter l'année entière depuis ECONOMAT, puis réimporter le classeur
+obtenu. Un import qui ne fait que relire ce qu'on vient d'exporter ne devrait **rien
+créer** — tout doit se reconnaître.
+
+Or les 16 notes revenaient toutes en « création ». La cause : `V_NOTECLASSE.CodeAnnee` vaut
+**`2026`** quand l'année de travail s'écrit **`Année Scolaire 2026-2027`**. ECONOMAT note
+l'année tantôt en code, tantôt en libellé — les deux conventions coexistent dans les mêmes
+tables. `NoteEcrivain::enteteExistante()` cherchait sur l'égalité stricte : elle manquait
+l'entête déjà saisie et en aurait créé une **seconde**, qu'ECONOMAT aurait comptée en plus
+de la première dans la moyenne — exactement la duplication que la saisie des notes
+s'interdit.
+
+La recherche porte maintenant sur les **deux écritures**, via
+`ContexteScolaire::variantesDe()` — le même outil qui avait déjà servi au filtre d'année
+des inscriptions, pour la même raison. Après correction, l'aller-retour donne **0 création
+et 25 mises à jour** : l'import est idempotent, comme il doit l'être.
+
+Le défaut ne venait pas de l'import : il était dans le service de saisie des notes, partagé
+avec l'écran de saisie. **Celui-ci créait donc lui aussi une entête en double** dès qu'il
+notait une évaluation qu'ECONOMAT avait posée. Corrigé pour les deux.
+
+La seule ligne écartée de l'aller-retour est une évaluation portant l'ancien type « Devoir
+surveillé » — comportement attendu et déjà documenté : les évaluations enregistrées sous un
+ancien type gardent leur valeur, et doivent en recevoir un valide à la prochaine
+modification. Le rapport le dit en toutes lettres.
+
+### Détails
+
+Le modèle vierge d'année entière porte les trois feuilles importables, prêtes à remplir. Le
+barème s'applique aussi à l'import d'année, puisque le classeur porte la feuille Notes. La
+taille admise passe à 20 Mo — un classeur d'année porte plusieurs feuilles. Le bilan final
+détaille ce qui a été écrit jeu par jeu, et un échec nomme sa feuille.
+
+Le bouton d'export dit désormais « Exporter toute l'année » quand rien n'est coché, au lieu
+de se contenter d'un nombre de lignes.
+
+9 tests ajoutés (39 sur l'écran d'échanges). Suite complète : **430 passent**, 2 échecs
+antérieurs (faux JPEG, Windows).

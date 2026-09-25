@@ -25,25 +25,61 @@ class LecteurClasseur
     public const LIGNES_MAX = 5000;
 
     /**
+     * La première feuille du classeur — le cas d'un fichier qui ne porte qu'un jeu.
+     *
      * @return array{entetes: array<int, string>, lignes: array<int, array<string, mixed>>}
      */
     public function lire(string $chemin): array
     {
+        return $this->extraire($this->charger($chemin)->getActiveSheet());
+    }
+
+    /**
+     * Toutes les feuilles, indexées par leur nom. Le classeur n'est chargé QU'UNE FOIS :
+     * un import d'année entière demande trois feuilles, et relire le fichier à chaque fois
+     * ferait trois analyses XML complètes du même classeur.
+     *
+     * @return array<string, array{entetes: array<int, string>, lignes: array<int, array<string, mixed>>}>
+     */
+    public function lireToutes(string $chemin): array
+    {
+        $feuilles = [];
+
+        foreach ($this->charger($chemin)->getAllSheets() as $feuille) {
+            try {
+                $feuilles[$feuille->getTitle()] = $this->extraire($feuille);
+            } catch (RuntimeException $e) {
+                // Une feuille vide n'est pas une erreur dans un classeur qui en porte
+                // plusieurs : on n'en tient simplement pas compte.
+            }
+        }
+
+        return $feuilles;
+    }
+
+    private function charger(string $chemin)
+    {
         try {
             $lecteur = IOFactory::createReaderForFile($chemin);
-            $feuille = $lecteur->load($chemin)->getActiveSheet();
-            // On lit les valeurs FORMATÉES (3e argument), pas les valeurs brutes. Sans quoi
-            // une date d'un classeur Excel arrive en numéro de série — 46 275 pour le
-            // 25/09/2026 — et il n'y a plus moyen de la distinguer d'un nombre. Lire le
-            // format demande de charger la mise en forme, d'où l'absence de
-            // setReadDataOnly() : c'est le prix d'une date juste.
-            $brut = $feuille->toArray(null, true, true, false);
+
+            return $lecteur->load($chemin);
         } catch (Throwable $e) {
             throw new RuntimeException(
                 "Ce fichier n'a pas pu être ouvert. Attendus : .xlsx, .xls ou .csv."
             );
         }
+    }
 
+    /**
+     * @return array{entetes: array<int, string>, lignes: array<int, array<string, mixed>>}
+     */
+    private function extraire($feuille): array
+    {
+        // On lit les valeurs FORMATÉES (3e argument), pas les valeurs brutes. Sans quoi une
+        // date d'un classeur Excel arrive en numéro de série — 46 275 pour le 25/09/2026 —
+        // et il n'y a plus moyen de la distinguer d'un nombre. Lire le format demande de
+        // charger la mise en forme : c'est le prix d'une date juste.
+        $brut = $feuille->toArray(null, true, true, false);
         $brut = array_values(array_filter($brut, fn ($ligne) => $this->nonVide($ligne)));
 
         if ($brut === []) {
@@ -54,8 +90,9 @@ class LecteurClasseur
 
         if (count($brut) > self::LIGNES_MAX) {
             throw new RuntimeException(
-                'Le fichier compte '.count($brut).' lignes, au-delà des '.self::LIGNES_MAX
-                .' admises en une fois. Découpez-le : un import qu’on ne peut plus relire n’est plus vérifiable.'
+                'La feuille « '.$feuille->getTitle().' » compte '.count($brut).' lignes, au-delà des '
+                .self::LIGNES_MAX.' admises en une fois. Découpez-la : un import qu’on ne peut plus'
+                .' relire n’est plus vérifiable.'
             );
         }
 
@@ -75,6 +112,26 @@ class LecteurClasseur
         }
 
         return ['entetes' => array_values(array_filter($entetes, fn ($e) => $e !== '')), 'lignes' => $lignes];
+    }
+
+    /**
+     * Retrouve la feuille d'un jeu parmi celles du classeur. « Élèves », « ELEVES » et
+     * « Eleves » désignent le même onglet : le nom d'onglet subit les mêmes retouches que
+     * les en-têtes dès qu'un tableur passe par là.
+     *
+     * @param  array<string, mixed>  $feuilles
+     */
+    public function feuillePour(array $feuilles, string $attendu): ?string
+    {
+        $cible = $this->normaliser($attendu);
+
+        foreach (array_keys($feuilles) as $nom) {
+            if ($this->normaliser($nom) === $cible) {
+                return $nom;
+            }
+        }
+
+        return null;
     }
 
     /**

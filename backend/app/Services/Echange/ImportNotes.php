@@ -31,6 +31,9 @@ class ImportNotes extends Importateur
 
     private float $bareme = self::BAREME_DEFAUT;
 
+    /** @var array<string, string> matricule -> classe, pour des élèves pas encore en base */
+    private array $elevesAttendus = [];
+
     public function __construct(private NoteEcrivain $ecrivain) {}
 
     public function avecBareme(?float $bareme): self
@@ -38,6 +41,23 @@ class ImportNotes extends Importateur
         if ($bareme !== null && $bareme > 0) {
             $this->bareme = $bareme;
         }
+
+        return $this;
+    }
+
+    /**
+     * Élèves que la feuille « Eleves » du même classeur va créer ou déplacer.
+     *
+     * Sans cela, l'import d'une année entière serait inutilisable : les notes sont analysées
+     * avant que les élèves n'existent, et TOUTES seraient écartées pour « matricule inconnu »
+     * — alors que la feuille d'à côté les crée. Le rapport doit dire ce qui va se passer, pas
+     * ce qui se passerait si on n'importait que les notes.
+     *
+     * @param  array<string, string>  $index  matricule -> classe
+     */
+    public function avecEleves(array $index): self
+    {
+        $this->elevesAttendus = $index;
 
         return $this;
     }
@@ -248,7 +268,9 @@ class ImportNotes extends Importateur
                     });
             }
 
-            return $index;
+            // Ce que la feuille « Eleves » s'apprête à écrire l'emporte sur la base : si elle
+            // change un élève de classe, c'est la nouvelle classe qui vaut pour ses notes.
+            return $this->elevesAttendus + $index;
         } catch (Throwable $e) {
             return null;
         }
