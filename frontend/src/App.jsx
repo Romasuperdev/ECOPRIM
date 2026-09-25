@@ -152,7 +152,11 @@ export default function App() {
               <Route path="/choisir-etablissement" element={<ChoisirEtablissementPage />} />
               <Route path="/emplois-du-temps" element={<EmploiDuTempsPage />} />
               <Route path="/affectations-enseignants" element={<AffectationEnseignantPage />} />
-              <Route path="/cahier-textes" element={<CahierTextesPage />} />
+              {/* Renommé « Cahier journal » — le nom qu'emploie l'école, et celui des
+                  tables ECONOMAT sous-jacentes (T_ENTETE_JOURNAL / T_CAHIER_JOURNAL).
+                  L'ancienne adresse redirige : des liens ont pu être partagés. */}
+              <Route path="/cahier-journal" element={<CahierTextesPage />} />
+              <Route path="/cahier-textes" element={<Navigate to="/cahier-journal" replace />} />
               <Route path="/devoirs" element={<DevoirListPage />} />
               <Route path="/calendrier-scolaire" element={<CalendrierScolairePage />} />
 

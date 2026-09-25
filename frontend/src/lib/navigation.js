@@ -24,7 +24,7 @@ import {
 // Le groupe « Affectation » a été retiré : sa seule entrée renvoyait vers /classes, déjà
 // listée sous Paramètre, et l'affectation enseignant-classe a désormais sa vraie page.
 // Cours, Ressources, Conseils et Sanctions ont été retirés : ils reposaient sur le
-// schéma local d'avant le pivot et répondaient 500. Le Cahier de textes, lui, a été
+// schéma local d'avant le pivot et répondaient 500. Le Cahier journal, lui, a été
 // reconstruit sur ECONOMAT.T_ENTETE_JOURNAL / T_CAHIER_JOURNAL.
 //
 // Accent de module : un repère, pas une décoration. Il ne touche que le titre du
@@ -65,7 +65,7 @@ export const GROUPS = [
     module: 'programme',
     items: [
       { to: '/emplois-du-temps', label: 'Emplois du temps' },
-      { to: '/cahier-textes', label: 'Cahier de textes' },
+      { to: '/cahier-journal', label: 'Cahier journal' },
       { to: '/devoirs', label: 'Devoirs' },
       { to: '/calendrier-scolaire', label: 'Calendrier scolaire' },
     ],

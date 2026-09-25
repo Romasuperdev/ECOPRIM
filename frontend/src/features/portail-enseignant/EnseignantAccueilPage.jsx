@@ -119,7 +119,7 @@ export default function EnseignantAccueilPage() {
     <div className="space-y-5">
       <BandeauPortail
         titre="Mes classes"
-        sousTitre={`Année ${data?.annee ?? 'en cours'} — cahier de textes, notes, absences et emploi du temps.`}
+        sousTitre={`Année ${data?.annee ?? 'en cours'} — cahier journal, notes, absences et emploi du temps.`}
         droite={
           classes.length > 0 && (
             <>

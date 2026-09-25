@@ -81,14 +81,23 @@ Route::prefix('v1')->group(function () {
         Route::put('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'update']);
         Route::delete('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'destroy']);
 
-        // Cahier de textes : une semaine par classe, une ligne par matière affectée.
+        // Cahier journal : une semaine par classe, une ligne par matière affectée.
+        //
+        // LECTURE ouverte à tout le personnel — le cahier est fait pour être consulté, et
+        // c'est même l'intérêt de la direction. ÉCRITURE réservée : elle témoigne de ce qui
+        // a été enseigné, séance par séance. Un cahier qu'un administrateur pourrait
+        // compléter ne témoignerait plus de rien, d'où `saisir_cahier_journal`, inaccessible
+        // aux trois niveaux d'administrateur (Permissions::INTERDITES_AUX_ADMINISTRATEURS).
+        // L'enseignant, lui, écrit depuis son portail, borné à ses propres classes.
         Route::get('cahier-textes/referentiels', [CahierTextesController::class, 'referentiels']);
         Route::get('cahier-textes', [CahierTextesController::class, 'index']);
-        Route::post('cahier-textes', [CahierTextesController::class, 'store']);
-        Route::put('cahier-textes/{entete}', [CahierTextesController::class, 'update']);
-        Route::delete('cahier-textes/{entete}', [CahierTextesController::class, 'destroy']);
-        Route::put('cahier-textes/{entete}/lignes', [CahierTextesController::class, 'enregistrerLigne']);
-        Route::delete('cahier-textes/{entete}/lignes/{matiere}', [CahierTextesController::class, 'supprimerLigne']);
+        Route::middleware('permission:saisir_cahier_journal')->group(function () {
+            Route::post('cahier-textes', [CahierTextesController::class, 'store']);
+            Route::put('cahier-textes/{entete}', [CahierTextesController::class, 'update']);
+            Route::delete('cahier-textes/{entete}', [CahierTextesController::class, 'destroy']);
+            Route::put('cahier-textes/{entete}/lignes', [CahierTextesController::class, 'enregistrerLigne']);
+            Route::delete('cahier-textes/{entete}/lignes/{matiere}', [CahierTextesController::class, 'supprimerLigne']);
+        });
 
         Route::get('notes', [NoteController::class, 'index']);
 

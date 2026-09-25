@@ -15,6 +15,7 @@ import {
   supprimerLigneCahier,
 } from './cahierTextesApi'
 import useEchap from '../../hooks/useEchap'
+import { useAuthStore } from '../../store/authStore'
 
 const JOURS = [
   { cle: 'lundi', libelle: 'Lundi' },
@@ -164,12 +165,17 @@ export default function CahierTextesPage() {
     onSuccess: () => { setEnteteId(null); rafraichir() },
   })
 
-  const verrouille = Boolean(entete?.annee_cloturee)
+  // Écrire dans le cahier revient à l'enseignant : il témoigne de ce qui a été
+  // enseigné. La direction le consulte — c'est même son intérêt — mais ne l'écrit pas.
+  // Le serveur refuse de toute façon (permission:saisir_cahier_journal) ; cet écran
+  // évite seulement de proposer une action qui serait rejetée.
+  const peutEcrire = useAuthStore((s) => s.permissions.includes('saisir_cahier_journal'))
+  const verrouille = Boolean(entete?.annee_cloturee) || !peutEcrire
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Cahier de textes</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Cahier journal</h1>
         <p className="mt-1 text-sm text-slate-500">
           Ce qui a été vu, jour par jour et matière par matière, pour l’année {data?.annee ?? 'en cours'}
           {' '}(source : ECONOMAT.T_ENTETE_JOURNAL / T_CAHIER_JOURNAL).
@@ -194,18 +200,30 @@ export default function CahierTextesPage() {
             </Select>
           </div>
         )}
-        <Button
-          variant="outline" disabled={!classe}
-          onClick={() => { setErreurs({}); setForm({ mois: '', semaine: '', prof: '' }) }}
-        >
-          <Plus size={16} className="mr-1.5 inline" />
-          Nouvelle semaine
-        </Button>
+        {peutEcrire && (
+          <Button
+            variant="outline" disabled={!classe}
+            onClick={() => { setErreurs({}); setForm({ mois: '', semaine: '', prof: '' }) }}
+          >
+            <Plus size={16} className="mr-1.5 inline" />
+            Nouvelle semaine
+          </Button>
+        )}
       </div>
+
+      {!peutEcrire && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-card px-4 py-3 text-sm font-medium text-muted">
+          <Lock size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Consultation seule : le cahier journal est tenu par l’enseignant, depuis son
+            espace. Il témoigne de ce qui a été enseigné, séance par séance.
+          </span>
+        </div>
+      )}
 
       {!classe && (
         <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm text-muted">
-          Choisissez une classe pour consulter ou tenir son cahier de textes.
+          Choisissez une classe pour consulter{peutEcrire ? ' ou tenir' : ''} son cahier journal.
         </p>
       )}
 

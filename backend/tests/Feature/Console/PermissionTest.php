@@ -260,6 +260,50 @@ class PermissionTest extends TestCase
         $this->assertFalse($rh->aLaPermission('saisir_notes'));
     }
 
+    /**
+     * Le cahier journal suit la même séparation des tâches que les notes, et pour une
+     * raison plus forte : il témoigne de ce qui a été enseigné, séance par séance. Un
+     * cahier qu'un administrateur pourrait compléter ne témoignerait plus de rien.
+     */
+    public function test_un_administrateur_ne_peut_pas_ecrire_dans_le_cahier_journal(): void
+    {
+        $roleId = $this->role('admin-etablissement', 'Admin Établissement');
+        // Accordée explicitement depuis l'écran Permissions : cela ne suffit pas.
+        $this->accorder($roleId, ['saisir_cahier_journal']);
+        $rh = $this->compte(10, 'dir');
+        $this->affecter(10, $roleId);
+        $this->actingAs($rh, 'sanctum');
+
+        $this->assertFalse($rh->aLaPermission('saisir_cahier_journal'));
+
+        $this->postJson('/api/v1/cahier-textes', [
+            'classe' => 'CM2A', 'mois' => 'Septembre', 'semaine' => 'S1', 'professeur' => 7,
+        ])->assertStatus(403);
+    }
+
+    public function test_un_super_admin_non_plus_n_ecrit_pas_dans_le_cahier_journal(): void
+    {
+        $rh = $this->compte(1, 'boss', true);
+
+        $this->assertTrue($rh->aLaPermission('gerer_utilisateurs'));
+        $this->assertFalse($rh->aLaPermission('saisir_cahier_journal'));
+    }
+
+    /**
+     * La lecture, elle, reste ouverte : le cahier est fait pour être consulté, et c'est
+     * même l'intérêt de la direction. Seule l'écriture est réservée.
+     */
+    public function test_la_direction_consulte_le_cahier_journal_sans_pouvoir_l_ecrire(): void
+    {
+        $roleId = $this->role('admin-etablissement', 'Admin Établissement');
+        $rh = $this->compte(10, 'dir');
+        $this->affecter(10, $roleId);
+        $this->actingAs($rh, 'sanctum');
+
+        $this->getJson('/api/v1/cahier-textes?classe=CM2A')->assertOk();
+        $this->getJson('/api/v1/cahier-textes/referentiels')->assertOk();
+    }
+
     public function test_un_admin_etablissement_peut_creer_un_devoir_sans_permission_explicite(): void
     {
         $roleId = $this->role('admin-etablissement', 'Admin Établissement');

@@ -38,7 +38,7 @@ const JOURS_CAHIER = [
 ]
 
 const TABS = [
-  { cle: 'cahier', libelle: 'Cahier de textes' },
+  { cle: 'cahier', libelle: 'Cahier journal' },
   { cle: 'notes', libelle: 'Notes' },
   { cle: 'devoirs', libelle: 'Devoirs' },
   { cle: 'evaluations', libelle: 'Évaluations' },
@@ -61,7 +61,7 @@ export default function EnseignantClassePage() {
       </Link>
 
       <div className="mb-5">
-        <BandeauPortail titre={classe} sousTitre="Cahier de textes, notes, devoirs, absences et emploi du temps." />
+        <BandeauPortail titre={classe} sousTitre="Cahier journal, notes, devoirs, absences et emploi du temps." />
       </div>
 
       <Onglets onglets={TABS} actif={onglet} onChanger={setOnglet} />
@@ -87,7 +87,7 @@ export default function EnseignantClassePage() {
   )
 }
 
-// --- Cahier de textes ---
+// --- Cahier journal ---
 
 function LigneCahier({ entete, ligne, onSaved, onRemoved }) {
   const initial = { lundi: ligne.lundi, mardi: ligne.mardi, mercredi: ligne.mercredi, jeudi: ligne.jeudi, vendredi: ligne.vendredi }

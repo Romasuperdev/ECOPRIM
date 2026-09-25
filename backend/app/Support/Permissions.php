@@ -19,6 +19,7 @@ class Permissions
         'modifier_emplois_du_temps' => ['libelle' => 'Modifier les emplois du temps', 'groupe' => 'Pédagogie'],
         'consulter_eleves' => ['libelle' => 'Consulter les élèves', 'groupe' => 'Pédagogie'],
         'saisir_notes' => ['libelle' => 'Saisir les notes', 'groupe' => 'Pédagogie'],
+        'saisir_cahier_journal' => ['libelle' => 'Saisir le cahier journal', 'groupe' => 'Pédagogie'],
         'creer_devoirs' => ['libelle' => 'Créer des devoirs', 'groupe' => 'Pédagogie'],
         'saisir_absences' => ['libelle' => 'Saisir les absences', 'groupe' => 'Pédagogie'],
         'inscrire_eleve' => ['libelle' => 'Inscrire un élève', 'groupe' => 'Administratif'],
@@ -41,8 +42,13 @@ class Permissions
      *
      * La saisie des notes appartient à l'enseignant qui a fait le cours ; la direction
      * les consulte (rien n'est fermé en lecture), elle ne les saisit pas.
+     *
+     * Le cahier journal suit la même règle, et pour une raison plus forte encore : il
+     * témoigne de ce qui a été enseigné, séance par séance. Un cahier qu'un administrateur
+     * pourrait compléter ou corriger ne témoignerait plus de rien. La direction le
+     * consulte — c'est même son intérêt — mais ne l'écrit pas.
      */
-    public const INTERDITES_AUX_ADMINISTRATEURS = ['saisir_notes'];
+    public const INTERDITES_AUX_ADMINISTRATEURS = ['saisir_notes', 'saisir_cahier_journal'];
 
     public static function interditeAuxAdministrateurs(string $code): bool
     {

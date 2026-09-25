@@ -54,7 +54,7 @@ export default function DevoirListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Devoirs</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Travaux donnés à une classe, avec une date de remise — distinct du cahier de textes.
+            Travaux donnés à une classe, avec une date de remise — distinct du cahier journal.
           </p>
         </div>
         <Button

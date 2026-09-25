@@ -3514,3 +3514,48 @@ Deux incohérences à connaître, au-delà des 6 classes sans code : les classes
 `AUR01` et `GSD`, **inconnus de la console** (qui ne connaît que `ETAB001` et `SIEGE01`) ;
 et **aucune classe ne porte `SIEGE01`**. Tagger les 6 classes ne suffirait donc pas — encore
 faut-il décider du bon code. Rien n'a été modifié : l'utilisateur vérifie d'abord.
+
+## Cahier journal : nouveau nom, et l'écriture rendue à l'enseignant
+
+Deuxième des quatre chantiers. Deux volets, dont un seul était demandé explicitement.
+
+**Le renommage.** « Cahier de textes » devient « Cahier journal » partout où l'utilisateur
+le lit : menu, titre de page, onglets des espaces Enseignant et Parent, textes d'aide.
+L'adresse passe de `/cahier-textes` à `/cahier-journal`, l'ancienne redirigeant — des liens
+ont pu être partagés. Le nouveau nom est d'ailleurs celui des tables sous-jacentes
+(`T_ENTETE_JOURNAL`, `T_CAHIER_JOURNAL`) : c'est l'ancien libellé qui était l'intrus.
+
+**Ce que l'audit a révélé, et qui n'était pas dans la demande.** N'importe quel compte du
+personnel pouvait écrire dans le cahier de n'importe quelle classe : aucune permission sur
+ces sept routes, aucune vérification que l'utilisateur était le professeur concerné, aucun
+appel à `$request->user()`. Seul le portail Enseignant était borné. Autrement dit, la règle
+énoncée — « c'est l'enseignant qui écrit » — n'était pas seulement absente : c'était
+l'inverse qui s'appliquait.
+
+La règle suit maintenant celle des notes, avec un argument plus fort encore : le cahier
+**témoigne** de ce qui a été enseigné, séance par séance. Un cahier qu'un administrateur
+pourrait compléter ou corriger ne témoignerait plus de rien.
+
+- Nouvelle permission `saisir_cahier_journal`, ajoutée à `INTERDITES_AUX_ADMINISTRATEURS` :
+  les trois niveaux d'administrateur ne l'obtiennent jamais, pas même en se l'accordant
+  depuis l'écran Permissions.
+- Seules les routes d'**écriture** sont fermées (POST, PUT, DELETE). La **lecture reste
+  ouverte** à tout le personnel : le cahier est fait pour être consulté, et c'est même
+  l'intérêt de la direction.
+- L'enseignant, lui, écrit depuis son portail, borné à ses propres classes — inchangé.
+
+Côté écran, le verrou existait déjà pour les années clôturées et toutes les commandes
+d'écriture le respectaient : il a été étendu au droit d'écrire, plutôt que d'ajouter un
+second mécanisme. Un bandeau dit pourquoi l'écran est en consultation, au lieu de laisser
+deviner devant des champs grisés.
+
+Les 13 tests du cahier écrivaient sous un Super Admin — exactement ce qu'on vient
+d'interdire. Leur mise en place bascule sur un rôle métier à qui la permission est
+accordée, comme l'avait fait `SaisieNoteTest`. 3 tests ajoutés : un administrateur ne peut
+pas écrire même si on lui accorde la permission, un Super Admin non plus, et la direction
+consulte sans entrave. Suite complète : 391 passent.
+
+**Choix assumé** : les noms internes (dossier `features/cahier-textes/`, classe
+`CahierTextesController`, chemins d'API `/cahier-textes`) restent inchangés. Les renommer
+aurait touché trois portails, leurs fichiers d'API et leurs tests, pour zéro gain visible —
+du brassage à risque. Le nom affiché, lui, est juste partout.

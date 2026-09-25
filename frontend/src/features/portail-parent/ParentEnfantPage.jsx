@@ -39,7 +39,7 @@ const TABS = [
   { cle: 'devoirs', libelle: 'Devoirs' },
   { cle: 'evaluations', libelle: 'Évaluations' },
   { cle: 'absences', libelle: 'Absences' },
-  { cle: 'cahier', libelle: 'Cahier de textes' },
+  { cle: 'cahier', libelle: 'Cahier journal' },
   { cle: 'resultats', libelle: 'Résultats' },
   { cle: 'calendrier', libelle: 'Calendrier' },
   { cle: 'documents', libelle: 'Documents' },
