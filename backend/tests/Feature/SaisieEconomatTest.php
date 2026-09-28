@@ -101,6 +101,23 @@ class SaisieEconomatTest extends TestCase
         $this->assertDatabaseCount('T_ETUDIANT', 0, 'economat');
     }
 
+    /**
+     * Une base injoignable et une année non choisie donnent la même absence d'année. Le
+     * message ne doit pas les confondre : envoyer régler un en-tête alors que la base est
+     * tombée fait chercher longtemps du mauvais côté.
+     */
+    public function test_une_base_injoignable_ne_se_dit_pas_comme_un_en_tete_mal_regle(): void
+    {
+        // Table absente : c'est ce que voit le code quand la connexion échoue.
+        \Illuminate\Support\Facades\Schema::connection('economat')->drop('T_ANNEEACADEMIQUE');
+        \App\Support\ContexteScolaire::oublier();
+
+        $r = $this->postJson('/api/v1/inscriptions', $this->eleveValide())
+            ->assertStatus(422);
+
+        $this->assertStringContainsString('injoignable', $r->json('errors.annee.0'));
+    }
+
     /** L'année écrite est celle de l'en-tête, pas celle que la requête prétendrait. */
     public function test_l_annee_ecrite_est_celle_du_contexte_de_travail(): void
     {

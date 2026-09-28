@@ -149,8 +149,14 @@ class InscriptionController extends Controller
         $data['annee'] = ContexteScolaire::annee();
 
         if (! $data['annee']) {
+            // Deux causes donnent la même absence d'année, et elles n'appellent pas le même
+            // geste : renvoyer quelqu'un régler son en-tête alors que la base est tombée le
+            // ferait chercher longtemps du mauvais côté.
             throw ValidationException::withMessages([
-                'annee' => ["Aucune année de travail n'est choisie : sélectionnez-la dans l'en-tête avant d'inscrire."],
+                'annee' => [ContexteScolaire::referentielJoignable()
+                    ? "Aucune année de travail n'est choisie : sélectionnez-la dans l'en-tête avant d'inscrire."
+                    : "Le référentiel des années scolaires est injoignable : la base de données ne répond pas. "
+                      ."Prévenez votre administrateur — aucune saisie n'est possible tant qu'elle n'a pas répondu."],
             ]);
         }
 

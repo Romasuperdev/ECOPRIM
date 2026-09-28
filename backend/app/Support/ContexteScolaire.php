@@ -27,6 +27,17 @@ class ContexteScolaire
         return self::resoudre()['libelle'];
     }
 
+    /**
+     * Le référentiel des années a-t-il répondu ?
+     *
+     * Faux quand ECONOMAT est injoignable. Sert à ne pas confondre deux causes qui donnent
+     * la même absence d'année : personne n'en a choisi, ou la base est tombée.
+     */
+    public static function referentielJoignable(): bool
+    {
+        return self::resoudre()['joignable'] ?? true;
+    }
+
     /** Libellé et code de l'année, pour un filtre tolérant aux deux conventions. */
     public static function variantes(): array
     {
@@ -151,7 +162,11 @@ class ContexteScolaire
         try {
             $annees = AnneeScolaire::all();
         } catch (Throwable $e) {
-            return self::$cache = ['libelle' => $choisi, 'code' => null];
+            // Référentiel injoignable : on garde ce que la session dit, mais on RETIENT que
+            // le référentiel n'a pas répondu. Un appelant qui ne trouve pas d'année doit
+            // pouvoir distinguer « aucune n'est choisie » de « la base ne répond pas » —
+            // sinon il renvoie l'utilisateur régler un en-tête qui n'y est pour rien.
+            return self::$cache = ['libelle' => $choisi, 'code' => null, 'joignable' => false];
         }
 
         $trouvee = $choisi
@@ -163,6 +178,7 @@ class ContexteScolaire
         return self::$cache = [
             'libelle' => $trouvee?->libelle ?? $choisi,
             'code' => $trouvee?->code_annee,
+            'joignable' => true,
         ];
     }
 }
