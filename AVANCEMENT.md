@@ -3851,3 +3851,40 @@ classe contre niveau, matière non enseignée, ligne inactive, barème distinct 
 coefficient nul, effet sur la feuille de notes et sur l'entête, isolation multi-tenant à la
 suppression, et la commande d'import. Suite complète : **464 passent**, 2 échecs antérieurs
 (faux JPEG, Windows).
+
+## Inscription : l'année ne se saisit plus, elle vient de l'en-tête
+
+Demande : retirer le champ « Année scolaire * » du formulaire de nouvelle inscription,
+« parce que quand une année est sélectionnée c'est dans cette année que l'inscription se
+passe ».
+
+Le champ disparaît, mais **retirer le champ ne suffisait pas** : tant que la valeur voyage
+dans la requête, le formulaire peut contredire l'en-tête — par une valeur restée à l'écran
+pendant qu'on change d'année, ou par un appel forgé. L'année est donc désormais **posée par
+le serveur** : `store()` ignore ce que la requête porte et applique
+`ContexteScolaire::annee()`. Sans année de travail, l'inscription est refusée en nommant
+l'en-tête, plutôt que de déposer l'élève dans une année vide où aucun écran ne le
+retrouverait.
+
+**La modification, elle, ne touche à rien.** Un dossier peut appartenir à une année passée ;
+appliquer l'année de travail l'y aurait déplacé en silence. L'absence d'`annee` dans la
+requête signifie « n'y touche pas », et `EtudiantEcrivain` n'écrit que les colonnes
+fournies. Déplacer volontairement un dossier reste possible par l'API, et reste refusé si
+l'année visée est clôturée.
+
+À l'écran, l'étape Scolarité rappelle en clair l'année concernée — « Inscription dans
+l'année 2026-2027, celle choisie dans l'en-tête » — ou, pour un dossier existant, l'année
+dont il relève. Savoir où l'on inscrit ne doit pas obliger à remonter à l'en-tête.
+
+### Le verrou d'année clôturée change de porte, pas de force
+
+Il portait sur l'année ENVOYÉE ; il porte maintenant sur l'année de TRAVAIL. Se placer sur
+une année close ferme donc l'inscription, et le bouton « Nouvelle inscription » est déjà
+désactivé dans ce cas. Trois suites éprouvaient ce verrou en envoyant une année clôturée
+dans la charge utile : elles l'éprouvent désormais en se plaçant sur cette année, ce qui est
+le geste réel. Même chose pour la cohérence classe/année et pour la réinscription, qui se
+fait en se plaçant sur la nouvelle année.
+
+Deux tests ajoutés : sans année de travail l'inscription est refusée, et l'année écrite est
+bien celle du contexte même quand la requête en prétend une autre. Suite : **466 passent**,
+2 échecs antérieurs (faux JPEG, Windows).

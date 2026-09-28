@@ -41,6 +41,15 @@ class SaisieEconomatTest extends TestCase
         ]);
         $this->actingAs($rh, 'sanctum');
 
+        // L'année de travail commande désormais l'inscription : sans référentiel d'années,
+        // il n'y en aurait aucune, et toute inscription serait refusée.
+        DB::connection('economat')->table('T_ANNEEACADEMIQUE')->insert([
+            ['CODE' => 1, 'CodeAnnee' => '2024', 'LibelleAnnee' => '2024-2025',
+                'Activer' => false, 'ClotureDefinitive' => false, 'DEBUT' => '2024-09-01'],
+            ['CODE' => 2, 'CodeAnnee' => '2025', 'LibelleAnnee' => '2025-2026',
+                'Activer' => true, 'ClotureDefinitive' => false, 'DEBUT' => '2025-09-01'],
+        ]);
+
         // Référentiel minimal : la cohérence classe/niveau/année est contrôlée à la saisie.
         DB::connection('economat')->table('T_CLASSE')->insert([
             ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A',
@@ -52,7 +61,7 @@ class SaisieEconomatTest extends TestCase
     {
         return array_merge([
             'mouvement' => 'inscription', 'matricule' => 'M001',
-            'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => '2025-2026', 'sexe' => 'F',
+            'nom' => 'Koné', 'prenom' => 'Aya', 'sexe' => 'F',
         ], $extra);
     }
 
@@ -70,10 +79,40 @@ class SaisieEconomatTest extends TestCase
         ], 'economat');
     }
 
-    public function test_nom_prenom_et_annee_sont_obligatoires(): void
+    public function test_nom_et_prenom_sont_obligatoires(): void
     {
+        // L'année n'est plus de la partie : elle ne se saisit pas, elle vient de l'en-tête.
         $this->postJson('/api/v1/inscriptions', ['mouvement' => 'inscription'])
-            ->assertStatus(422)->assertJsonValidationErrors(['nom', 'prenom', 'annee']);
+            ->assertStatus(422)->assertJsonValidationErrors(['nom', 'prenom']);
+    }
+
+    /**
+     * Sans année de travail, on ne sait pas dans quelle année inscrire. Refuser vaut mieux
+     * que déposer l'élève dans une année vide, où aucun écran ne le retrouverait.
+     */
+    public function test_sans_annee_de_travail_l_inscription_est_refusee(): void
+    {
+        DB::connection('economat')->table('T_ANNEEACADEMIQUE')->delete();
+        \App\Support\ContexteScolaire::oublier();
+
+        $this->postJson('/api/v1/inscriptions', $this->eleveValide())
+            ->assertStatus(422)->assertJsonValidationErrors('annee');
+
+        $this->assertDatabaseCount('T_ETUDIANT', 0, 'economat');
+    }
+
+    /** L'année écrite est celle de l'en-tête, pas celle que la requête prétendrait. */
+    public function test_l_annee_ecrite_est_celle_du_contexte_de_travail(): void
+    {
+        \App\Support\ContexteScolaire::oublier();
+
+        $r = $this->withSession(['annee_travail' => '2024-2025'])
+            ->postJson('/api/v1/inscriptions', $this->eleveValide(['annee' => '1999-2000']))
+            ->assertCreated();
+
+        $this->assertDatabaseHas('T_ETUDIANT', [
+            'Code' => $r->json('id'), 'AnneeAcad' => '2024-2025',
+        ], 'economat');
     }
 
     public function test_les_mouvements_entrants_positionnent_les_bons_indicateurs(): void
@@ -103,12 +142,17 @@ class SaisieEconomatTest extends TestCase
 
         // « Ancien » est d'abord inscrit sur une autre année, puis réinscrit : sa ligne
         // porte alors l'indicateur Reinscription.
-        $this->postJson('/api/v1/inscriptions', $this->eleveValide([
-            'matricule' => 'M002', 'prenom' => 'Ancien', 'annee' => '2024-2025',
-        ]))->assertCreated();
-        $this->postJson('/api/v1/inscriptions', $this->eleveValide([
-            'matricule' => 'M002', 'prenom' => 'Ancien', 'mouvement' => 'reinscription',
-        ]))->assertOk();
+        \App\Support\ContexteScolaire::oublier();
+        $this->withSession(['annee_travail' => '2024-2025'])
+            ->postJson('/api/v1/inscriptions', $this->eleveValide([
+                'matricule' => 'M002', 'prenom' => 'Ancien',
+            ]))->assertCreated();
+
+        \App\Support\ContexteScolaire::oublier();
+        $this->withSession(['annee_travail' => '2025-2026'])
+            ->postJson('/api/v1/inscriptions', $this->eleveValide([
+                'matricule' => 'M002', 'prenom' => 'Ancien', 'mouvement' => 'reinscription',
+            ]))->assertOk();
 
         $r = $this->getJson('/api/v1/inscriptions?mouvement=reinscription')->assertOk();
         $this->assertCount(1, $r->json('data'));

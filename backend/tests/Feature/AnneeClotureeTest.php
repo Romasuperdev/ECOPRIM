@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\RhUser;
+use App\Support\AnneeScolaireGuard;
+use App\Support\ContexteScolaire;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -42,15 +44,29 @@ class AnneeClotureeTest extends TestCase
     {
         return array_merge([
             'mouvement' => 'inscription', 'matricule' => 'M001',
-            'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => self::OUVERTE,
+            'nom' => 'Koné', 'prenom' => 'Aya',
         ], $extra);
+    }
+
+    /**
+     * Se placer sur une année de travail. C'est elle que l'inscription vise désormais :
+     * le formulaire ne propose plus de choisir l'année, elle vient de l'en-tête.
+     * Les deux caches sont vidés, sinon la première résolution vaudrait pour tout le test.
+     */
+    private function surAnnee(string $annee): self
+    {
+        ContexteScolaire::oublier();
+        AnneeScolaireGuard::oublier();
+
+        return $this->withSession(['annee_travail' => $annee]);
     }
 
     // --- Inscriptions ---
 
     public function test_impossible_d_inscrire_dans_une_annee_cloturee(): void
     {
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => self::CLOTUREE]))
+        $this->surAnnee(self::CLOTUREE)
+            ->postJson('/api/v1/inscriptions', $this->eleve())
             ->assertStatus(423);
 
         $this->assertDatabaseCount('T_ETUDIANT', 0, 'economat');
@@ -70,7 +86,7 @@ class AnneeClotureeTest extends TestCase
         DB::connection('economat')->table('T_ETUDIANT')->where('Code', $code)
             ->update(['AnneeAcad' => self::CLOTUREE]);
 
-        $this->putJson("/api/v1/inscriptions/{$code}", $this->eleve(['annee' => self::CLOTUREE, 'prenom' => 'Modifie']))
+        $this->putJson("/api/v1/inscriptions/{$code}", $this->eleve(['prenom' => 'Modifie']))
             ->assertStatus(423);
 
         $this->assertDatabaseHas('T_ETUDIANT', ['Code' => $code, 'Prenom' => 'Aya'], 'economat');
@@ -160,19 +176,20 @@ class AnneeClotureeTest extends TestCase
     public function test_le_verrou_reconnait_le_code_comme_le_libelle(): void
     {
         // T_ETUDIANT.AnneeAcad peut contenir le libellé ; T_PROFESSEUR.CodeAnnee le code.
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => '2024']))->assertStatus(423);
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => '2024-2025']))->assertStatus(423);
+        $this->surAnnee('2024')->postJson('/api/v1/inscriptions', $this->eleve())->assertStatus(423);
+        $this->surAnnee('2024-2025')->postJson('/api/v1/inscriptions', $this->eleve())->assertStatus(423);
     }
 
     public function test_une_annee_inconnue_du_referentiel_ne_bloque_pas(): void
     {
         // Ni clôturée ni connue : on ne verrouille pas sur une incertitude.
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => '1999-2000']))->assertCreated();
+        $this->surAnnee('1999-2000')->postJson('/api/v1/inscriptions', $this->eleve())->assertCreated();
     }
 
     public function test_le_message_du_verrou_nomme_l_annee(): void
     {
-        $r = $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => self::CLOTUREE]))->assertStatus(423);
+        $r = $this->surAnnee(self::CLOTUREE)
+            ->postJson('/api/v1/inscriptions', $this->eleve())->assertStatus(423);
 
         $this->assertStringContainsString(self::CLOTUREE, $r->json('message'));
         $this->assertStringContainsString('clôturée', $r->json('message'));

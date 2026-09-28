@@ -30,13 +30,15 @@ const MOUVEMENTS = [
 const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère', 'Photo']
 
 // Champs bloquants par étape : « Suivant » ne passe pas s'ils sont vides.
-const REQUIS = [['matricule', 'nom', 'prenom'], [], ['mouvement', 'annee'], [], [], []]
+// L'année n'y figure plus : elle n'est plus saisie, elle vient de l'en-tête.
+const REQUIS = [['matricule', 'nom', 'prenom'], [], ['mouvement'], [], [], []]
 
 const VIDE = {
   mouvement: 'inscription',
   matricule: '', nom: '', prenom: '', sexe: '', date_naissance: '', lieu_naissance: '', nationalite: '',
   adresse: '', ville: '', commune: '', quartier: '', telephone: '', email: '',
-  annee: '', niveau_code: '', classe_code: '', redoublant: '',
+  // Pas d'`annee` : à la création, c'est le serveur qui applique l'année de travail.
+  niveau_code: '', classe_code: '', redoublant: '',
   etab_origine: '', niveau_origine: '', date_inscription: '',
   pere_nom: '', pere_prenom: '', pere_profession: '', pere_telephone: '', pere_email: '',
   mere_nom: '', mere_prenom: '', mere_profession: '', mere_telephone: '', mere_email: '',
@@ -168,7 +170,10 @@ export default function InscriptionListPage() {
     Boolean(libelle) && (ref?.annees ?? []).some((a) => a.libelle === libelle && a.cloturee)
 
   const filtreVerrouille = anneeCloturee(anneeEffective)
-  const dossierVerrouille = Boolean(form) && Boolean(anneeCloturee(form.annee) || (form.id && anneeCloturee(form._anneeInitiale)))
+  // Un dossier existant est verrouillé par SA propre année ; un dossier neuf l'est par
+  // l'année de travail, puisque c'est dans celle-là qu'il sera créé.
+  const dossierVerrouille = Boolean(form)
+    && (form.id ? anneeCloturee(form._anneeInitiale) : filtreVerrouille)
 
   // Assistant identique en création et en modification.
   const enAssistant = Boolean(form)
@@ -225,7 +230,7 @@ export default function InscriptionListPage() {
             setErreurs({})
             setEtape(0)
             reinitPhoto()
-            setForm({ ...VIDE, annee: (!filtreVerrouille && anneeEffective) || ref?.annees?.find((a) => a.active && !a.cloturee)?.libelle || '' })
+            setForm({ ...VIDE })
           }}
         >
           + Nouvelle inscription
@@ -409,19 +414,18 @@ export default function InscriptionListPage() {
               </div>
 
               <div className={visible(2) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Scolarité</p>
+                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">Scolarité</p>
+                {/* L'année ne se saisit plus. On la rappelle quand même : savoir dans
+                    quelle année on inscrit ne doit pas obliger à regarder l'en-tête. */}
+                <p className="mb-3 text-sm font-medium text-muted">
+                  {form.id
+                    ? <>Dossier de l’année <strong className="text-heading">{form._anneeInitiale || '—'}</strong>.</>
+                    : <>Inscription dans l’année <strong className="text-heading">{anneeEffective || '—'}</strong>, celle choisie dans l’en-tête.</>}
+                </p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Select label="Type de mouvement *" value={form.mouvement}
                           onChange={(e) => champ('mouvement', e.target.value)} error={err('mouvement')}>
                     {MOUVEMENTS.map((m) => <option key={m.cle} value={m.cle}>{m.label}</option>)}
-                  </Select>
-                  <Select label="Année scolaire *" value={form.annee} onChange={(e) => champ('annee', e.target.value)} error={err('annee')}>
-                    <option value="">— Choisir —</option>
-                    {ref?.annees?.map((a) => (
-                      <option key={a.id} value={a.libelle} disabled={a.cloturee && a.libelle !== form._anneeInitiale}>
-                        {a.libelle}{a.cloturee ? ' (clôturée)' : ''}
-                      </option>
-                    ))}
                   </Select>
                   <Select label="Niveau" value={form.niveau_code} onChange={(e) => { champ('niveau_code', e.target.value); champ('classe_code', '') }} error={err('niveau_code')}>
                     <option value="">—</option>

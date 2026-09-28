@@ -101,7 +101,10 @@ class InscriptionController extends Controller
             'telephone' => ['nullable', 'string', 'max:'.$l['telephone']],
             'email' => ['nullable', 'email', 'max:'.$l['email']],
             // Scolarité
-            'annee' => ['required', 'string', 'max:'.$l['annee']],
+            // Jamais obligatoire dans la requête : à la création, l'année vient du contexte
+            // de travail (voir store) ; à la modification, l'absence signifie « n'y touche
+            // pas », et le dossier garde son année.
+            'annee' => ['nullable', 'string', 'max:'.$l['annee']],
             'niveau_code' => ['nullable', 'string', 'max:'.$l['niveau_code']],
             'classe_code' => ['nullable', 'string', 'max:'.$l['classe_code']],
             'redoublant' => ['nullable', 'string', 'max:'.$l['redoublant']],
@@ -140,7 +143,18 @@ class InscriptionController extends Controller
     {
         $data = $request->validate($this->regles(true));
 
-        AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, "L'inscription d'un élève");
+        // L'année ne se choisit plus dans le formulaire : on inscrit dans l'année de
+        // travail, celle de l'en-tête. Le formulaire ne peut donc plus la contredire — ni
+        // par une valeur périmée restée ouverte à l'écran, ni par un appel forgé.
+        $data['annee'] = ContexteScolaire::annee();
+
+        if (! $data['annee']) {
+            throw ValidationException::withMessages([
+                'annee' => ["Aucune année de travail n'est choisie : sélectionnez-la dans l'en-tête avant d'inscrire."],
+            ]);
+        }
+
+        AnneeScolaireGuard::assertModifiable($data['annee'], "L'inscription d'un élève");
         $this->assertCoherence($data);
 
         $entrant = in_array($data['mouvement'], self::MOUVEMENTS_ENTRANTS, true);

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\RhUser;
+use App\Support\AnneeScolaireGuard;
+use App\Support\ContexteScolaire;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -50,8 +52,21 @@ class RestrictionsInscriptionTest extends TestCase
     {
         return array_merge([
             'mouvement' => 'inscription', 'matricule' => 'M001',
-            'nom' => 'Koné', 'prenom' => 'Aya', 'annee' => '2025-2026',
+            'nom' => 'Koné', 'prenom' => 'Aya',
         ], $extra);
+    }
+
+    /**
+     * Se placer sur une année de travail. C'est elle que l'inscription vise désormais :
+     * le formulaire ne propose plus de choisir l'année, elle vient de l'en-tête.
+     * Les deux caches sont vidés, sinon la première résolution vaudrait pour tout le test.
+     */
+    private function surAnnee(string $annee): self
+    {
+        ContexteScolaire::oublier();
+        AnneeScolaireGuard::oublier();
+
+        return $this->withSession(['annee_travail' => $annee]);
     }
 
     // --- Matricule ---
@@ -92,10 +107,13 @@ class RestrictionsInscriptionTest extends TestCase
 
     public function test_la_reinscription_met_a_jour_la_ligne_sans_la_dupliquer(): void
     {
-        $this->postJson('/api/v1/inscriptions', $this->eleve(['annee' => '2024-2025']))->assertCreated();
+        // On inscrit depuis l'année précédente, puis on se place sur la nouvelle pour
+        // réinscrire : c'est le geste réel, l'année se choisit dans l'en-tête.
+        $this->surAnnee('2024-2025')
+            ->postJson('/api/v1/inscriptions', $this->eleve())->assertCreated();
 
-        $this->postJson('/api/v1/inscriptions', $this->eleve([
-            'mouvement' => 'reinscription', 'annee' => '2025-2026',
+        $this->surAnnee('2025-2026')->postJson('/api/v1/inscriptions', $this->eleve([
+            'mouvement' => 'reinscription',
             'niveau_code' => 'CM2', 'classe_code' => 'CM2A',
         ]))->assertOk();
 
@@ -153,8 +171,9 @@ class RestrictionsInscriptionTest extends TestCase
 
     public function test_la_classe_doit_appartenir_a_l_annee_visee(): void
     {
-        $this->postJson('/api/v1/inscriptions', $this->eleve([
-            'annee' => '2024-2025', 'classe_code' => 'CP1A',
+        // CP1A appartient à 2025-2026 : depuis l'année 2024-2025, elle est hors sujet.
+        $this->surAnnee('2024-2025')->postJson('/api/v1/inscriptions', $this->eleve([
+            'classe_code' => 'CP1A',
         ]))->assertStatus(422)->assertJsonValidationErrors('classe_code');
     }
 
