@@ -3739,3 +3739,115 @@ de se contenter d'un nombre de lignes.
 
 9 tests ajoutés (39 sur l'écran d'échanges). Suite complète : **430 passent**, 2 échecs
 antérieurs (faux JPEG, Windows).
+
+## Barèmes et coefficients paramétrables, par niveau ou par classe
+
+Demande : rendre les coefficients des matières paramétrables par niveau, avec surcharge par
+école et par année, et « remplacer tout calcul de moyenne qui utilise des coefficients codés
+en dur ».
+
+### La prémisse était fausse, et c'était le plus important à dire
+
+**NEXORA ne calcule aucune moyenne.** `RapportController` le porte en toutes lettres depuis
+le pivot : « ECONOMAT calcule déjà moyennes, rangs et coefficients : NEXORA les restitue, il
+ne les recalcule pas. » Le bulletin imprime la moyenne générale ET le rang lus dans
+`V_MOYENNE_ELEVE_CLASSE`. Il n'y avait donc aucun coefficient codé en dur à remplacer, et un
+service de calcul maison aurait mis sur la même page une moyenne par matière calculée par
+nous et une moyenne générale calculée par ECONOMAT — **deux vérités qui se contredisent**.
+
+Question posée, décision de l'utilisateur : **ECONOMAT continue de calculer.** La grille ne
+calcule rien ; elle fournit le **barème et le coefficient au moment où la note est saisie ou
+importée**, et c'est de `T_NOTEENTETE` qu'ECONOMAT tire sa moyenne. Régler la grille, c'est
+régler le calcul — sans le dédoubler.
+
+### La fonctionnalité avait déjà existé ici
+
+`_retires/NiveauMatiereCoefficient.php` et `_retires/CoefficientController.php` : retirés au
+pivot parce qu'ils pointaient vers des tables locales `niveaux`/`matieres` disparues.
+AVANCEMENT consignait le chemin du retour — « T_CORMATNIVEAUCOEFF pour les coefficients :
+elles pourront revenir sur cette base, avec la structure réelle sous les yeux ». Structure
+relevée avant d'écrire.
+
+### Ce que la base réelle a montré
+
+- **ECONOMAT porte DEUX tables de coefficients** : `T_CORMATNIVEAUCOEFF` (94 lignes) et
+  `T_COEFFICIENT` (71 lignes). **Ni l'une ni l'autre n'a de colonne établissement ou année** :
+  elles ne savent pas porter une grille différente d'une école à l'autre. Les deux sont en
+  outre remplies avec les niveaux d'un autre établissement (BTS : RHCOM1, GES_COM1, FCGE1),
+  et les colonnes de `T_CORMATNIVEAUCOEFF` sont **inversées** — `CodeMatiere` contient
+  « ANGLAIS » et `LibelleMatiere` contient « ANG ».
+- **`CodeNiveau` n'est pas unique** : `CP1` existe deux fois, pour deux établissements.
+- **Le référentiel matières compte 2 lignes** (MAT, Géo) là où une grille de primaire en
+  demande une trentaine.
+
+D'où le choix : la grille vit dans **`ecoprim.coefficients_matiere`**, table propre à NEXORA,
+comme `evaluations`. On n'ajoute pas une troisième table de coefficients chez ECONOMAT.
+
+### La table, et pourquoi elle n'a aucune clé étrangère
+
+`etablissement_code` (null = grille commune), `annee` (null = toutes années), `niveau_code`
+OU `classe_code`, `matiere_code`, `coefficient`, `note_max`, `actif`. Niveaux, classes et
+matières vivent sur la connexion `economat` : une contrainte inter-base est **impossible**,
+la cohérence se vérifie à l'écriture — exactement comme `evaluations` le fait déjà.
+
+**Par niveau ET par classe**, à la demande de l'utilisateur : une grille vaut pour tout le
+CP1, ou pour la seule CP1 A.
+
+### La plus précise gagne
+
+On ne fusionne pas les grilles, on **choisit** : classe > établissement > année, soit une
+précision de 0 (grille commune) à 7 (une classe, une école, une année). L'écran signale d'un
+liseré ce qui est propre à l'établissement — sans quoi on ne saurait pas ce qu'un
+« Réinitialiser » effacerait.
+
+L'année est comparée sur ses **deux écritures** (`ContexteScolaire::variantesDe`) : sans
+cela, une grille posée sur « 2026 » aurait disparu dès qu'on travaille sur « Année Scolaire
+2026-2027 ». C'est le même piège que celui corrigé l'avant-veille sur les entêtes de notes.
+
+### Deux pièges traités explicitement
+
+- **Une case vide n'est pas un zéro.** Vide = matière non enseignée à ce niveau, et vider une
+  case **retire la surcharge** au lieu de poser un zéro. Un 0 se saisit et signifie « comptée
+  pour rien ».
+- **Un coefficient à 0 ne donne pas un barème à 0.** Rendre 0 comme barème ferait refuser
+  toute note, puisque la saisie interdit de dépasser le barème. Le barème redevient alors
+  null, et l'appelant retombe sur sa valeur par défaut.
+
+### L'effet réel : la saisie
+
+- `SaisieNoteController` prend le barème dans l'ordre **déclaré > grille > 20**, et l'écran
+  dit d'où il vient (`bareme_de_la_grille`) : un champ prérempli sans explication se corrige
+  à tort. Barème et coefficient partent désormais dans l'entête même quand la feuille ne les
+  déclare pas.
+- `ImportNotes` consulte la grille **par matière et par classe** : sur une grille de primaire
+  la dictée est sur 10 et l'éveil au milieu sur 50, un barème unique en haut de l'écran
+  aurait écarté l'un ou laissé passer l'autre.
+
+**Défaut latent corrigé au passage** : `SaisieNoteController` cherchait l'entête existante
+avec **sa propre requête**, différente de celle qu'utilise l'enregistrement — et privée du
+correctif d'année. La feuille pouvait donc s'afficher vide puis l'enregistrement écraser une
+évaluation existante. Les deux passent maintenant par `NoteEcrivain::enteteExistante()`.
+
+### Import de la grille
+
+`php artisan coefficients:import fichier.csv` — `matiere;niveau;coefficient;note_max`,
+point-virgule, BOM toléré. Idempotente, rapport (créés / mis à jour / rejetés), `--simulation`
+pour voir sans écrire. Elle **crée les matières et niveaux absents** — décision de
+l'utilisateur — et les **énumère**, car ils partent dans ECONOMAT, table partagée ;
+`--sans-creation` s'en abstient et se contente de rejeter.
+
+Modèle vide fourni : `database/seeders/data/coefficients_defaut.csv`. **Aucune valeur n'a été
+tirée du tableau scanné** : le scan est incliné, les lignes et les colonnes se décalent, et
+transcrire un barème de travers vaut pire que ne rien transcrire.
+
+### Vérifications contre la base réelle
+
+Migration passée sur `ecoprim`, et **le doublon a bien été refusé par SQL Server** sur les
+lignes à `etablissement_code`/`annee` nuls — l'idempotence de la grille commune tient à
+l'index, pas seulement au code. Ligne d'essai retirée.
+
+34 tests ajoutés (`CoefficientsTest`) : résolution en cascade, deux écritures de l'année,
+classe contre niveau, matière non enseignée, ligne inactive, barème distinct du coefficient,
+coefficient nul, effet sur la feuille de notes et sur l'entête, isolation multi-tenant à la
+suppression, et la commande d'import. Suite complète : **464 passent**, 2 échecs antérieurs
+(faux JPEG, Windows).

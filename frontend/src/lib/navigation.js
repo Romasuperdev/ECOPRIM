@@ -43,6 +43,9 @@ export const GROUPS = [
       { to: '/niveaux', label: 'Niveaux' },
       { to: '/classes', label: 'Classes' },
       { to: '/matieres', label: 'Matières' },
+      // Réglage de l'établissement, pas geste quotidien : il vit avec les référentiels,
+      // et se cache à qui n'a pas à y toucher.
+      { to: '/coefficients', label: 'Barèmes et coefficients', permission: 'gerer_coefficients' },
       { to: '/parametres/documents-eleves', label: 'Documents élèves' },
       { to: '/parametres/sms', label: 'Passerelle SMS' },
       { to: '/parametres/mail', label: 'Messagerie (SMTP)' },

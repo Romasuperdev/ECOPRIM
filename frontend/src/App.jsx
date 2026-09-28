@@ -27,6 +27,7 @@ const AssiduitePage = lazy(() => import('./features/rapports/AssiduitePage'))
 const EvaluationListPage = lazy(() => import('./features/rapports/EvaluationListPage'))
 const InscriptionListPage = lazy(() => import('./features/inscriptions/InscriptionListPage'))
 const EchangesPage = lazy(() => import('./features/echanges/EchangesPage'))
+const CoefficientsPage = lazy(() => import('./features/coefficients/CoefficientsPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
@@ -230,6 +231,7 @@ export default function App() {
 
               <Route path="/inscriptions" element={<InscriptionListPage />} />
               <Route path="/echanges" element={<EchangesPage />} />
+              <Route path="/coefficients" element={<CoefficientsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

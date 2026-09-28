@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CoefficientController;
 use App\Http\Controllers\Api\V1\EchangeController;
 use App\Http\Controllers\Api\V1\EleveController;
 use App\Http\Controllers\Api\V1\ClasseController;
@@ -167,6 +168,16 @@ Route::prefix('v1')->group(function () {
         Route::get('impressions/enseignants/{enseignant}', [ImpressionController::class, 'enseignant']);
         Route::get('impressions/emploi-du-temps', [ImpressionController::class, 'emploiDuTemps']);
         Route::get('impressions/liste-classe', [ImpressionController::class, 'listeClasse']);
+
+        // Barèmes et coefficients des matières, par niveau ou par classe. Ils ne servent
+        // pas à calculer une moyenne — ECONOMAT s'en charge — mais à la SAISIE : c'est le
+        // barème et le coefficient inscrits dans T_NOTEENTETE qu'ECONOMAT utilise ensuite.
+        Route::middleware('permission:gerer_coefficients')->group(function () {
+            Route::get('coefficients', [CoefficientController::class, 'index']);
+            Route::get('coefficients/classe/{classe}', [CoefficientController::class, 'classe']);
+            Route::put('coefficients', [CoefficientController::class, 'update']);
+            Route::delete('coefficients/{coefficient}', [CoefficientController::class, 'destroy']);
+        });
 
         // Import / Export Excel. L'export LIT — même année et même établissement que les
         // écrans. L'import ÉCRIT en masse, et sans retour en arrière possible puisque

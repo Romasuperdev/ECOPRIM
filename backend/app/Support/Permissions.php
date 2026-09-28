@@ -21,6 +21,10 @@ class Permissions
         'saisir_notes' => ['libelle' => 'Saisir les notes', 'groupe' => 'Pédagogie'],
         'saisir_cahier_journal' => ['libelle' => 'Saisir le cahier journal', 'groupe' => 'Pédagogie'],
         'creer_devoirs' => ['libelle' => 'Créer des devoirs', 'groupe' => 'Pédagogie'],
+        // Régler les barèmes et coefficients, pas les appliquer : c'est une décision de
+        // l'établissement, prise une fois pour l'année, qui pèse ensuite sur toutes les
+        // notes saisies. Elle n'a rien à faire dans les mains de qui saisit.
+        'gerer_coefficients' => ['libelle' => 'Gérer les barèmes et coefficients', 'groupe' => 'Pédagogie'],
         'saisir_absences' => ['libelle' => 'Saisir les absences', 'groupe' => 'Pédagogie'],
         'inscrire_eleve' => ['libelle' => 'Inscrire un élève', 'groupe' => 'Administratif'],
         'modifier_dossier_eleve' => ['libelle' => 'Modifier un dossier élève', 'groupe' => 'Administratif'],

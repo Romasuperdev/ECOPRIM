@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Eleve;
+use App\Services\GrilleCoefficients;
 use App\Services\NoteEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
@@ -31,7 +32,36 @@ use RuntimeException;
  */
 class SaisieNoteController extends Controller
 {
-    public function __construct(private NoteEcrivain $ecrivain) {}
+    /** Barème retenu quand ni la requête ni la grille ne disent rien. */
+    private const BAREME_DEFAUT = 20.0;
+
+    public function __construct(
+        private NoteEcrivain $ecrivain,
+        private GrilleCoefficients $grille,
+    ) {}
+
+    /**
+     * Le barème et le coefficient à inscrire dans l'entête.
+     *
+     * Trois sources, dans cet ordre : ce que la feuille déclare explicitement, puis la
+     * GRILLE de l'établissement (barème par matière et par niveau), puis 20. La grille ne
+     * s'impose donc pas à un enseignant qui a saisi autre chose — elle lui évite de le
+     * saisir à chaque fois.
+     *
+     * C'est par là que la grille agit : NEXORA ne calcule aucune moyenne, c'est ECONOMAT
+     * qui la calcule à partir du coefficient et du barème portés par T_NOTEENTETE. Les
+     * inscrire correctement à la saisie, c'est régler le calcul.
+     */
+    private function ponderation(array $criteres): array
+    {
+        $regle = $this->grille->pourClasse($criteres['classe'])[$criteres['matiere']] ?? null;
+
+        return [
+            'bareme' => (float) ($criteres['bareme'] ?? $regle['bareme'] ?? self::BAREME_DEFAUT),
+            'coefficient' => $criteres['coefficient'] ?? $regle['coefficient'] ?? null,
+            'grille' => $regle !== null,
+        ];
+    }
 
     /** Ce que le serveur a vu des deux tables : colonnes réelles et rôles retenus. */
     public function structure()
@@ -71,13 +101,21 @@ class SaisieNoteController extends Controller
             ->orderBy('Nom')->orderBy('Prenom')
             ->get();
 
-        $entete = $this->enteteExistante($criteres + ['annee' => $annee]);
+        // Même recherche que celle de l'enregistrement, et non une seconde écrite à côté :
+        // si les deux divergeaient, la feuille pourrait s'afficher vide et l'enregistrement
+        // écraser malgré tout une évaluation existante.
+        $entete = $this->ecrivain->enteteExistante($criteres + ['annee' => $annee]);
         $saisies = $entete ? collect($this->ecrivain->notesDe($entete))->keyBy('eleve') : collect();
+        $ponderation = $this->ponderation($criteres);
 
         return [
             'annee' => $annee,
             'entete' => $entete,
-            'bareme' => $criteres['bareme'] ?? 20,
+            'bareme' => $ponderation['bareme'],
+            'coefficient' => $ponderation['coefficient'],
+            // L'écran dit d'où vient le barème : imposé par la grille de l'école, ou pris
+            // par défaut. Un champ prérempli sans explication se corrige à tort.
+            'bareme_de_la_grille' => $ponderation['grille'],
             'eleves' => $eleves->map(function ($e) use ($saisies) {
                 $matricule = $e->getRawOriginal('Matricule');
                 $deja = $saisies->get($matricule);
@@ -114,7 +152,8 @@ class SaisieNoteController extends Controller
             'notes.*.absent' => ['nullable', 'boolean'],
         ]);
 
-        $bareme = (float) ($criteres['bareme'] ?? 20);
+        $ponderation = $this->ponderation($criteres);
+        $bareme = $ponderation['bareme'];
         $attendus = $this->matriculesDeLaClasse($criteres['classe']);
 
         $lignes = [];
@@ -144,7 +183,12 @@ class SaisieNoteController extends Controller
         }
 
         try {
-            $entete = $this->ecrivain->entetePour($criteres + ['annee' => $annee]);
+            // Le barème et le coefficient partent dans l'entête même quand la feuille ne
+            // les déclare pas : ce sont EUX qu'ECONOMAT lit pour calculer la moyenne.
+            $entete = $this->ecrivain->entetePour(array_filter([
+                'bareme' => $bareme,
+                'coefficient' => $ponderation['coefficient'],
+            ], fn ($v) => $v !== null) + $criteres + ['annee' => $annee]);
             $bilan = $this->ecrivain->enregistrer($entete, $lignes);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
@@ -159,24 +203,6 @@ class SaisieNoteController extends Controller
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
             ->where('CodeClasse', $classe)
             ->pluck('Matricule')->filter()->map(fn ($m) => (string) $m)->all();
-    }
-
-    private function enteteExistante(array $criteres): ?int
-    {
-        try {
-            $roles = $this->ecrivain->entete();
-            $requete = \Illuminate\Support\Facades\DB::connection('economat')->table(SchemaNotes::ENTETE);
-            foreach (['classe', 'matiere', 'session', 'annee', 'type', 'libelle'] as $role) {
-                if (isset($roles[$role]) && ! empty($criteres[$role])) {
-                    $requete->where($roles[$role], $criteres[$role]);
-                }
-            }
-            $ligne = $requete->first();
-
-            return $ligne ? (int) $ligne->{$roles['id']} : null;
-        } catch (\Throwable $e) {
-            return null;
-        }
     }
 
     /** Fermé par défaut : on refuse d'ouvrir la saisie sur une structure non reconnue. */

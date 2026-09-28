@@ -2,6 +2,7 @@
 
 namespace App\Services\Echange;
 
+use App\Services\GrilleCoefficients;
 use App\Services\NoteEcrivain;
 use App\Support\ContexteScolaire;
 use Illuminate\Support\Facades\DB;
@@ -29,20 +30,40 @@ class ImportNotes extends Importateur
     /** Barème par défaut, celui de l'écran de saisie. */
     public const BAREME_DEFAUT = 20.0;
 
-    private float $bareme = self::BAREME_DEFAUT;
+    /** Barème saisi dans le formulaire d'import, s'il l'a été. */
+    private ?float $baremeDeclare = null;
 
     /** @var array<string, string> matricule -> classe, pour des élèves pas encore en base */
     private array $elevesAttendus = [];
 
-    public function __construct(private NoteEcrivain $ecrivain) {}
+    public function __construct(
+        private NoteEcrivain $ecrivain,
+        private GrilleCoefficients $grille,
+    ) {}
 
     public function avecBareme(?float $bareme): self
     {
         if ($bareme !== null && $bareme > 0) {
-            $this->bareme = $bareme;
+            $this->baremeDeclare = $bareme;
         }
 
         return $this;
+    }
+
+    /**
+     * Le barème d'une matière dans une classe : ce qui a été déclaré dans le formulaire,
+     * sinon la GRILLE de l'établissement, sinon 20.
+     *
+     * La grille a sa place ici et pas ailleurs : un fichier d'année entière mélange les
+     * matières, et « Éveil au milieu sur 50 » ne peut pas se régler par un champ unique en
+     * haut de l'écran. Le barème déclaré reste prioritaire — il est explicite, la grille ne
+     * l'est pas.
+     */
+    private function baremePour(string $classe, string $matiere): float
+    {
+        return $this->baremeDeclare
+            ?? $this->grille->baremeDe($classe, $matiere)
+            ?? self::BAREME_DEFAUT;
     }
 
     /**
@@ -114,8 +135,13 @@ class ImportNotes extends Importateur
                 continue;
             }
 
-            if ($note < 0 || $note > $this->bareme) {
-                $verdicts[] = $this->rejet($n, "Note hors du barème (0 à {$this->bareme}).", $apercu);
+            // Le barème dépend de la MATIÈRE et de la CLASSE : sur une grille de primaire,
+            // la dictée est sur 10 et l'éveil au milieu sur 50. Un barème unique aurait
+            // écarté l'un ou laissé passer l'autre.
+            $bareme = $this->baremePour($classe, $matiere);
+
+            if ($note < 0 || $note > $bareme) {
+                $verdicts[] = $this->rejet($n, "Note hors du barème (0 à {$bareme}) pour {$matiere}.", $apercu);
 
                 continue;
             }
@@ -142,8 +168,11 @@ class ImportNotes extends Importateur
                 'session' => $session,
                 'type' => $type,
                 'annee' => $annee,
-                'bareme' => $this->bareme,
-                'coefficient' => $this->nombre($ligne['Coefficient'] ?? null),
+                'bareme' => $bareme,
+                // Le coefficient du fichier fait foi ; à défaut, celui de la grille. C'est
+                // lui qu'ECONOMAT lira dans T_NOTEENTETE pour calculer la moyenne.
+                'coefficient' => $this->nombre($ligne['Coefficient'] ?? null)
+                    ?? $this->grille->coefficientDe($classe, $matiere),
             ], fn ($v) => $v !== null);
 
             $recevables[] = [

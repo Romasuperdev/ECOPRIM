@@ -3,6 +3,7 @@
 namespace App\Services\Echange;
 
 use App\Services\EtudiantEcrivain;
+use App\Services\GrilleCoefficients;
 use App\Services\NoteEcrivain;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
@@ -47,7 +48,7 @@ class ServiceImport
     {
         return match ($jeu) {
             'eleves' => new ImportEleves(new EtudiantEcrivain),
-            'notes' => (new ImportNotes(new NoteEcrivain))->avecBareme(
+            'notes' => (new ImportNotes(new NoteEcrivain, new GrilleCoefficients))->avecBareme(
                 isset($options['bareme']) ? (float) $options['bareme'] : null
             ),
             'evaluations' => new ImportEvaluations,
