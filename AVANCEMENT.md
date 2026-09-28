@@ -3888,3 +3888,58 @@ fait en se plaçant sur la nouvelle année.
 Deux tests ajoutés : sans année de travail l'inscription est refusée, et l'année écrite est
 bien celle du contexte même quand la requête en prétend une autre. Suite : **466 passent**,
 2 échecs antérieurs (faux JPEG, Windows).
+
+## Fiche de l'élève : ce qui était saisi et jamais réaffiché
+
+Demande : « rends ça esthétique et bien détaillé ».
+
+### Le détail manquait parce que le modèle ne l'exposait pas
+
+La fiche montrait treize champs. L'inscription en fait saisir **vingt-trois**. Les absents —
+adresse, quartier, commune, ville, téléphone, email de l'élève, date d'inscription,
+établissement et niveau d'origine — existent bien dans `T_ETUDIANT`, mais le modèle `Eleve`
+ne les expose pas : sa liste blanche protège le FINANCIER et le TECHNIQUE, et ces
+coordonnées-là n'en relèvent pas. Elles sont lues sur la ligne déjà chargée, sans requête
+supplémentaire et **sans élargir ce que l'API publie** — une fiche imprimée doit porter ce
+qu'on a saisi, cela ne justifie pas d'ouvrir l'API.
+
+S'y ajoutent deux valeurs **déduites** plutôt que stockées : le **mouvement** (Inscription /
+Réinscription / Transfert), reconstitué depuis les trois indicateurs d'ECONOMAT, et l'**âge**,
+calculé à la date d'édition — une fiche scolaire se lit avec lui.
+
+### Les dates étaient illisibles
+
+`2015-02-14` sur un document français, et SQL Server ajoute volontiers une heure à zéro qui
+n'apprend rien. Un formateur `$d` rejoint `$v` dans les variables communes à tous les
+documents imprimables : les dates s'écrivent désormais `14/02/2015`.
+
+### La mise en page
+
+- **Bandeau d'identité** : photo, nom en évidence, et trois étiquettes — matricule, classe,
+  mouvement — qui sont ce qu'on cherche des yeux en premier.
+- **Scolarité** sur fond bleu clair, en deux colonnes ; l'origine n'apparaît que si elle est
+  renseignée, pour ne pas allonger la fiche d'une ligne vide.
+- **Coordonnées de l'élève**, section entièrement nouvelle.
+- **Filiation** : père et mère **côte à côte**, en encadrés. On les compare d'un coup d'œil,
+  et la fiche tient sur une seule page — vérifié sur le document produit.
+- **Zone de signature** parent / direction : sans elle, une fiche reste un écran imprimé.
+
+Les styles ajoutés (`.bloc`, `.identite`, `.chip`, `.col2`, `.signatures`) vivent dans la mise
+en page commune, disponibles pour les autres documents, sans rien changer à leur rendu
+actuel. Tout passe par des tableaux et des fonds : dompdf ne connaît ni flex ni grid.
+
+**Ce que la fiche ne porte toujours pas, et pourquoi** : aucun résultat. Moyennes, rangs et
+appréciations sont l'objet du bulletin. Les mettre aux deux endroits, c'est prendre le
+risque qu'ils divergent.
+
+### Vérification
+
+Fiche générée contre la base réelle pour DEMO-EL05 : **une seule page**, dates à la
+française, âge présent, étiquettes rendues.
+
+Les tests d'impression vérifiaient que le PDF sort, pas ce qu'il contient — un PDF compressé
+ne se lit pas à la chaîne. Deux tests ajoutés rendent la même vue avec les données que le
+contrôleur lui donne **vraiment** (obtenues par réflexion, plutôt qu'en les recopiant dans le
+test, ce qui n'aurait éprouvé que la copie) : les coordonnées, le mouvement et les dates
+françaises y figurent, et aucune date brute ne subsiste. Suite : **470 passent**, 1 échec
+antérieur (faux JPEG, Windows).

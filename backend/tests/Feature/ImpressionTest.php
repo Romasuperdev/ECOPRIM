@@ -64,6 +64,76 @@ class ImpressionTest extends TestCase
         ]);
     }
 
+    /**
+     * La fiche telle qu'elle sera imprimée, en HTML.
+     *
+     * Le PDF produit est compressé : on ne peut pas y chercher une chaîne. On rend donc la
+     * même vue avec les données que le contrôleur lui donne VRAIMENT — obtenues par
+     * réflexion sur ses méthodes privées, plutôt qu'en les recopiant dans le test, ce qui
+     * n'aurait éprouvé que la copie.
+     */
+    private function ficheEleveHtml(\App\Models\Eleve $eleve): string
+    {
+        $controleur = app(\App\Http\Controllers\Api\V1\ImpressionController::class);
+        $classe = new \ReflectionClass($controleur);
+        $appeler = function (string $methode, ...$args) use ($classe, $controleur) {
+            $m = $classe->getMethod($methode);
+            $m->setAccessible(true);
+
+            return $m->invoke($controleur, ...$args);
+        };
+
+        return View::make('pdf.eleve', [
+            'etablissement' => 'ETAB001',
+            'annee' => self::ANNEE,
+            'v' => fn ($x) => (trim((string) $x) !== '') ? e($x) : '<span class="vide">Non renseigné</span>',
+            'd' => fn ($x) => $appeler('dateLisible', $x),
+            'eleve' => $eleve,
+            'classe' => $appeler('libelleClasse', $eleve->classe_code),
+            'photo' => null,
+            'details' => $appeler('detailsEleve', $eleve),
+        ])->render();
+    }
+
+    /**
+     * Ce que la fiche doit PORTER, et pas seulement qu'elle sorte. Ces coordonnées sont
+     * saisies à l'inscription et n'étaient réaffichées nulle part : les perdre à nouveau
+     * passerait inaperçu sans cette vérification.
+     */
+    public function test_la_fiche_eleve_porte_ce_que_l_inscription_a_saisi(): void
+    {
+        DB::connection('economat')->table('T_ETUDIANT')->where('Code', 11)->update([
+            'DateNaiss' => '2015-02-14',
+            'Adresse' => 'Rue des Jardins', 'Quartier' => 'Cocody', 'Commune' => 'Abidjan',
+            'Ville' => 'Abidjan', 'Telephone' => '0102030405', 'Email' => 'awa@ecole.ci',
+            'DateInscription' => '2025-09-09', 'EtabOrigine' => 'EPP Bouaké',
+            'NiveauOrigine' => 'CP1', 'Transfert' => 1,
+        ]);
+
+        $html = $this->ficheEleveHtml(\App\Models\Eleve::findOrFail(11));
+
+        foreach (['Rue des Jardins', 'Cocody', '0102030405', 'awa@ecole.ci', 'EPP Bouaké'] as $attendu) {
+            $this->assertStringContainsString($attendu, $html);
+        }
+
+        // Le mouvement se déduit des trois indicateurs d'ECONOMAT.
+        $this->assertStringContainsString('Transfert', $html);
+        // Les dates sont écrites à la française, et l'âge accompagne la naissance.
+        $this->assertStringContainsString('14/02/2015', $html);
+        $this->assertStringContainsString('09/09/2025', $html);
+        $this->assertStringContainsString('ans)', $html);
+        // Aucune date brute d'SQL Server ne doit subsister.
+        $this->assertStringNotContainsString('2015-02-14', $html);
+    }
+
+    public function test_un_champ_vide_se_dit_sur_la_fiche(): void
+    {
+        $html = $this->ficheEleveHtml(\App\Models\Eleve::findOrFail(11));
+
+        // Une case laissée blanche laisserait croire à un oubli d'impression.
+        $this->assertStringContainsString('Non renseigné', $html);
+    }
+
     private function assertPdf($reponse): void
     {
         $reponse->assertOk();
