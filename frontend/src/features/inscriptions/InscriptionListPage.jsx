@@ -191,6 +191,27 @@ export default function InscriptionListPage() {
     setEtape((e) => e + 1)
   }
 
+  /**
+   * Enregistrement : un clic explicite, et rien d'autre.
+   *
+   * Le bouton du pied passait de « Suivant » (type button) à « Enregistrer » (type submit)
+   * DANS le même nœud du DOM. Or le navigateur exécute l'action par défaut d'un clic APRÈS
+   * le gestionnaire : le clic qui amenait à la dernière étape retrouvait un bouton devenu
+   * « submit » et envoyait le formulaire. L'élève s'enregistrait avant qu'on ait pu joindre
+   * sa photo. Les deux boutons sont désormais de type « button » : plus aucune soumission
+   * implicite n'est possible.
+   */
+  const soumettre = () => {
+    if (dossierVerrouille || enregistrer.isPending) return
+    // Ceinture et bretelles : on n'enregistre que depuis la dernière étape.
+    if (enAssistant && !derniere) {
+      suivant()
+
+      return
+    }
+    enregistrer.mutate(form)
+  }
+
   // Les classes se restreignent au niveau choisi quand l'info existe.
   const niveauxFiltres = ref?.niveaux ?? []
   const classesFiltrees = (ref?.classes ?? []).filter((c) => !form?.niveau_code || c.niveau_code === form.niveau_code)
@@ -361,11 +382,10 @@ export default function InscriptionListPage() {
             )}
 
             <form
-              onSubmit={(ev) => {
-                ev.preventDefault()
-                if (dossierVerrouille) return
-                enregistrer.mutate(form)
-              }}
+              // Le formulaire ne se soumet plus de lui-même : l'enregistrement passe par
+              // `soumettre`, appelé par le seul bouton « Enregistrer ». Ce garde-fou reste
+              // pour qu'une soumission accidentelle ne fasse rien.
+              onSubmit={(ev) => ev.preventDefault()}
               onKeyDown={(ev) => {
                 // La touche Entrée ne doit JAMAIS déclencher l'enregistrement (même sur la
                 // dernière étape, juste après avoir choisi la photo) : elle avance seulement
@@ -543,11 +563,16 @@ export default function InscriptionListPage() {
                     <Button type="button" onClick={suivant}>Suivant</Button>
                   ) : (
                     <Button
-                      type="submit"
+                      type="button"
+                      onClick={soumettre}
                       disabled={enregistrer.isPending || dossierVerrouille}
                       title={dossierVerrouille ? 'Année clôturée : consultation seule.' : undefined}
                     >
-                      {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
+                      {enregistrer.isPending
+                        ? 'Enregistrement…'
+                        // Dire ce que le clic va faire : avec une photo choisie, elle part
+                        // juste après l'élève, et c'est le moment de le savoir.
+                        : photo ? 'Enregistrer avec la photo' : 'Enregistrer'}
                     </Button>
                   )}
                 </div>

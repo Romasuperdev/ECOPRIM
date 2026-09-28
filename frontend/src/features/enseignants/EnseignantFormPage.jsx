@@ -101,6 +101,26 @@ export default function EnseignantFormPage() {
     setEtape((e) => e + 1)
   }
 
+  /**
+   * Enregistrement : un clic explicite, et rien d'autre.
+   *
+   * Le bouton du pied passait de « Suivant » (type button) à « Enregistrer » (type submit)
+   * DANS le même nœud du DOM. Or le navigateur exécute l'action par défaut d'un clic APRÈS
+   * le gestionnaire : le clic qui amenait à la dernière étape retrouvait un bouton devenu
+   * « submit » et envoyait le formulaire. Les deux boutons sont désormais de type
+   * « button » : plus aucune soumission implicite n'est possible.
+   */
+  const soumettre = () => {
+    if (enregistrer.isPending) return
+    if (!derniere) {
+      suivant()
+
+      return
+    }
+    setErreurs({})
+    enregistrer.mutate()
+  }
+
   return (
     <div className="max-w-4xl">
       <div className="mb-6 flex items-center gap-3">
@@ -119,11 +139,10 @@ export default function EnseignantFormPage() {
         <StepIndicator etapes={etapes} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
 
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            setErreurs({})
-            enregistrer.mutate()
-          }}
+          // Le formulaire ne se soumet plus de lui-même : l'enregistrement passe par
+          // `soumettre`, appelé par le seul bouton « Enregistrer ». Ce garde-fou reste pour
+          // qu'une soumission accidentelle ne fasse rien.
+          onSubmit={(e) => e.preventDefault()}
           onKeyDown={(e) => {
             // La touche Entrée ne doit jamais déclencher l'enregistrement : elle avance
             // seulement dans l'assistant. Seul un clic explicite sur « Enregistrer » sauvegarde.
@@ -259,7 +278,7 @@ export default function EnseignantFormPage() {
               {!derniere ? (
                 <Button type="button" onClick={suivant}>Suivant</Button>
               ) : (
-                <Button type="submit" disabled={enregistrer.isPending}>
+                <Button type="button" onClick={soumettre} disabled={enregistrer.isPending}>
                   {enregistrer.isPending ? 'Enregistrement…' : enEdition ? 'Mettre à jour' : 'Enregistrer'}
                 </Button>
               )}
