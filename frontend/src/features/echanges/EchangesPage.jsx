@@ -6,13 +6,14 @@ import {
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import MessageErreur from '../../components/ui/MessageErreur'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { useAuthStore } from '../../store/authStore'
 import {
   analyserImport, appliquerImport, exporterJeux, fetchCatalogueEchanges, telechargerModele,
 } from './echangesApi'
 
-const messageErreur = (e) =>
+const texteErreur = (e) =>
   e?.response?.data?.errors?.fichier?.[0]
   ?? e?.response?.data?.errors?.jeton?.[0]
   ?? e?.response?.data?.errors?.jeu?.[0]
@@ -58,7 +59,7 @@ function SectionExport({ catalogue }) {
 
   const exporter = useMutation({
     mutationFn: () => exporterJeux(choisis),
-    onError: (e) => setRefus(messageErreur(e)),
+    onError: (e) => setRefus(texteErreur(e)),
   })
 
   const basculer = (code) => setChoisis((c) =>
@@ -301,7 +302,7 @@ function SectionImport({ catalogue }) {
   const analyser = useMutation({
     mutationFn: () => analyserImport(jeu, fichier, concerneLesNotes ? { bareme } : {}),
     onSuccess: (data) => { setRapport(data); setBilan(null); setRefus(null) },
-    onError: (e) => { setRapport(null); setRefus(messageErreur(e)) },
+    onError: (e) => { setRapport(null); setRefus(texteErreur(e)) },
   })
 
   const appliquer = useMutation({
@@ -312,7 +313,7 @@ function SectionImport({ catalogue }) {
       // Le catalogue affiche des volumes : ils viennent de changer.
       qc.invalidateQueries({ queryKey: ['echanges-catalogue'] })
     },
-    onError: (e) => setRefus(messageErreur(e)),
+    onError: (e) => setRefus(texteErreur(e)),
   })
 
   if (catalogue?.annee_cloturee) {
@@ -490,9 +491,11 @@ function SectionImport({ catalogue }) {
 export default function EchangesPage() {
   const peutImporter = useAuthStore((s) => s.permissions.includes('importer_donnees'))
 
-  const { data: catalogue, isLoading } = useQuery({
+  const { data: catalogue, isLoading, error } = useQuery({
     queryKey: ['echanges-catalogue'],
     queryFn: fetchCatalogueEchanges,
+    // Un refus d'accès ne se répare pas en réessayant trois fois.
+    retry: false,
   })
 
   return (
@@ -508,6 +511,12 @@ export default function EchangesPage() {
       </header>
 
       {isLoading && <p className="font-medium text-muted">Chargement…</p>}
+
+      {/* Sans catalogue, l'écran restait muet : ni export, ni explication. Un refus doit se
+          lire comme un refus, et nommer la permission qui manque. */}
+      {!isLoading && !catalogue && (
+        <MessageErreur erreur={error} permission="Exporter les données (Excel)" />
+      )}
 
       {catalogue && (
         <div className="space-y-5">

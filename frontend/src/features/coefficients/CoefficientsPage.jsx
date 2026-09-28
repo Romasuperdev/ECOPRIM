@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, Lock, RotateCcw, Save } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import MessageErreur from '../../components/ui/MessageErreur'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { enregistrerCoefficients, fetchGrilleCoefficients } from './coefficientsApi'
 
@@ -36,9 +37,11 @@ export default function CoefficientsPage() {
   const [refus, setRefus] = useState(null)
   const [succes, setSucces] = useState(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['coefficients-grille'],
     queryFn: fetchGrilleCoefficients,
+    // Un refus d'accès ne se répare pas en réessayant trois fois.
+    retry: false,
   })
 
   /** La grille telle que le serveur l'a résolue — ce qui sert de référence au « modifié ». */
@@ -139,6 +142,17 @@ export default function CoefficientsPage() {
 
   if (isLoading) return <p className="font-medium text-muted">Chargement…</p>
 
+  // Sans données, tout ce qui suit lirait `data.niveaux` : on s'arrête ici et on dit
+  // pourquoi, plutôt que de casser l'écran sur une lecture impossible.
+  if (!data) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-heading">Barèmes et coefficients</h1>
+        <MessageErreur erreur={error} permission="Gérer les barèmes et coefficients" />
+      </div>
+    )
+  }
+
   return (
     <div>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -230,7 +244,7 @@ export default function CoefficientsPage() {
         </span>
       </label>
 
-      {data?.matieres?.length === 0 ? (
+      {data.matieres.length === 0 ? (
         <p className="rounded-xl border border-slate-200 bg-card px-4 py-10 text-center text-sm font-medium text-muted">
           Aucune matière au référentiel. Créez-les depuis l’écran Matières, ou posez la grille
           commune avec la commande <code>coefficients:import</code>.
