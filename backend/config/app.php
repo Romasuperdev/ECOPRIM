@@ -78,8 +78,12 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    // L'application est en français de bout en bout : ses messages de validation doivent
+    // l'être aussi. Ils sortaient en anglais parce que la locale était restée sur `en`.
+    'locale' => env('APP_LOCALE', 'fr'),
 
+    // On garde l'anglais en repli : une règle non traduite rend alors une phrase anglaise
+    // plutôt que sa clé brute, ce qui reste lisible.
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),

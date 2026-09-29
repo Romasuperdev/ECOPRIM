@@ -95,9 +95,14 @@ export default function InscriptionListPage() {
         try {
           await televerserPhoto(eleve.id, photo)
         } catch (e) {
-          // L'élève est bien enregistré : on ne perd pas la saisie pour une photo.
+          // L'élève est bien enregistré : on ne perd pas la saisie pour une photo. On
+          // emporte son identifiant, sans quoi un second essai le RECRÉERAIT et buterait
+          // sur « matricule déjà attribué » — l'utilisateur croirait avoir tout perdu.
           throw Object.assign(new Error('photo'), {
-            photoSeulement: e?.response?.data?.message ?? 'La photo n’a pas pu être enregistrée.',
+            eleveId: eleve.id,
+            photoSeulement: e?.response?.data?.errors?.photo?.[0]
+              ?? e?.response?.data?.message
+              ?? 'La photo n’a pas pu être enregistrée.',
           })
         }
       }
@@ -112,6 +117,9 @@ export default function InscriptionListPage() {
         invalider()
         setErreurPhoto(e.photoSeulement)
         setEtape(ETAPES.length - 1)
+        // Le dossier existe désormais : le formulaire passe en modification, pour qu'un
+        // nouvel essai corrige la photo au lieu de recréer l'élève.
+        if (e.eleveId) setForm((f) => (f ? { ...f, id: e.eleveId, _anneeInitiale: f._anneeInitiale ?? '' } : f))
         return
       }
       const err = e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }
@@ -541,11 +549,11 @@ export default function InscriptionListPage() {
                       partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
                       remplace la précédente s’il en existait une.
                     </p>
-                    {!form.id && (
-                      <p className="mt-1 text-xs text-muted">
-                        Elle sera envoyée juste après l’enregistrement de l’élève.
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-muted">
+                      Elle part avec le dossier : c’est le bouton
+                      <strong> {form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'} </strong>
+                      ci-dessous qui enregistre tout, informations et photo comprises.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -574,11 +582,12 @@ export default function InscriptionListPage() {
                       disabled={enregistrer.isPending || dossierVerrouille}
                       title={dossierVerrouille ? 'Année clôturée : consultation seule.' : undefined}
                     >
+                      {/* « Enregistrer avec la photo » se lisait « enregistrer la photo »,
+                          comme si le reste de la saisie ne partait pas. Le bouton nomme donc
+                          ce qu'il enregistre : le dossier entier, photo comprise. */}
                       {enregistrer.isPending
                         ? 'Enregistrement…'
-                        // Dire ce que le clic va faire : avec une photo choisie, elle part
-                        // juste après l'élève, et c'est le moment de le savoir.
-                        : photo ? 'Enregistrer avec la photo' : 'Enregistrer'}
+                        : form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'}
                     </Button>
                   )}
                 </div>

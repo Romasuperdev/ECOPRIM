@@ -287,7 +287,12 @@ class InscriptionController extends Controller
                 'mimes:'.implode(',', $this->photos->extensionsAutorisees()),
                 'max:'.$this->photos->tailleMaxKo(),
             ],
-        ], [], ['photo' => 'photo']);
+        ], [
+            // Le message générique dirait « 51200 kilo-octets » : personne ne lit une
+            // taille ainsi. La limite s'exprime en mégaoctets, comme à l'écran.
+            'photo.max' => 'La photo ne doit pas dépasser '
+                .round($this->photos->tailleMaxKo() / 1024).' Mo.',
+        ], ['photo' => 'photo']);
 
         $code = (int) $eleve->getKey();
         $nomBase = trim((string) $eleve->matricule) ?: ('eleve-'.$code);
