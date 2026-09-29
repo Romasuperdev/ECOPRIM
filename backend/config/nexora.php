@@ -26,7 +26,10 @@ return [
 
     'photos_eleves' => [
         'chemin' => env('NEXORA_PHOTOS_ELEVES') ?: storage_path('app/photos-eleves'),
-        'taille_max_ko' => (int) env('NEXORA_PHOTOS_TAILLE_MAX_KO', 4096),
+        // 50 Mo. Attention : PHP tranche AVANT Laravel — si `upload_max_filesize` ou
+        // `post_max_size` du php.ini sont plus bas, c'est eux qui font loi et le fichier
+        // n'atteint même pas la validation. Les deux doivent suivre cette valeur.
+        'taille_max_ko' => (int) env('NEXORA_PHOTOS_TAILLE_MAX_KO', 51200),
         'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
     ],
 

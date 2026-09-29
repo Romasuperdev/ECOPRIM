@@ -242,4 +242,16 @@ class PorteeAnneeTest extends TestCase
         $this->getJson('/api/v1/contexte')->assertOk()->assertJsonPath('annee', self::A);
         $this->assertSame('Passe', $this->getJson('/api/v1/eleves')->assertOk()->json('data.0.nom'));
     }
+
+    /**
+     * La taille maximale d'une photo voyage jusqu'à l'écran, qui n'en garde donc pas de
+     * copie. Elle était écrite en dur des deux côtés, et le jour où l'une a changé, l'autre
+     * a continué d'annoncer l'ancienne valeur.
+     */
+    public function test_le_contexte_porte_la_taille_maximale_d_une_photo(): void
+    {
+        config(['nexora.photos_eleves.taille_max_ko' => 51200]);
+
+        $this->getJson('/api/v1/contexte')->assertOk()->assertJsonPath('photo_max_ko', 51200);
+    }
 }

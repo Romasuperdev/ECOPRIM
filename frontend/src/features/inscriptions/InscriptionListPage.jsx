@@ -65,6 +65,12 @@ export default function InscriptionListPage() {
   // suit, elle ne la redemande pas.
   const anneeEffective = contexte?.annee ?? ''
 
+  // La limite vient du serveur : c'est lui qui la fait respecter. L'écran s'en sert
+  // seulement pour éviter un envoi voué au refus, et pour l'annoncer justement — la valeur
+  // était écrite en dur ici, et elle a fini par ne plus dire la même chose que le serveur.
+  const photoMaxKo = contexte?.photo_max_ko ?? 4096
+  const photoMaxMo = Math.round(photoMaxKo / 1024)
+
   // `annee` n'est volontairement PAS transmise. Sans elle, le serveur applique
   // ContexteScolaire, qui filtre sur le libellé ET sur le code — ECONOMAT stockant
   // tantôt l'un tantôt l'autre. Le filtre explicite, lui, faisait une égalité stricte
@@ -156,8 +162,8 @@ export default function InscriptionListPage() {
       setErreurPhoto('Le fichier doit être une image (JPG, PNG ou WebP).')
       return
     }
-    if (fichier.size > 4 * 1024 * 1024) {
-      setErreurPhoto('L’image ne doit pas dépasser 4 Mo.')
+    if (fichier.size > photoMaxKo * 1024) {
+      setErreurPhoto(`L’image ne doit pas dépasser ${photoMaxMo} Mo.`)
       return
     }
     if (apercu) URL.revokeObjectURL(apercu)
@@ -531,7 +537,7 @@ export default function InscriptionListPage() {
                     {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
 
                     <p className="mt-3 text-xs text-muted">
-                      JPG, PNG ou WebP, 4 Mo maximum. La photo est enregistrée dans le dossier
+                      JPG, PNG ou WebP, {photoMaxMo} Mo maximum. La photo est enregistrée dans le dossier
                       partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
                       remplace la précédente s’il en existait une.
                     </p>

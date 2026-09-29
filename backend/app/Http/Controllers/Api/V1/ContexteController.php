@@ -9,6 +9,7 @@ use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use App\Models\Console\Etablissement;
 use App\Services\BEtablissementEcrivain;
+use App\Services\PhotoEleveStockage;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -42,6 +43,11 @@ class ContexteController extends Controller
             // Année de consultation : celle choisie en session, à défaut l'année active.
             'annee' => $this->anneeEffective($request, $annees),
             'annees' => $annees,
+
+            // Taille maximale d'une photo, en kilo-octets. Elle voyage jusqu'à l'écran pour
+            // qu'il n'en garde pas une copie : la valeur était écrite en dur des deux côtés,
+            // et le jour où l'une a changé, l'autre a continué d'annoncer l'ancienne.
+            'photo_max_ko' => app(PhotoEleveStockage::class)->tailleMaxKo(),
         ];
     }
 
