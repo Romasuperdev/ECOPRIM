@@ -24,7 +24,14 @@ return [
         explode(',', env('FRONTEND_URLS', env('FRONTEND_URL', 'http://localhost:5173')))
     )),
 
-    'allowed_origins_patterns' => [],
+    // En développement, Vite ne garde pas toujours le port 5173 : si celui-ci est occupé,
+    // il passe au suivant sans prévenir, l'origine n'est plus dans la liste ci-dessus, le
+    // navigateur bloque l'appel et l'écran de connexion affiche une erreur qui n'a rien à
+    // voir avec les identifiants. On accepte donc n'importe quel port local — et seulement
+    // en local : en production, seules les origines déclarées sont admises.
+    'allowed_origins_patterns' => env('APP_ENV') === 'local'
+        ? ['#^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?$#']
+        : [],
 
     'allowed_headers' => ['*'],
 

@@ -1,10 +1,7 @@
-import axios from 'axios'
-import apiClient, { API_ROOT_URL } from '../../api/client'
+import apiClient, { demanderCookieCsrf } from '../../api/client'
 
 // Sanctum SPA : un cookie CSRF doit être posé avant tout appel POST authentifié par session
-export async function ensureCsrfCookie() {
-  await axios.get(`${API_ROOT_URL}/sanctum/csrf-cookie`, { withCredentials: true })
-}
+export const ensureCsrfCookie = demanderCookieCsrf
 
 export async function login({ email, password }) {
   await ensureCsrfCookie()
@@ -18,6 +15,9 @@ export async function login({ email, password }) {
  * des libellés, et { null, null } pour un identifiant inconnu, désactivé ou non rattaché.
  */
 export async function fetchRattachementDuCompte(identifiant) {
+  // POST sur une page où l'utilisateur n'est pas encore passé par /login : sans cookie CSRF
+  // préalable, Laravel répondrait 419 et le rattachement ne s'afficherait jamais.
+  await demanderCookieCsrf()
   const { data } = await apiClient.post('/etablissement-du-compte', { identifiant })
   return { etablissement: data.etablissement ?? null, societe: data.societe ?? null }
 }
