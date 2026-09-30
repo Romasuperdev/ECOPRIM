@@ -219,10 +219,14 @@ export default function LoginPage() {
           }}
         >
           <div className="flex max-w-[300px] flex-col items-center text-center">
-<img
+            {/* Le mot seul, sans le symbole : celui-ci est bleu, et sur ce panneau bleu nuit
+                il ne se lisait pas — il formait une tache sombre à gauche du nom. L'image a
+                donc été recadrée sur le mot. Largeur réduite en conséquence : elle ne porte
+                plus le symbole, le même 280 px aurait grossi le nom de moitié. */}
+            <img
               src={logoNexoraBlanc}
               alt="NEXORA"
-              className="w-full max-w-[280px]"
+              className="w-full max-w-[250px]"
             />
             {/* Le logo est celui du groupe ; cette ligne dit de quel produit il s'agit. */}
             <div className="mt-2.5 text-[11px] font-bold uppercase tracking-[0.25em] opacity-80">
