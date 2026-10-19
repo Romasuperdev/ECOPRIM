@@ -4001,3 +4001,67 @@ d'une société.
 8 tests ajoutés (`Console\PlateformeTest`). Les tables de la plateforme rejoignent le socle
 de test, avec `EstAdminSociete` qui manquait à `societe_utilisateur`. Suite : **482
 passent**, 2 échecs antérieurs (faux JPEG, Windows).
+
+## Console : Utilisateurs et Affectations, enfin atteignables
+
+Constat de l'utilisateur : trois adresses introuvables depuis `/admin` —
+`utilisateurs`, `affectations`, `affectations-etab` — avec ECONEW comme modèle.
+Trois situations différentes derrière le même symptôme.
+
+**`/admin/utilisateurs`** existait et fonctionnait, mais sous le layout de l'APPLICATION,
+pas sous celui de la console : aucun lien n'y menait depuis `/admin`. On administre des
+comptes depuis une console ; son absence du menu obligeait à en sortir. Entrée ajoutée.
+
+**`/admin/affectations`** venait d'être créée, mais réservée au Super Admin — ce sont des
+données de plateforme. Invisible pour un Admin Établissement, et c'est voulu.
+
+**`/admin/affectations-etab`** n'existait pas, et n'a pas été copiée d'ECONEW.
+
+### Pourquoi ne pas copier l'écran d'ECONEW
+
+Il fait deux choses : rattacher un établissement à une société, et rattacher un compte à un
+établissement. **Les deux existent déjà dans ECOPRIM**, et en mieux : le premier sur
+`console_etablissements.societe_code` (écran Établissements), le second sur
+`console_affectations`, qui porte en plus **le rôle, les dates et l'état actif** là où
+ECONEW n'a qu'un rattachement nu.
+
+ECONEW écrit directement dans `T_ETABLISSEMENT` d'ECONOMAT. Reproduire ce geste depuis
+ECOPRIM aurait ouvert un second chemin d'écriture vers une table partagée, concurrent des
+tables que le projet possède en propre.
+
+### Le vrai manque était ailleurs
+
+**Aucune route ne listait les affectations.** `AffectationController` n'avait que `store`,
+`destroy` et `definirEnfants` : on ne pouvait les consulter que compte par compte, en les
+ouvrant un à un. Or la question qu'on se pose devant un établissement est « qui y
+travaille ? ».
+
+`index()` ajouté, et l'écran qui va avec : recherche, filtre par établissement, et chaque
+ligne mène à la fiche du compte.
+
+**En lecture seule, délibérément.** Affecter et retirer restent sur la fiche de
+l'utilisateur, où les règles s'appliquent déjà — une seule société par compte, pas de
+doublon, pas de rôle Admin Société conféré par un Admin Établissement. Un second endroit
+pour écrire aurait voulu dire une seconde copie de ces règles ; elles auraient fini par
+différer, et l'on n'aurait plus su laquelle fait foi.
+
+### Le cloisonnement, point sensible d'une vue transverse
+
+Une liste qui traverse les établissements doit s'arrêter au périmètre de son lecteur.
+Filtrer par société **ne suffit pas** à ce niveau : deux établissements d'une même société
+appartiennent à deux directeurs différents. La requête restreint donc aussi sur
+`etablissementsAdministres()` dès que le compte n'atteint pas le niveau société.
+
+Cinq tests l'éprouvent, dont celui qui compte le plus : **un Admin Établissement ne voit pas
+l'établissement voisin de sa propre société**.
+
+Une affectation échue reste en base — c'est un historique — mais n'ouvre plus rien :
+`echue` la distingue à l'écran d'une affectation vivante, pour qu'on ne la croie pas
+agissante.
+
+### Détail de nommage
+
+L'entrée plateforme devient **« Affectations société »**. Deux entrées « Affectations » côte
+à côte, l'une sur la société et l'autre sur l'établissement, se seraient confondues.
+
+5 tests ajoutés. Suite : **487 passent**, 2 échecs antérieurs (faux JPEG, Windows).

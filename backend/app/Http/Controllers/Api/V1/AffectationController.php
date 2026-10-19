@@ -27,6 +27,68 @@ use Illuminate\Validation\ValidationException;
  */
 class AffectationController extends Controller
 {
+    /**
+     * Toutes les affectations du périmètre, en une vue.
+     *
+     * Elles ne se consultaient jusqu'ici que compte par compte, depuis la fiche d'un
+     * utilisateur : impossible de répondre à « qui travaille dans cet établissement ? »
+     * sans ouvrir les comptes un à un. C'est pourtant la question qu'on se pose en
+     * arrivant sur un établissement.
+     *
+     * Lecture seule à dessein. La création et le retrait restent sur la fiche de
+     * l'utilisateur, où les règles s'appliquent déjà — une société unique par compte, pas
+     * de doublon, pas de rôle Admin Société conféré par un Admin Établissement. Un second
+     * chemin d'écriture aurait voulu dire une seconde copie de ces règles.
+     */
+    public function index(Request $request)
+    {
+        $requete = Affectation::with(['etablissement', 'role'])
+            // Chacun ne voit que son périmètre : un Admin Établissement les affectations de
+            // SES établissements, un Admin Société celles de sa société.
+            ->tap(fn ($q) => PerimetreConsole::appliquer($q))
+            ->when($request->filled('etablissement'),
+                fn ($q) => $q->where('etablissement_code', $request->input('etablissement')))
+            ->when($request->filled('actif'),
+                fn ($q) => $q->where('actif', $request->boolean('actif')));
+
+        // Un Admin Établissement ne dépasse pas ses propres établissements : la restriction
+        // par société ne suffirait pas, elle lui ouvrirait ceux de ses voisins.
+        $user = auth()->user();
+        if (! $user->peutAccederNiveauSociete()) {
+            $requete->whereIn('etablissement_code', $user->etablissementsAdministres());
+        }
+
+        $affectations = $requete->orderBy('etablissement_code')->orderBy('rh_user_id')->get();
+
+        // Les comptes vivent dans RH_USER (lecture seule, autre base) : Eloquent ne sait pas
+        // les joindre. Une seule requête pour tous plutôt qu'une par ligne.
+        $utilisateurs = RhUser::whereIn('Id', $affectations->pluck('rh_user_id')->unique()->all())
+            ->get()->keyBy('Id');
+
+        return $affectations->map(function (Affectation $a) use ($utilisateurs) {
+            $u = $utilisateurs->get($a->rh_user_id);
+
+            return [
+                'id' => $a->id,
+                'rh_user_id' => $a->rh_user_id,
+                'utilisateur' => $u ? trim(($u->Prenom ?? '').' '.($u->Nom ?? '')) ?: $u->Login : null,
+                'login' => $u->Login ?? null,
+                'email' => $u->Email ?? null,
+                'etablissement_code' => $a->etablissement_code,
+                'etablissement' => $a->etablissement?->intitule,
+                'societe_code' => $a->societe_code,
+                'role' => $a->role?->nom,
+                'role_code' => $a->role?->code,
+                'actif' => $a->actif,
+                'date_debut' => $a->date_debut?->toDateString(),
+                'date_fin' => $a->date_fin?->toDateString(),
+                // Une affectation échue reste en base — c'est un historique — mais elle
+                // n'ouvre plus rien. Le dire évite de la croire encore agissante.
+                'echue' => $a->date_fin !== null && $a->date_fin->isPast(),
+            ];
+        })->values();
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

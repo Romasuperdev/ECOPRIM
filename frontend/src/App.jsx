@@ -32,6 +32,7 @@ const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPag
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
 // Console plateforme : quatre écrans dans un même module, ils partagent tout sauf
 // leurs colonnes (voir PlateformePages).
+const AffectationsEtablissementPage = lazy(() => import('./features/admin/AffectationsEtablissementPage'))
 const ApplicationsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ApplicationsPage })))
 const AffectationsPlateformePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AffectationsPlateformePage })))
 const AbonnementsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AbonnementsPage })))
@@ -131,6 +132,13 @@ export default function App() {
               <Route
                 path="/admin/utilisateurs/:id/tracabilite"
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
+              />
+              {/* Affectations du périmètre : qui travaille dans quel établissement. Niveau
+                  établissement — un Directeur doit pouvoir voir les siennes. Lecture seule :
+                  on affecte depuis la fiche de l'utilisateur, où les règles s'appliquent. */}
+              <Route
+                path="/admin/affectations-etablissement"
+                element={<ProtectedRoute exigeConsole><AffectationsEtablissementPage /></ProtectedRoute>}
               />
               {/* Console plateforme : données communes à toute la suite NEXORA, lues dans la
                   base partagée. Réservées au Super Admin, côté écran comme côté serveur —

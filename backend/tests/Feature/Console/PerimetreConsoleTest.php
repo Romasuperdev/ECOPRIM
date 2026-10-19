@@ -659,4 +659,87 @@ class PerimetreConsoleTest extends TestCase
             'rh_user_id' => 13, 'etablissement_code' => 'E-ABN', 'role_id' => 1, // admin-societe
         ])->assertForbidden();
     }
+
+    // --- Vue d'ensemble des affectations ---
+
+    /**
+     * La liste existe pour répondre à « qui travaille ici ? » sans ouvrir les comptes un à
+     * un. Elle ne doit pas, ce faisant, montrer plus que ce que son lecteur administre.
+     */
+    public function test_le_super_admin_voit_les_affectations_de_toutes_les_societes(): void
+    {
+        $this->compte(20, 'nord');
+        $this->compte(21, 'sud');
+        $this->affecter(20, 'ABN', 'E-ABN', 2);
+        $this->affecter(21, 'SUD', 'E-SUD', 2);
+        $this->superAdmin();
+
+        $lignes = $this->getJson('/api/v1/affectations')->assertOk()->json();
+
+        $this->assertEqualsCanonicalizing(
+            ['E-ABN', 'E-SUD'],
+            array_unique(array_column($lignes, 'etablissement_code')),
+        );
+    }
+
+    public function test_l_admin_societe_ne_voit_que_les_affectations_de_sa_societe(): void
+    {
+        $this->compte(21, 'sud');
+        $this->affecter(21, 'SUD', 'E-SUD', 2);
+        $this->adminSociete('ABN', 'E-ABN');
+
+        $lignes = $this->getJson('/api/v1/affectations')->assertOk()->json();
+
+        $this->assertSame(['E-ABN'], array_unique(array_column($lignes, 'etablissement_code')));
+    }
+
+    /**
+     * Le cloisonnement par société ne suffit pas à ce niveau : deux établissements d'une
+     * même société appartiennent à deux directeurs différents.
+     */
+    public function test_l_admin_etablissement_ne_voit_pas_l_etablissement_voisin(): void
+    {
+        DB::connection('ecoprim')->table('console_etablissements')->insert([
+            'id' => 3, 'code' => 'E-ABN2', 'intitule' => 'École Nord 2', 'societe_code' => 'ABN', 'actif' => true,
+        ]);
+        $this->compte(22, 'voisin');
+        $this->affecter(22, 'ABN', 'E-ABN2', 2);
+        $this->adminEtablissement('ABN', 'E-ABN');
+
+        $lignes = $this->getJson('/api/v1/affectations')->assertOk()->json();
+
+        $this->assertSame(['E-ABN'], array_unique(array_column($lignes, 'etablissement_code')));
+    }
+
+    /** Le nom du compte vient de RH_USER : sans lui, la liste n'afficherait que des numéros. */
+    public function test_la_liste_nomme_le_compte_et_son_role(): void
+    {
+        $this->compte(23, 'kouadio');
+        $this->affecter(23, 'ABN', 'E-ABN', 2);
+        $this->superAdmin();
+
+        $ligne = collect($this->getJson('/api/v1/affectations')->assertOk()->json())
+            ->firstWhere('rh_user_id', 23);
+
+        $this->assertSame('kouadio', $ligne['login']);
+        $this->assertSame('X KOUADIO', $ligne['utilisateur']);
+        $this->assertSame('Direction', $ligne['role']);
+        $this->assertSame('École Nord', $ligne['etablissement']);
+    }
+
+    /**
+     * Une affectation échue reste en base — c'est un historique — mais elle n'ouvre plus
+     * rien. La liste doit la distinguer d'une affectation vivante.
+     */
+    public function test_une_affectation_echue_est_signalee_comme_telle(): void
+    {
+        $this->compte(24, 'parti');
+        $this->affecter(24, 'ABN', 'E-ABN', 2, ['date_fin' => now()->subDay()->toDateString()]);
+        $this->superAdmin();
+
+        $ligne = collect($this->getJson('/api/v1/affectations')->assertOk()->json())
+            ->firstWhere('rh_user_id', 24);
+
+        $this->assertTrue($ligne['echue']);
+    }
 }

@@ -123,7 +123,7 @@ export function AffectationsPlateformePage() {
   return (
     <Ecran
       cle="plateforme-affectations" requete={fetchAffectationsPlateforme} icon={Link2}
-      titre="Affectations" sousTitre="Qui travaille pour quelle société, au niveau de la plateforme."
+      titre="Affectations société" sousTitre="Qui est rattaché à quelle société, au niveau de la plateforme. À distinguer des affectations par établissement, qui portent un rôle."
       enfants={(data) => (
         <Tableau
           colonnes={['Société', 'Utilisateur', 'Identifiant', 'Email', 'Rôle']}

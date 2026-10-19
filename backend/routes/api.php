@@ -352,6 +352,10 @@ Route::prefix('v1')->group(function () {
             Route::post('utilisateurs/{user}/desactiver', [UserController::class, 'desactiver']);
             Route::post('utilisateurs/{user}/reinitialiser-mot-de-passe', [UserController::class, 'reinitialiserMotDePasse']);
 
+            // Vue d'ensemble des affectations du périmètre. En LECTURE seule : la création
+            // et le retrait restent sur la fiche de l'utilisateur, où les règles sont déjà
+            // appliquées — un second chemin d'écriture en aurait voulu une seconde copie.
+            Route::get('affectations', [AffectationController::class, 'index']);
             Route::post('affectations', [AffectationController::class, 'store']);
             Route::put('affectations/{affectation}/eleves', [AffectationController::class, 'definirEnfants']);
             Route::delete('affectations/{affectation}', [AffectationController::class, 'destroy']);
