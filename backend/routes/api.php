@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\EvaluationController;
 use App\Http\Controllers\Api\V1\DevoirController;
 use App\Http\Controllers\Api\V1\EvenementController;
 use App\Http\Controllers\Api\V1\PortailEnseignantController;
+use App\Http\Controllers\Api\V1\PlateformeController;
 use App\Http\Controllers\Api\V1\PortailParentController;
 
 // Routes API ECOPRIM - v1
@@ -295,6 +296,14 @@ Route::prefix('v1')->group(function () {
             Route::put('societes/{societe}', [SocieteController::class, 'update']);
             Route::post('societes/{societe}/activer', [SocieteController::class, 'activer']);
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
+
+            // Console plateforme : ce qui dépasse ECOPRIM et vaut pour toute la suite.
+            // LECTURE SEULE — ces tables vivent dans dbmasterbacou, partagée avec ECONOMAT
+            // et les autres applications ; ECOPRIM n'en est pas propriétaire.
+            Route::get('plateforme/applications', [PlateformeController::class, 'applications']);
+            Route::get('plateforme/affectations', [PlateformeController::class, 'affectations']);
+            Route::get('plateforme/abonnements', [PlateformeController::class, 'abonnements']);
+            Route::get('plateforme/parametres', [PlateformeController::class, 'parametres']);
         });
 
         // Console d'une société — Super Admin sur n'importe laquelle, Admin Société sur la

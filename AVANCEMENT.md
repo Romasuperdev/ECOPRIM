@@ -3943,3 +3943,61 @@ contrôleur lui donne **vraiment** (obtenues par réflexion, plutôt qu'en les r
 test, ce qui n'aurait éprouvé que la copie) : les coordonnées, le mouvement et les dates
 françaises y figurent, et aucune date brute ne subsiste. Suite : **470 passent**, 1 échec
 antérieur (faux JPEG, Windows).
+
+## Console plateforme : les rubriques manquantes existaient déjà
+
+Demande : que la console `/admin` ressemble à celle d'ECONEW, en ajoutant les rubriques
+absentes — Applications, Abonnements, Affectations, Paramètres système.
+
+### Ce n'était pas un domaine à bâtir
+
+Avant d'écrire quoi que ce soit, j'ai cherché où vivaient les tables d'ECONEW. Ses modèles
+`Societe` et `Application` déclarent `protected $connection = 'master'` — soit
+**`dbmasterbacou`**, exactement la base qu'ECOPRIM interroge déjà pour `RH_USER`.
+
+Vérification faite sur la base réelle : `US_SOCIETE` (3), `US_APPLICATIONS` (1),
+`societe_utilisateur` (6), `parametres_systeme` (7) y sont **remplies** ;
+`subscriptions`, `subscription_plans` et `audit_logs` existent mais sont **vides**.
+
+Autrement dit : ces rubriques n'étaient pas à construire, elles étaient à AFFICHER. Le menu
+les annonçait d'ailleurs « À venir » alors qu'il ne manquait que l'écran. Le chantier
+annoncé en semaines s'est réduit à un contrôleur et quatre tableaux.
+
+### Lecture seule, sans exception
+
+Ces tables appartiennent à la suite entière : ECONOMAT et les autres applications s'en
+servent. Les écrire depuis ECOPRIM toucherait leurs comptes et leurs abonnements — c'est
+exactement le danger contre lequel le projet protège ECONOMAT depuis le pivot, pour la même
+raison. `PlateformeController` ne porte donc aucun verbe d'écriture, et
+`plateformeApi.js` non plus.
+
+Un test ne s'en remet pas à cette intention : il parcourt la **table de routage** et vérifie
+qu'aucune route `plateforme/` n'accepte autre chose que GET.
+
+### Ce que les écrans disent, et ce qu'ils taisent
+
+- **Les valeurs des paramètres ne sont pas rendues.** Certaines sont des secrets — clés
+  d'API, jetons. L'écran dit si le réglage est posé, pas ce qu'il contient. Un test cherche
+  le secret dans la réponse pour s'assurer qu'il n'y est pas.
+- **Une table vide est une réponse, pas une panne.** Abonnements et formules répondent mais
+  ne sont pas alimentés ; l'écran l'annonce. `alimentee` distingue « rien encore » de
+  `disponible` « table absente de cette installation » — deux situations qui donnent le
+  même tableau vide et appellent deux gestes différents.
+- **Un code d'application hors catalogue est signalé** plutôt que silencieusement écarté du
+  total : un compte invisible est un compte qu'on ne corrige jamais.
+
+### Deux choix assumés
+
+**Pas de « Journal d'audit ».** ECOPRIM a déjà **Traçabilité**, alimentée et cloisonnée par
+société ; la table `audit_logs` d'ECONEW est vide. Deux journaux concurrents auraient
+obligé à se demander lequel fait foi.
+
+**Pas de « Facturation » séparée.** Elle dérive des abonnements, vides. Un troisième écran
+vide n'aurait rien ajouté ; les formules et les abonnements tiennent sur une seule page.
+
+Réservé au **Super Admin**, à l'écran comme au serveur : ces données dépassent le périmètre
+d'une société.
+
+8 tests ajoutés (`Console\PlateformeTest`). Les tables de la plateforme rejoignent le socle
+de test, avec `EstAdminSociete` qui manquait à `societe_utilisateur`. Suite : **482
+passent**, 2 échecs antérieurs (faux JPEG, Windows).

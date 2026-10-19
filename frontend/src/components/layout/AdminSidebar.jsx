@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
-import { LayoutDashboard, Building2, School, History, ArrowLeftCircle, X } from 'lucide-react'
+import {
+  AppWindow, ArrowLeftCircle, Building2, CreditCard, History, LayoutDashboard,
+  Link2, School, Settings2, X,
+} from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
@@ -16,7 +19,15 @@ const ITEMS = [
   { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
 ]
 
-const A_VENIR = ['Applications & licences', 'Abonnements']
+// Données communes à toute la suite NEXORA, lues dans la base partagée avec ECONOMAT :
+// elles dépassent le périmètre d'une société, d'où le Super Admin seul. Elles étaient
+// annoncées « à venir » alors qu'elles existaient déjà — il ne manquait que l'écran.
+const PLATEFORME = [
+  { to: '/admin/applications', icon: AppWindow, label: 'Applications' },
+  { to: '/admin/affectations', icon: Link2, label: 'Affectations' },
+  { to: '/admin/abonnements', icon: CreditCard, label: 'Abonnements' },
+  { to: '/admin/parametres-systeme', icon: Settings2, label: 'Paramètres système' },
+]
 
 /** `dansTiroir` : ouvert par-dessus le contenu sur petit écran (voir AdminLayout). */
 export default function AdminSidebar({ dansTiroir = false, onFermer }) {
@@ -70,29 +81,32 @@ export default function AdminSidebar({ dansTiroir = false, onFermer }) {
           </NavLink>
         ))}
 
-        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
-          <p
-            className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide"
-            style={{ color: 'color-mix(in srgb, var(--sidebar-text) 50%, transparent)' }}
-          >
-            À venir
-          </p>
-          {A_VENIR.map((label) => (
-            <div
-              key={label}
-              className="flex items-center justify-between rounded-xl px-3 py-2 text-sm"
-              style={{ color: 'color-mix(in srgb, var(--sidebar-text) 40%, transparent)' }}
+        {superAdmin && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+            <p
+              className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide"
+              style={{ color: 'color-mix(in srgb, var(--sidebar-text) 50%, transparent)' }}
             >
-              {label}
-              <span
-                className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium"
-                style={{ color: 'color-mix(in srgb, var(--sidebar-text) 60%, transparent)' }}
+              Plateforme
+            </p>
+            {PLATEFORME.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={dansTiroir ? onFermer : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
+                }
+                style={({ isActive }) =>
+                  isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+                }
               >
-                Bientôt
-              </span>
-            </div>
-          ))}
-        </div>
+                <Icon size={19} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        )}
       </nav>
     </aside>
   )

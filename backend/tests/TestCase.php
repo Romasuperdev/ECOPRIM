@@ -69,6 +69,8 @@ abstract class TestCase extends BaseTestCase
             $t->integer('id');
             $t->integer('user_id');
             $t->string('societe_id');
+            // Distingue l'administrateur de la société du simple compte rattaché.
+            $t->boolean('EstAdminSociete')->nullable();
         });
 
         $s->create('US_SOCIETE', function ($t) {
@@ -102,6 +104,42 @@ abstract class TestCase extends BaseTestCase
             $t->string('PRENOMRESP')->nullable();
             $t->string('INTITULEDREN')->nullable();
             $t->string('INTITULEIEP')->nullable();
+        });
+
+        // Tables de la PLATEFORME, communes à toute la suite NEXORA : la console les lit
+        // (voir PlateformeController), elle ne les écrit jamais. Abonnements et formules
+        // sont vides en production comme ici — c'est l'état qu'il faut pouvoir éprouver.
+        $s->create('US_APPLICATIONS', function ($t) {
+            $t->string('CodeApp');
+            $t->string('Intitule')->nullable();
+        });
+
+        $s->create('parametres_systeme', function ($t) {
+            $t->integer('id');
+            $t->string('cle');
+            $t->string('valeur')->nullable();
+            $t->string('description')->nullable();
+            $t->string('updated_at')->nullable();
+        });
+
+        $s->create('subscription_plans', function ($t) {
+            $t->integer('id');
+            $t->string('name')->nullable();
+            $t->decimal('price', 12, 2)->nullable();
+            $t->string('billing_period')->nullable();
+            $t->integer('max_students')->nullable();
+            $t->integer('max_users')->nullable();
+        });
+
+        $s->create('subscriptions', function ($t) {
+            $t->integer('id');
+            $t->integer('school_id')->nullable();
+            $t->integer('subscription_plan_id')->nullable();
+            $t->string('starts_at')->nullable();
+            $t->string('ends_at')->nullable();
+            $t->string('status')->nullable();
+            $t->decimal('amount', 12, 2)->nullable();
+            $t->boolean('auto_renew')->nullable();
         });
     }
     /**

@@ -30,6 +30,12 @@ const EchangesPage = lazy(() => import('./features/echanges/EchangesPage'))
 const CoefficientsPage = lazy(() => import('./features/coefficients/CoefficientsPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
 const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
+// Console plateforme : quatre écrans dans un même module, ils partagent tout sauf
+// leurs colonnes (voir PlateformePages).
+const ApplicationsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ApplicationsPage })))
+const AffectationsPlateformePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AffectationsPlateformePage })))
+const AbonnementsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AbonnementsPage })))
+const ParametresSystemePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ParametresSystemePage })))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
 const EmploiDuTempsPage = lazy(() => import('./features/emplois-du-temps/EmploiDuTempsPage'))
 const AffectationEnseignantPage = lazy(() => import('./features/affectations-enseignants/AffectationEnseignantPage'))
@@ -125,6 +131,25 @@ export default function App() {
               <Route
                 path="/admin/utilisateurs/:id/tracabilite"
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
+              />
+              {/* Console plateforme : données communes à toute la suite NEXORA, lues dans la
+                  base partagée. Réservées au Super Admin, côté écran comme côté serveur —
+                  elles dépassent le périmètre d'une société. */}
+              <Route
+                path="/admin/applications"
+                element={<ProtectedRoute exigeSuperAdmin><ApplicationsPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/affectations"
+                element={<ProtectedRoute exigeSuperAdmin><AffectationsPlateformePage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/abonnements"
+                element={<ProtectedRoute exigeSuperAdmin><AbonnementsPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/parametres-systeme"
+                element={<ProtectedRoute exigeSuperAdmin><ParametresSystemePage /></ProtectedRoute>}
               />
               </Route>
 
