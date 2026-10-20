@@ -38,3 +38,8 @@ yarn-error.log
 
 # Sauvegardes locales de .env (contiennent des secrets)
 .env.bak-*
+
+# Interface React construite (frontend/npm run build). Générée, jamais versionnée :
+# elle change à chaque build et alourdirait le dépôt. Le script deployer.bat la produit,
+# et DEPLOIEMENT.md rappelle qu'elle doit accompagner ce qu'on dépose dans www.
+/public/spa

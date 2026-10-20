@@ -4065,3 +4065,76 @@ L'entrée plateforme devient **« Affectations société »**. Deux entrées « 
 à côte, l'une sur la société et l'autre sur l'établissement, se seraient confondues.
 
 5 tests ajoutés. Suite : **487 passent**, 2 échecs antérieurs (faux JPEG, Windows).
+
+## Mise en ligne sur WAMP : une seule origine, et un contrôle avant de démarrer
+
+Demande : faciliter le déploiement sur un serveur WAMP, où l'on dépose le projet dans
+`www` et où un administrateur fait la configuration.
+
+### Une seule adresse pour l'interface et l'API
+
+L'interface est désormais construite dans `backend/public/spa`, et Apache sert tout depuis
+la même racine : la page sous `/`, l'API sous `/api`. Ni CORS, ni cookie inter-domaines,
+ni URL d'API à réécrire selon le serveur — c'est déjà ce que le proxy de Vite fait en
+développement, et la production suit le même modèle plutôt qu'un second.
+
+Un sous-dossier `spa/` et non `public/` directement : Apache sert `index.html` avant
+`index.php` (DirectoryIndex), et Laravel ne verrait plus passer une seule requête.
+
+### Deux pièges rencontrés et corrigés en route
+
+**`base: '/spa/'` s'appliquait aussi au serveur de développement.** La racine locale
+redirigeait vers `/spa/` — régression que j'avais introduite sans la voir. La
+configuration prend la forme fonction : `command === 'build' ? '/spa/' : '/'`. Vérifié dans
+les deux modes.
+
+**`Route::fallback()` cassait les codes d'erreur de toute l'API.** Le repli est une route
+GET dont l'URI accepte n'importe quoi : une requête DELETE vers une adresse inexistante y
+trouvait une URI correspondante mais un verbe différent, et Laravel répondait **405** au
+lieu de **404**. L'API perdait la distinction entre « cette adresse n'existe pas » et « pas
+avec ce verbe-là ». Relevé par `TracabiliteTest`, qui éprouvait justement ces deux codes.
+
+Remplacé par une route dont le MOTIF D'URI exclut lui-même les préfixes servis par le
+serveur : une adresse d'API ne lui correspond jamais, quel que soit le verbe. Avec `.*` en
+contrainte — et non le `[^/]+` par défaut — pour que `/admin/utilisateurs` soit pris :
+sans cela, rafraîchir une page profonde donnerait un 404 d'Apache.
+
+### `php artisan nexora:verifier-deploiement`
+
+Une installation rate rarement sur le code : elle rate sur une extension absente, un
+dossier non inscriptible, une limite de `php.ini` trop basse, un mot de passe SQL expiré.
+Chacun se manifeste plus tard, par un message qui ne dit pas sa cause.
+
+La commande les sort tous d'un coup, avant la première connexion : environnement
+(APP_DEBUG, SESSION_DOMAIN, locale), extensions, les trois connexions, les tables
+attendues, droits d'écriture, limites de téléversement, interface construite, `.htaccess`
+présent. Elle **ne modifie rien**, distingue ce qui empêche de démarrer de ce qui peut
+attendre, et chaque anomalie dit **quoi faire** — pas seulement que quelque chose ne va pas.
+
+Les erreurs de connexion les plus courantes sont traduites en cause et en remède : un mot
+de passe SQL expiré renvoie la commande `ALTER LOGIN` à exécuter, non le message brut du
+pilote.
+
+**Un faux positif corrigé à l'exécution** : `V_NOTECLASSE` était annoncée manquante.
+`Schema::hasTable()` ne voit pas les VUES sur SQL Server. Un faux positif la veille d'une
+mise en ligne enverrait chercher un problème inexistant — la commande retombe donc sur une
+lecture à vide, qui tranche pour de bon et vérifie au passage le droit de lire.
+
+### Ce qui accompagne
+
+- **`DEPLOIEMENT.md`** — dix étapes pour l'administrateur, sans supposer de connaissance de
+  Laravel ni de React, avec un tableau de pannes courantes rapportées à leur cause.
+- **`.env.production.example`** — chaque ligne expliquée, les valeurs à remplacer entre
+  `< >`, et les trois réglages qui comptent vraiment signalés comme tels.
+- **`deployer.bat`** — construit l'interface, installe les dépendances sans les outils de
+  développement, vide les caches, puis lance le contrôle. Il **ne met pas en cache la
+  configuration** : cela figerait le `.env` du poste de développement et l'emporterait en
+  production. C'est sur le serveur, après avoir posé le bon `.env`, que `config:cache` se
+  lance.
+
+`backend/public/spa` est exclu du dépôt : c'est du généré, 1,5 Mo et 92 fichiers qui
+changent à chaque build. `DEPLOIEMENT.md` rappelle qu'il doit accompagner ce qu'on dépose.
+
+Le script n'a pas pu être exécuté tel quel ici — son `composer install --no-dev`
+supprimerait les dépendances de test de ce poste. Son enchaînement a été validé sur une
+copie aux commandes lourdes neutralisées.

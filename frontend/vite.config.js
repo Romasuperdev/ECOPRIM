@@ -4,8 +4,31 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // Configuration Vite - Frontend ECOPRIM
-export default defineConfig({
+//
+// La forme fonction donne accès à `command` : certaines options ne valent qu'au BUILD, et
+// les appliquer aussi au serveur de développement y casserait des choses (voir `base`).
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
+
+  // En PRODUCTION, les fichiers construits sont servis sous /spa par Apache, depuis le
+  // dossier public de Laravel. Une seule origine pour l'interface et l'API : ni CORS, ni
+  // cookie inter-domaines, ni URL d'API à réécrire selon le serveur — exactement ce que le
+  // proxy fait déjà en développement.
+  //
+  // Pourquoi un sous-dossier et non `public/` directement : Apache sert index.html avant
+  // index.php (DirectoryIndex), et Laravel ne verrait plus passer une seule requête. Ici
+  // les fichiers construits restent à part, et c'est une route Laravel qui rend la page.
+  //
+  // UNIQUEMENT au build : appliqué aussi au serveur de développement, il déplacerait
+  // l'application sous /spa/ et la racine redirigerait — ce qu'on ne veut pas en local.
+  base: command === 'build' ? '/spa/' : '/',
+
+  build: {
+    outDir: '../backend/public/spa',
+    // Le dossier ne contient que du construit : on le vide à chaque fois pour ne pas
+    // laisser traîner les empreintes des versions précédentes.
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -49,4 +72,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
