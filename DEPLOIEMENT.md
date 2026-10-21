@@ -286,7 +286,8 @@ php artisan nexora:verifier-deploiement
 
 | Ce que vous voyez | Cause la plus probable |
 |---|---|
-| Toute l'API répond **404** | `AllowOverride All` absent, ou `mod_rewrite` désactivé |
+| **« Une erreur est survenue »** à la connexion, alors que la page s'affiche | L'API répond 404 : Apache ne transmet pas `/api` à Laravel. Trois causes possibles — `AllowOverride All` absent du VirtualHost, `mod_rewrite` non chargé, ou **`public/.htaccess` non copié** (beaucoup d'outils de copie ignorent les fichiers commençant par un point). Vérifiez en ouvrant `/api/v1/contexte` dans le navigateur : il doit répondre `{"message":"Unauthenticated."}`, pas une page d'erreur d'Apache. |
+| Toute l'API répond **404** | Même cause que ci-dessus |
 | La racine rend du **JSON** au lieu du site | `backend/public/spa` manque — relancez `deployer.bat` |
 | **404 d'Apache** après un F5 sur `/eleves` | Même cause que le premier cas |
 | **« Le serveur ne répond pas »** à la connexion | Apache arrêté, ou mauvaise racine de VirtualHost |

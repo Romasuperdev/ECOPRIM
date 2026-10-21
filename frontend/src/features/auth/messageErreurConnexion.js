@@ -28,7 +28,24 @@ export function messageErreurConnexion(error) {
   if (statut === 429) return 'Trop de tentatives. Patientez une minute avant de réessayer.'
   if (statut === 403) return "Ce compte n'est pas autorisé à se connecter ici."
 
-  return statut >= 500 && duServeur
-    ? `Erreur du serveur : ${duServeur}`
-    : 'Une erreur est survenue. Veuillez réessayer.'
+  // La requête a bien atteint un serveur web, mais PAS l'application : c'est Apache
+  // lui-même qui répond. Sans mod_rewrite ni « AllowOverride All », /api/v1/... ne
+  // correspond à aucun fichier et n'est jamais remis à Laravel.
+  //
+  // Le piège est que la PAGE s'affiche quand même — elle, Apache sait la servir — d'où
+  // l'impression que tout est en ligne sauf la connexion, et l'on cherche du côté du mot
+  // de passe. C'est la panne numéro un d'une première mise en ligne.
+  if (statut === 404 || statut === 405) {
+    return "L’API est introuvable à cette adresse : le serveur web ne transmet pas « /api » "
+      + 'à l’application. Vérifiez « AllowOverride All » dans le VirtualHost, le module '
+      + 'mod_rewrite d’Apache, et la présence du fichier public/.htaccess.'
+  }
+
+  if (statut >= 500 && duServeur) {
+    return `Erreur du serveur : ${duServeur}`
+  }
+
+  // Dernier recours : on donne au moins le code. Un message sans code n'apprend rien et
+  // oblige à rouvrir les outils du navigateur pour savoir de quoi l'on parle.
+  return `Une erreur est survenue${statut ? ` (code ${statut})` : ''}. Veuillez réessayer.`
 }
