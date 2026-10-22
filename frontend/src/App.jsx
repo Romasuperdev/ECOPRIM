@@ -59,6 +59,12 @@ const EnseignantAccueilPage = lazy(() => import('./features/portail-enseignant/E
 const EnseignantClassePage = lazy(() => import('./features/portail-enseignant/EnseignantClassePage'))
 const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAccueilPage'))
 const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfantPage'))
+// Aide et Nouveautés : lecture dans l'application, gestion dans la console (Super Admin).
+const AidePage = lazy(() => import('./features/aide/AidePage'))
+const AideArticlePage = lazy(() => import('./features/aide/AideArticlePage'))
+const NouveautesPage = lazy(() => import('./features/nouveautes/NouveautesPage'))
+const AideGestionPage = lazy(() => import('./features/admin/AideGestionPage'))
+const NouveautesGestionPage = lazy(() => import('./features/admin/NouveautesGestionPage'))
 
 const queryClient = new QueryClient()
 
@@ -158,6 +164,14 @@ export default function App() {
               <Route
                 path="/admin/parametres-systeme"
                 element={<ProtectedRoute exigeSuperAdmin><ParametresSystemePage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/aide"
+                element={<ProtectedRoute exigeSuperAdmin><AideGestionPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/nouveautes"
+                element={<ProtectedRoute exigeSuperAdmin><NouveautesGestionPage /></ProtectedRoute>}
               />
               </Route>
 
@@ -265,6 +279,10 @@ export default function App() {
               <Route path="/inscriptions" element={<InscriptionListPage />} />
               <Route path="/echanges" element={<EchangesPage />} />
               <Route path="/coefficients" element={<CoefficientsPage />} />
+
+              <Route path="/aide" element={<AidePage />} />
+              <Route path="/aide/:id" element={<AideArticlePage />} />
+              <Route path="/nouveautes" element={<NouveautesPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -4174,3 +4174,44 @@ nuit, et un rouge discret est réservé aux erreurs.
 - **Textes techniques retirés de l'interface** : « (source : ECONOMAT.T_…) », noms de
   tables, « complétés par ECOPRIM », etc. sur 21 écrans. Les consignes métier réelles qui
   disent où agir dans ECONOMAT ont été gardées, reformulées sans nom de table.
+
+## Console : les rubriques de parcauto (Société - Utilisateurs, Aide, Nouveautés…)
+
+Demande : « la même console » que l'application parcauto. Choix retenus avec l'utilisateur :
+garder le menu latéral (pas la barre du haut de parcauto), et ajouter toutes les rubriques
+qui manquaient. Les défauts de parcauto relevés à la lecture n'ont pas été recopiés.
+
+- **Société - Utilisateurs** (ancien « Affectations société », en lecture seule jusqu'ici) :
+  - on rattache un compte à une ou plusieurs sociétés, on bascule « Admin société » d'un
+    clic, et on détache ;
+  - écriture contrôlée dans `dbmasterbacou.societe_utilisateur` (`SocieteUtilisateurEcrivain`),
+    réservée au Super Admin. C'est la seule exception à la lecture seule de la plateforme, et
+    un test le vérifie sur la table de routage ;
+  - `user_id` = `RH_USER.Id`, et `societe_numauto` recopie `US_SOCIETE.NUMAUTO`. Le compte
+    n'est jamais supprimé, seule la liaison l'est.
+- **Correctif** : `RhUser::allowedSocieteIds()` filtrait sur `RH_USER.user_id`, qui désigne
+  autre chose. Les données réelles le montrent : MOBIO (Id 2, user_id 1) aurait reçu les
+  sociétés du compte admin. La méthode n'était appelée nulle part, donc sans effet jusqu'ici.
+- **Utilisateur - Établissements** (ancien « Affectations ») :
+  - on affecte (compte, établissement, rôle, et les enfants pour un Parent) et on retire
+    depuis la liste ;
+  - les règles ne sont pas recopiées : elles restent dans `AffectationController`.
+  - Équivaut au `GC_CONNEXION` de parcauto. Cette table n'existe pas ici, ni les bases
+    `NEXORA_*` déclarées dans `tenants`.
+- **Aide** :
+  - catégories et articles gérés depuis la console (y compris les inactifs, qu'on peut
+    réactiver) ;
+  - pages `/aide` (recherche) et `/aide/:id` dans l'application, via l'icône « ? » de
+    l'en-tête ;
+  - un article inactif répond 404.
+- **Nouveautés** :
+  - versions et éléments gérés depuis la console ;
+  - dans l'application, une cloche avec le nombre de versions non lues, une page
+    `/nouveautes`, et une fenêtre qui s'ouvre une fois par session sur la dernière version
+    non lue (« J'ai pris connaissance » la marque lue) ;
+  - tout le texte est rendu par React (pas d'injection HTML, contrairement à parcauto).
+- Tests : 26 nouveaux. Suite complète : 513 réussis, 2 échecs sur les photos d'élèves
+  (`SaisieEconomatTest`), déjà présents avant ce travail (vérifié sur le commit précédent).
+
+À appliquer sur la machine (nouvelles tables Aide et Nouveautés) :
+`php artisan migrate --database=ecoprim --path=database/migrations/console --force`

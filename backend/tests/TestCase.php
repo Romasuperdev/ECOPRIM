@@ -66,11 +66,14 @@ abstract class TestCase extends BaseTestCase
         });
 
         $s->create('societe_utilisateur', function ($t) {
-            $t->integer('id');
+            // Identité côté SQL Server : un rattachement créé par la console n'a pas d'id.
+            $t->increments('id');
             $t->integer('user_id');
             $t->string('societe_id');
             // Distingue l'administrateur de la société du simple compte rattaché.
             $t->boolean('EstAdminSociete')->nullable();
+            $t->integer('societe_numauto')->nullable();
+            $t->timestamps();
         });
 
         $s->create('US_SOCIETE', function ($t) {

@@ -1,11 +1,11 @@
 import apiClient from '../../api/client'
 
 /**
- * Console plateforme — LECTURE SEULE.
+ * Console plateforme.
  *
  * Ces données vivent dans `dbmasterbacou`, partagée avec ECONOMAT et les autres
- * applications de la suite : ECOPRIM n'en est pas propriétaire. D'où l'absence de verbes
- * d'écriture ici, et rien qui y ressemble.
+ * applications de la suite : ECOPRIM n'en est pas propriétaire. Tout y est en lecture,
+ * sauf le rattachement compte ↔ société, plus bas.
  */
 export const fetchApplications = () =>
   apiClient.get('plateforme/applications').then((r) => r.data)
@@ -18,3 +18,16 @@ export const fetchAbonnements = () =>
 
 export const fetchParametresSysteme = () =>
   apiClient.get('plateforme/parametres').then((r) => r.data)
+
+// Société - Utilisateurs : la seule écriture de la console sur la plateforme.
+export const fetchReferentielsRattachement = () =>
+  apiClient.get('plateforme/affectations/referentiels').then((r) => r.data)
+
+export const rattacherCompte = (v) =>
+  apiClient.post('plateforme/affectations', v).then((r) => r.data)
+
+export const definirAdminSociete = (id, adminSociete) =>
+  apiClient.put(`plateforme/affectations/${id}`, { admin_societe: adminSociete })
+
+export const detacherCompte = (id) =>
+  apiClient.delete(`plateforme/affectations/${id}`)

@@ -18,6 +18,8 @@ export default function ModaleFormulaire({
   enCours = false,
   valideDesactive = false,
   libelleValider = 'Enregistrer',
+  // Formulaires plus riches (texte long, liste d'éléments) : une modale plus large.
+  large = false,
   children,
 }) {
   useEchap(onFermer)
@@ -28,7 +30,7 @@ export default function ModaleFormulaire({
       onClick={onFermer}
     >
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-6"
+        className={`max-h-[90vh] w-full ${large ? 'max-w-2xl' : 'max-w-md'} overflow-y-auto rounded-2xl bg-card p-6`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-slate-800">{titre}</h2>

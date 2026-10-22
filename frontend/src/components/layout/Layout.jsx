@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { Menu } from 'lucide-react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import { CircleHelp, Menu } from 'lucide-react'
 import Sidebar from './Sidebar'
 import { couleurModulePourChemin } from '../../lib/navigation'
 import Button from '../ui/Button'
@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ContexteBarre from '../../features/contexte/ContexteBarre'
 import SocieteBarre from '../../features/admin/SocieteBarre'
+import NouveautesCloche from '../../features/nouveautes/NouveautesCloche'
 import ErrorBoundary from '../ErrorBoundary'
 
 export default function Layout() {
@@ -74,6 +75,13 @@ export default function Layout() {
             {niveauSociete && <SocieteBarre />}
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {/* Aide et Nouveautés : dans l'en-tête plutôt que dans le menu — ils valent
+                pour toute l'application, pas pour un module, et restent atteignables
+                menu replié ou fermé en tiroir. */}
+            <Link to="/aide" title="Aide" aria-label="Aide" className="rounded-lg p-2 text-heading hover:bg-black/5">
+              <CircleHelp size={19} />
+            </Link>
+            <NouveautesCloche />
             <BasculeTheme />
             <Button variant="outline" onClick={handleLogout}>
               <span className="hidden sm:inline">Se déconnecter</span>

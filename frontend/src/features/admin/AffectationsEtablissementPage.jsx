@@ -1,36 +1,80 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Clock, Link2, Search } from 'lucide-react'
+import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageErreur from '../../components/ui/MessageErreur'
 import apiClient from '../../api/client'
+import SelecteurEleves from './SelecteurEleves'
+import { createAffectation, fetchAllEtablissements, fetchRoles, terminerAffectation } from './adminApi'
 
 const fetchAffectations = () => apiClient.get('affectations').then((r) => r.data)
+// Comptes du périmètre de l'appelant — l'API les cloisonne déjà.
+const fetchComptes = () => apiClient.get('utilisateurs', { params: { per_page: 200 } }).then((r) => r.data.data)
+
+const AFFECTATION_VIDE = { rh_user_id: '', etablissement_code: '', role_id: '', eleves: [] }
 
 /**
- * Qui travaille dans quel établissement.
+ * Utilisateur - Établissements : qui travaille dans quel établissement, et à quel titre.
  *
  * Ces affectations ne se consultaient que compte par compte, depuis la fiche d'un
  * utilisateur : répondre à « qui travaille ici ? » demandait d'ouvrir les comptes un à un.
  * C'est pourtant la première question qu'on se pose devant un établissement.
  *
- * LECTURE SEULE, et c'est délibéré. Affecter ou retirer se fait sur la fiche de
- * l'utilisateur, où les règles sont déjà appliquées — une seule société par compte, pas de
- * doublon, pas de rôle Admin Société conféré par un Admin Établissement. Un second endroit
- * pour écrire aurait voulu dire une seconde copie de ces règles, et elles auraient fini par
- * différer. Chaque ligne mène donc à la fiche, là où l'on agit.
+ * On peut désormais affecter et retirer d'ici, comme dans la console parcauto. Les règles
+ * ne sont pas recopiées pour autant : elles vivent dans l'API (AffectationController) — une
+ * seule société par compte, pas de doublon, pas de rôle Admin Société conféré par un Admin
+ * Établissement — et s'appliquent de la même façon qu'on passe par ici ou par la fiche.
  */
 export default function AffectationsEtablissementPage() {
+  const qc = useQueryClient()
   const [recherche, setRecherche] = useState('')
   const [etablissement, setEtablissement] = useState('')
+  const [form, setForm] = useState(null)
+  const [erreur, setErreur] = useState(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['affectations-console'],
     queryFn: fetchAffectations,
     retry: false,
   })
+
+  // Listes du formulaire, chargées seulement à son ouverture.
+  const { data: comptes } = useQuery({ queryKey: ['comptes-affectation'], queryFn: fetchComptes, enabled: !!form })
+  const { data: etabs } = useQuery({ queryKey: ['etabs-affectation', 'tous'], queryFn: () => fetchAllEtablissements(), enabled: !!form })
+  const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles, enabled: !!form })
+
+  const estRoleParent = roles?.find((r) => String(r.id) === String(form?.role_id))?.code === 'parent'
+
+  const invalider = () => {
+    qc.invalidateQueries({ queryKey: ['affectations-console'] })
+    qc.invalidateQueries({ queryKey: ['utilisateurs'] })
+  }
+
+  const affecter = useMutation({
+    mutationFn: (v) => createAffectation({
+      rh_user_id: Number(v.rh_user_id), etablissement_code: v.etablissement_code, role_id: Number(v.role_id),
+      eleves: estRoleParent ? v.eleves.map((e) => e.matricule) : undefined,
+    }),
+    onSuccess: () => { invalider(); setForm(null); setErreur(null) },
+    onError: (e) => {
+      const err = e?.response?.data?.errors
+      setErreur(err ? Object.values(err).flat()[0] : (e?.response?.data?.message ?? 'Erreur'))
+    },
+  })
+
+  const retirer = useMutation({ mutationFn: terminerAffectation, onSuccess: invalider })
+
+  const confirmerRetrait = (a) => {
+    const qui = a.utilisateur ?? a.login ?? `le compte #${a.rh_user_id}`
+    const ou = a.etablissement ?? a.etablissement_code
+    if (window.confirm(`Retirer ${qui} de ${ou} (${a.role ?? 'rôle'}) ?`)) retirer.mutate(a.id)
+  }
+
+  const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   const etablissements = useMemo(() => {
     const vus = new Map()
@@ -52,16 +96,48 @@ export default function AffectationsEtablissementPage() {
 
   return (
     <div>
-      <header className="mb-5">
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-heading">
-          <Link2 size={24} strokeWidth={2.5} style={{ color: 'var(--brand-accent)' }} />
-          Affectations par établissement
-        </h1>
-        <p className="mt-1 max-w-3xl text-sm font-medium text-muted">
-          Qui travaille dans quel établissement, et à quel titre. Pour affecter ou retirer
-          quelqu’un, ouvrez sa fiche : c’est là que les règles s’appliquent.
-        </p>
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold text-heading">
+            <Link2 size={24} strokeWidth={2.5} style={{ color: 'var(--brand-accent)' }} />
+            Utilisateur - Établissements
+          </h1>
+          <p className="mt-1 max-w-3xl text-sm font-medium text-muted">
+            Qui travaille dans quel établissement, et à quel titre. Un compte sans affectation
+            ne peut ouvrir aucun établissement.
+          </p>
+        </div>
+        <Button onClick={() => { setErreur(null); setForm({ ...AFFECTATION_VIDE }) }}>+ Affecter un compte</Button>
       </header>
+
+      {form && (
+        <ModaleFormulaire
+          titre="Affecter un compte à un établissement"
+          sousTitre="Un compte n’appartient qu’à une seule société : ses établissements doivent tous en faire partie."
+          onFermer={() => setForm(null)}
+          onValider={() => affecter.mutate(form)}
+          enCours={affecter.isPending}
+          valideDesactive={!form.rh_user_id || !form.etablissement_code || !form.role_id}
+          libelleValider="Affecter"
+        >
+          <Select id="affectation-compte" label="Compte *" value={form.rh_user_id} onChange={(e) => champ('rh_user_id', e.target.value)}>
+            <option value="">— Choisir un compte —</option>
+            {(comptes ?? []).filter((u) => u.actif).map((u) => (
+              <option key={u.id} value={u.id}>{u.name === u.login ? u.login : `${u.name} (${u.login})`}</option>
+            ))}
+          </Select>
+          <Select id="affectation-etab" label="Établissement *" value={form.etablissement_code} onChange={(e) => champ('etablissement_code', e.target.value)}>
+            <option value="">— Choisir un établissement —</option>
+            {(etabs ?? []).map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
+          </Select>
+          <Select id="affectation-role" label="Rôle *" value={form.role_id} onChange={(e) => champ('role_id', e.target.value)}>
+            <option value="">— Choisir un rôle —</option>
+            {(roles ?? []).map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
+          </Select>
+          {estRoleParent && <SelecteurEleves selection={form.eleves} onChange={(eleves) => champ('eleves', eleves)} />}
+          {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+        </ModaleFormulaire>
+      )}
 
       {isLoading && <p className="font-medium text-muted">Chargement…</p>}
       {!isLoading && !data && <MessageErreur erreur={error} permission="Console administrative" />}
@@ -101,6 +177,7 @@ export default function AffectationsEtablissementPage() {
                     <th className="px-4 py-3 font-bold">Rôle</th>
                     <th className="px-4 py-3 font-bold">Période</th>
                     <th className="px-4 py-3 font-bold">État</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -110,7 +187,7 @@ export default function AffectationsEtablissementPage() {
                         {a.etablissement ?? a.etablissement_code}
                       </td>
                       <td className="px-4 py-3">
-                        {/* Chaque ligne mène à la fiche : c'est là qu'on agit. */}
+                        {/* La fiche garde l'historique complet du compte. */}
                         <Link
                           to={`/admin/utilisateurs/${a.rh_user_id}`}
                           className="font-semibold underline"
@@ -146,6 +223,14 @@ export default function AffectationsEtablissementPage() {
                             Active
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button" disabled={retirer.isPending} onClick={() => confirmerRetrait(a)}
+                          className="text-xs font-bold hover:underline" style={{ color: 'var(--danger-text)' }}
+                        >
+                          Retirer
+                        </button>
                       </td>
                     </tr>
                   ))}

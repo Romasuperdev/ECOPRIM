@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../ui/Logo'
 import {
-  AppWindow, ArrowLeftCircle, Building2, CreditCard, History, LayoutDashboard,
+  AppWindow, ArrowLeftCircle, Bell, Building2, CircleHelp, CreditCard, History, LayoutDashboard,
   Link2, School, Settings2, Users, X,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -21,7 +21,7 @@ const ITEMS = [
   // atteignable que depuis l'application, le second n'existait nulle part. On administre
   // des comptes depuis une console — leur absence obligeait à en sortir.
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
-  { to: '/admin/affectations-etablissement', icon: Link2, label: 'Affectations' },
+  { to: '/admin/affectations-etablissement', icon: Link2, label: 'Utilisateur - Établissements' },
 ]
 
 // Données communes à toute la suite NEXORA, lues dans la base partagée avec ECONOMAT :
@@ -29,9 +29,13 @@ const ITEMS = [
 // annoncées « à venir » alors qu'elles existaient déjà — il ne manquait que l'écran.
 const PLATEFORME = [
   { to: '/admin/applications', icon: AppWindow, label: 'Applications' },
-  { to: '/admin/affectations', icon: Link2, label: 'Affectations société' },
+  { to: '/admin/affectations', icon: Link2, label: 'Société - Utilisateurs' },
   { to: '/admin/abonnements', icon: CreditCard, label: 'Abonnements' },
   { to: '/admin/parametres-systeme', icon: Settings2, label: 'Paramètres système' },
+  // Contenus éditoriaux lus par tous les comptes : ils se rédigent ici, une seule fois
+  // pour toute la plateforme.
+  { to: '/admin/aide', icon: CircleHelp, label: 'Aide' },
+  { to: '/admin/nouveautes', icon: Bell, label: 'Nouveautés' },
 ]
 
 /** `dansTiroir` : ouvert par-dessus le contenu sur petit écran (voir AdminLayout). */

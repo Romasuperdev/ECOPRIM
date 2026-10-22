@@ -108,18 +108,19 @@ class RhUser extends Model implements AuthenticatableContract
     }
 
     /**
-     * Périmètre — codes sociétés autorisés (societe_utilisateur via user_id).
+     * Périmètre — codes sociétés autorisés (societe_utilisateur).
      * Un Super Admin voit tout (tableau vide = pas de filtre appliqué en amont).
+     *
+     * `societe_utilisateur.user_id` porte RH_USER.Id, et non RH_USER.user_id (qui pointe
+     * vers la table `users` des rôles) : les deux se confondent pour certains comptes et
+     * pas pour d'autres, si bien que l'ancienne jointure prêtait à un compte les sociétés
+     * d'un autre.
      */
     public function allowedSocieteIds(): array
     {
-        if (! $this->user_id) {
-            return [];
-        }
-
         return DB::connection('master')
             ->table('societe_utilisateur')
-            ->where('user_id', $this->user_id)
+            ->where('user_id', $this->Id)
             ->pluck('societe_id')
             ->all();
     }

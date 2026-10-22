@@ -38,7 +38,10 @@ use App\Http\Controllers\Api\V1\DevoirController;
 use App\Http\Controllers\Api\V1\EvenementController;
 use App\Http\Controllers\Api\V1\PortailEnseignantController;
 use App\Http\Controllers\Api\V1\PlateformeController;
+use App\Http\Controllers\Api\V1\SocieteUtilisateurController;
 use App\Http\Controllers\Api\V1\PortailParentController;
+use App\Http\Controllers\Api\V1\AideController;
+use App\Http\Controllers\Api\V1\NouveauteController;
 
 // Routes API ECOPRIM - v1
 Route::prefix('v1')->group(function () {
@@ -54,6 +57,15 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        // Aide et Nouveautés — LECTURE, ouverte à tout compte connecté, quel que soit son
+        // portail. Ne rend que l'actif ; la gestion est dans la console générale, plus bas.
+        Route::get('aide', [AideController::class, 'index']);
+        Route::get('aide/recherche', [AideController::class, 'recherche']);
+        Route::get('aide/articles/{id}', [AideController::class, 'article'])->whereNumber('id');
+        Route::get('nouveautes', [NouveauteController::class, 'index']);
+        Route::get('nouveautes/non-lues', [NouveauteController::class, 'nonLues']);
+        Route::post('nouveautes/{version}/lue', [NouveauteController::class, 'marquerLue'])->whereNumber('version');
 
         // Application complète — réservée aux comptes 'staff' (RhUser::typePortail()) :
         // un compte affecté du SEUL rôle Enseignant ou Parent est renvoyé sur son portail
@@ -298,12 +310,35 @@ Route::prefix('v1')->group(function () {
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
 
             // Console plateforme : ce qui dépasse ECOPRIM et vaut pour toute la suite.
-            // LECTURE SEULE — ces tables vivent dans dbmasterbacou, partagée avec ECONOMAT
+            // LECTURE SEULE (sauf societe_utilisateur, ci-dessous) — ces tables vivent dans dbmasterbacou, partagée avec ECONOMAT
             // et les autres applications ; ECOPRIM n'en est pas propriétaire.
             Route::get('plateforme/applications', [PlateformeController::class, 'applications']);
             Route::get('plateforme/affectations', [PlateformeController::class, 'affectations']);
+            // Seule exception à la lecture seule : le rattachement compte ↔ société
+            // (societe_utilisateur), condition n° 2 de la connexion. Sans lui, rattacher
+            // un compte obligeait à passer par une autre application de la suite.
+            Route::get('plateforme/affectations/referentiels', [SocieteUtilisateurController::class, 'referentiels']);
+            Route::post('plateforme/affectations', [SocieteUtilisateurController::class, 'store']);
+            Route::put('plateforme/affectations/{id}', [SocieteUtilisateurController::class, 'update'])->whereNumber('id');
+            Route::delete('plateforme/affectations/{id}', [SocieteUtilisateurController::class, 'destroy'])->whereNumber('id');
             Route::get('plateforme/abonnements', [PlateformeController::class, 'abonnements']);
             Route::get('plateforme/parametres', [PlateformeController::class, 'parametres']);
+
+            // Aide (documentation interne) — gestion. Liste TOUT, actif ou non : c'est d'ici
+            // qu'on réactive. Supprimer une catégorie supprime ses articles.
+            Route::get('console/aide', [AideController::class, 'gestion']);
+            Route::post('console/aide/categories', [AideController::class, 'storeCategorie']);
+            Route::put('console/aide/categories/{categorie}', [AideController::class, 'updateCategorie']);
+            Route::delete('console/aide/categories/{categorie}', [AideController::class, 'destroyCategorie']);
+            Route::post('console/aide/articles', [AideController::class, 'storeArticle']);
+            Route::put('console/aide/articles/{article}', [AideController::class, 'updateArticle']);
+            Route::delete('console/aide/articles/{article}', [AideController::class, 'destroyArticle']);
+
+            // Nouveautés (notes de version) — gestion. Les éléments voyagent avec la version.
+            Route::get('console/nouveautes', [NouveauteController::class, 'gestion']);
+            Route::post('console/nouveautes', [NouveauteController::class, 'store']);
+            Route::put('console/nouveautes/{version}', [NouveauteController::class, 'update']);
+            Route::delete('console/nouveautes/{version}', [NouveauteController::class, 'destroy']);
         });
 
         // Console d'une société — Super Admin sur n'importe laquelle, Admin Société sur la

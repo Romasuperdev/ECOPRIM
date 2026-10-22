@@ -14,8 +14,9 @@ use Tests\TestCase;
  *
  * CES DONNÉES SONT PARTAGÉES. Elles vivent dans `dbmasterbacou`, la même base que RH_USER,
  * qu'ECONOMAT et les autres applications de la suite utilisent aussi. ECOPRIM n'en est pas
- * propriétaire : la console les LIT, et c'est tout. Ce que ces tests éprouvent d'abord,
- * c'est donc cela — aucune route d'écriture n'existe.
+ * propriétaire : la console les LIT — à une exception près, le rattachement compte ↔ société,
+ * éprouvé dans SocieteUtilisateurTest. Ce que ces tests vérifient d'abord, c'est qu'il n'y en a
+ * pas d'autre.
  *
  * Ils éprouvent ensuite ce que l'écran doit savoir dire : une table absente de
  * l'installation, une table présente mais vide, et un secret qu'on n'affiche pas.
@@ -167,15 +168,17 @@ class PlateformeTest extends TestCase
     }
 
     /**
-     * La console LIT la plateforme, elle ne l'écrit pas : ces tables appartiennent à la
-     * suite entière. Aucune route d'écriture ne doit exister — c'est la garantie, et elle
+     * La console LIT la plateforme ; elle n'y écrit qu'une chose, le rattachement compte ↔
+     * société (societe_utilisateur, voir SocieteUtilisateurTest). Applications, abonnements
+     * et paramètres appartiennent à la suite entière et restent hors d'atteinte. La garantie
      * se vérifie sur la table de routage plutôt que sur une intention.
      */
-    public function test_aucune_route_d_ecriture_sur_la_plateforme(): void
+    public function test_seul_le_rattachement_societe_s_ecrit_sur_la_plateforme(): void
     {
         $ecritures = collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($r) => str_contains($r->uri(), 'plateforme/'))
             ->reject(fn ($r) => $r->methods() === ['GET', 'HEAD'])
+            ->reject(fn ($r) => str_starts_with($r->uri(), 'api/v1/plateforme/affectations'))
             ->map(fn ($r) => implode('|', $r->methods()).' '.$r->uri())
             ->values()->all();
 
