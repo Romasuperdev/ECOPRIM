@@ -177,8 +177,7 @@ export default function CahierTextesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Cahier journal</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Ce qui a été vu, jour par jour et matière par matière, pour l’année {data?.annee ?? 'en cours'}
-          {' '}(source : ECONOMAT.T_ENTETE_JOURNAL / T_CAHIER_JOURNAL).
+          Ce qui a été vu, jour par jour et matière par matière, pour l’année {data?.annee ?? 'en cours'}.
         </p>
       </div>
 

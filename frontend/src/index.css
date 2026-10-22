@@ -2,43 +2,38 @@
 @import "tw-animate-css";
 
 /* ============================================================================
-   Design System NEXORA École Primaire — Bleu / Vert / Orange
+   Design System NEXORA École Primaire — thème « Bleu & Blanc »
    ============================================================================
 
-   Identité :
-     🔵 BLEU   = école, navigation, identité, action principale
-     🟢 VERT   = réussite, validation, opération aboutie
-     🟠 ORANGE = pédagogie, attention, action à traiter
-   Proportion visée : ~60 % neutres, 25 % bleu, 10 % vert, 5 % orange.
+   Charte validée le 22/10/2026 : simple, reposante pour les yeux, attrayante.
+     🔵 BLEU  = identité, navigation, action principale, état « validé »
+     ⚪ BLANC = surfaces (le fond de page est un blanc bleuté, jamais un blanc
+                pur en plein écran : c'est lui qui limite l'éblouissement)
+     🔴 ROUGE = discret, réservé aux erreurs et aux suppressions
+   Le texte est un bleu nuit, pas du noir pur. Une seule exception à la charte :
+   un ocre très adouci reste disponible pour les avertissements, faute de quoi
+   « à traiter » ne se distinguerait plus de « validé ».
 
    ── Comment ce fichier est organisé, et pourquoi ────────────────────────────
    1. Les échelles brutes (`--neutral-*`, `--blue-*`, …) : la seule source de
       vérité des couleurs. Elles sont redéfinies une deuxième fois sous `.dark`.
-   2. Les rôles (`--bg`, `--surface`, `--text`, `--sidebar`, …) : ce que les
+   2. Les rôles (`--bg`, `--surface`, `--text`, `--nav-*`, …) : ce que les
       écrans utilisent. Ils pointent vers les échelles, jamais vers un hex.
    3. `@theme inline` : rebranche les utilitaires Tailwind sur ces échelles.
 
-   L'étape 3 mérite une explication, car c'est elle qui rend le mode sombre
-   possible sans réécrire l'application. Les écrans contiennent ~900 classes
-   Tailwind à couleur nommée (`text-slate-400`, `bg-green-50`, `text-red-600`…)
-   écrites avant l'existence de ce design system. Ces classes pointeraient vers
-   les couleurs figées de Tailwind : elles resteraient claires en mode sombre,
-   et il aurait fallu les éditer une à une dans 54 fichiers.
-   En redéfinissant ici `--color-slate-400`, `--color-green-50`, etc., ces mêmes
-   classes deviennent theme-aware d'un coup, et restent justes : la palette
-   choisie EST l'échelle `slate` de Tailwind (#F8FAFC = slate-50, #1E293B =
-   slate-800, #64748B = slate-500, #E2E8F0 = slate-200), de même que #10B981 =
-   emerald-500, #F59E0B = amber-500, #EF4444 = red-500.
+   L'étape 3 rend le thème applicable sans réécrire l'application : les écrans
+   contiennent ~900 classes Tailwind à couleur nommée (`text-slate-400`,
+   `bg-green-50`…). En redéfinissant `--color-slate-400`, `--color-green-50`,
+   etc., ces classes suivent la charte et le mode sombre d'un coup.
 
-   ⚠️ Conséquence à connaître : en mode sombre, l'échelle neutre s'INVERSE.
-   Elle n'est lisible que parce que ses usages sont scindés proprement —
-   50→300 servent de surfaces et de bordures, 400→900 servent de texte. Une
-   future classe `bg-slate-700` (fond sombre) casserait cette convention et
-   donnerait un fond clair en mode sombre. Préférer les rôles (`bg-card`,
-   `text-muted`, `.card`) pour tout nouvel écran.
+   ⚠️ `green-*` et `emerald-*` sont aliasés sur l'échelle BLEUE : la charte n'a
+   pas de vert. Un badge « Payé » ou « Présent » devient bleu, son contraire
+   reste rouge — la distinction tient toujours.
 
-   `emerald-*` est volontairement aliasé sur `green-*` : l'application utilisait
-   les deux pour dire « succès ». Un seul vert désormais, sans rien éditer.
+   ⚠️ En mode sombre, l'échelle neutre s'INVERSE. Elle n'est lisible que parce
+   que ses usages sont scindés — 50→300 servent de surfaces et de bordures,
+   400→900 de texte. Une classe `bg-slate-700` (fond sombre) casserait cette
+   convention. Préférer les rôles (`bg-card`, `text-muted`, `.card`).
    ========================================================================== */
 
 /* `dark:` fonctionne par classe sur <html>, posée par next-themes. */
@@ -46,201 +41,176 @@
 
 /* ── 1. Échelles brutes — mode clair ─────────────────────────────────────── */
 :root {
-  /* Neutres = échelle slate. Le socle des 60 %. */
-  --neutral-50: #f8fafc;
-  --neutral-100: #f1f5f9;
-  --neutral-200: #e2e8f0;
-  --neutral-300: #cbd5e1;
-  --neutral-400: #94a3b8;
-  --neutral-500: #64748b;
-  --neutral-600: #475569;
-  --neutral-700: #334155;
-  --neutral-800: #1e293b;
-  --neutral-900: #0f172a;
+  /* Neutres bleutés. 50 = fond de page, 800 = texte, 600 = texte secondaire. */
+  --neutral-50: #f4f7fb;
+  --neutral-100: #edf2f8;
+  --neutral-200: #d9e2ec;
+  --neutral-300: #b8c5d4;
+  --neutral-400: #8392a6;
+  --neutral-500: #6a7a8f;
+  --neutral-600: #56677d;
+  --neutral-700: #3a4a5e;
+  --neutral-800: #1e2b3c;
+  --neutral-900: #142030;
 
-  /* Bleu — identité. 600 = #2563EB (principal), 900 = #1E3A8A (sidebar). */
-  --blue-50: #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
-  --blue-900: #1e3a8a;
-  --blue-950: #172554;
+  /* Bleu NEXORA. 600 = #2A66AD (principal). */
+  --blue-50: #f0f5fc;
+  --blue-100: #e5eef9;
+  --blue-200: #c9dbf1;
+  --blue-300: #9dbee6;
+  --blue-400: #5b8fd0;
+  --blue-500: #3a76be;
+  --blue-600: #2a66ad;
+  --blue-700: #22578f;
+  --blue-800: #1d4a7c;
+  --blue-900: #183c66;
+  --blue-950: #10294a;
 
-  /* Vert — réussite. 500 = #10B981. */
-  --green-50: #ecfdf5;
-  --green-100: #d1fae5;
-  --green-200: #a7f3d0;
-  --green-300: #6ee7b7;
-  --green-400: #34d399;
-  --green-500: #10b981;
-  --green-600: #059669;
-  --green-700: #047857;
-  --green-800: #065f46;
-  --green-900: #064e3b;
+  /* Ocre adouci — avertissements seulement. */
+  --amber-50: #fbf6ec;
+  --amber-100: #f5e9cf;
+  --amber-200: #ebd5a6;
+  --amber-300: #ddbb78;
+  --amber-400: #cda154;
+  --amber-500: #b8873a;
+  --amber-600: #9c6f2a;
+  --amber-700: #7d5821;
+  --amber-800: #5f431a;
+  --amber-900: #463114;
 
-  /* Orange — attention / pédagogie. 500 = #F59E0B. */
-  --amber-50: #fffbeb;
-  --amber-100: #fef3c7;
-  --amber-200: #fde68a;
-  --amber-300: #fcd34d;
-  --amber-400: #fbbf24;
-  --amber-500: #f59e0b;
-  --amber-600: #d97706;
-  --amber-700: #b45309;
-  --amber-800: #92400e;
-  --amber-900: #78350f;
+  /* Rouge discret — erreurs. 600 = #B03A33. */
+  --red-50: #fceeed;
+  --red-100: #f8dcda;
+  --red-200: #efbdb9;
+  --red-300: #e29a94;
+  --red-400: #cf6b63;
+  --red-500: #c0463e;
+  --red-600: #b03a33;
+  --red-700: #962f29;
+  --red-800: #7a2621;
+  --red-900: #5e1d19;
 
-  /* Rouge — erreur / suppression. 500 = #EF4444. */
-  --red-50: #fef2f2;
-  --red-100: #fee2e2;
-  --red-200: #fecaca;
-  --red-300: #fca5a5;
-  --red-400: #f87171;
-  --red-500: #ef4444;
-  --red-600: #dc2626;
-  --red-700: #b91c1c;
-  --red-800: #991b1b;
-  --red-900: #7f1d1d;
-
-  /* Violet — hors identité, réservé aux types d'événements du calendrier. */
-  --purple-50: #faf5ff;
-  --purple-100: #f3e8ff;
-  --purple-200: #e9d5ff;
-  --purple-700: #7e22ce;
-  --purple-800: #6b21a8;
+  /* Violet adouci — réservé aux types d'événements du calendrier. */
+  --purple-50: #f5f2fb;
+  --purple-100: #ebe5f6;
+  --purple-200: #d9cfee;
+  --purple-700: #5d4a91;
+  --purple-800: #4a3a76;
 }
 
 /* ── 1 bis. Échelles brutes — mode sombre ────────────────────────────────────
-   Les neutres s'inversent (surfaces et textes échangent leurs extrémités).
-   Les couleurs vives, elles, ne s'inversent pas : on assombrit seulement leurs
-   teintes de fond (50-200) et on éclaircit celles qui portent du texte
-   (600-900), pour que bleu/vert/orange restent reconnaissables — c'est le but
-   d'une identité : ne pas changer d'un mode à l'autre.                        */
+   Les neutres s'inversent. Les couleurs vives ne s'inversent pas : on assombrit
+   leurs teintes de fond (50-300) et on éclaircit celles qui portent du texte.   */
 .dark {
-  --neutral-50: #1e293b;
-  --neutral-100: #263449;
-  --neutral-200: #334155;
-  --neutral-300: #64748b;
-  --neutral-400: #94a3b8;
-  --neutral-500: #a9b6c7;
-  --neutral-600: #cbd5e1;
-  --neutral-700: #e2e8f0;
-  --neutral-800: #f1f5f9;
-  --neutral-900: #f8fafc;
+  --neutral-50: #152238;
+  --neutral-100: #1b2b45;
+  --neutral-200: #2a3c58;
+  --neutral-300: #5e7393;
+  --neutral-400: #8a9db6;
+  --neutral-500: #9aacc3;
+  --neutral-600: #b9c7d8;
+  --neutral-700: #d3dde9;
+  --neutral-800: #e3eaf3;
+  --neutral-900: #f1f5fa;
 
-  --blue-50: #172554;
-  --blue-100: #1e3a8a;
-  --blue-200: #1e40af;
-  --blue-300: #1d4ed8;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #3b82f6;
-  --blue-700: #93c5fd;
-  --blue-800: #bfdbfe;
-  --blue-900: #dbeafe;
-  --blue-950: #0f172a;
+  --blue-50: #14243d;
+  --blue-100: #1c3457;
+  --blue-200: #24426c;
+  --blue-300: #2f5585;
+  --blue-400: #6fa6e6;
+  --blue-500: #6fa6e6;
+  --blue-600: #6fa6e6;
+  --blue-700: #8bb9ec;
+  --blue-800: #b5d2f3;
+  --blue-900: #d6e6f8;
+  --blue-950: #0e1726;
 
-  --green-50: #022c22;
-  --green-100: #064e3b;
-  --green-200: #065f46;
-  --green-300: #047857;
-  --green-400: #34d399;
-  --green-500: #10b981;
-  --green-600: #34d399;
-  --green-700: #6ee7b7;
-  --green-800: #a7f3d0;
-  --green-900: #d1fae5;
+  --amber-50: #2b2214;
+  --amber-100: #3d3018;
+  --amber-200: #574420;
+  --amber-300: #ddbb78;
+  --amber-400: #d3ad66;
+  --amber-500: #c99a4e;
+  --amber-600: #d3ad66;
+  --amber-700: #ddbb78;
+  --amber-800: #ebd5a6;
+  --amber-900: #f5e9cf;
 
-  --amber-50: #3a1d03;
-  --amber-100: #78350f;
-  --amber-200: #92400e;
-  --amber-300: #fcd34d;
-  --amber-400: #fbbf24;
-  --amber-500: #f59e0b;
-  --amber-600: #fbbf24;
-  --amber-700: #fcd34d;
-  --amber-800: #fde68a;
-  --amber-900: #fef3c7;
+  --red-50: #3a2026;
+  --red-100: #4d2429;
+  --red-200: #6b2e31;
+  --red-300: #f1908a;
+  --red-400: #f1908a;
+  --red-500: #e5766f;
+  --red-600: #f1908a;
+  --red-700: #f4a7a2;
+  --red-800: #f8c4c0;
+  --red-900: #fbdedb;
 
-  --red-50: #3f0f0f;
-  --red-100: #7f1d1d;
-  --red-200: #991b1b;
-  --red-300: #fca5a5;
-  --red-400: #f87171;
-  --red-500: #f87171;
-  --red-600: #fca5a5;
-  --red-700: #fca5a5;
-  --red-800: #fecaca;
-  --red-900: #fee2e2;
-
-  --purple-50: #3b0764;
-  --purple-100: #581c87;
-  --purple-200: #6b21a8;
-  --purple-700: #d8b4fe;
-  --purple-800: #e9d5ff;
+  --purple-50: #241d3a;
+  --purple-100: #30274d;
+  --purple-200: #3d3262;
+  --purple-700: #c3b5ea;
+  --purple-800: #d9cff3;
 }
 
 /* ── 2. Rôles — mode clair ───────────────────────────────────────────────── */
 :root {
   --bg: var(--neutral-50);
-  /* Voiles à peine perceptibles : ils donnent de la profondeur au fond sans
-     rompre la règle des 60 % de neutres. */
-  --bg-grad-1: rgba(37, 99, 235, 0.07);
-  --bg-grad-2: rgba(16, 185, 129, 0.05);
+  /* Deux voiles bleus à peine perceptibles : de la profondeur, pas de couleur. */
+  --bg-grad-1: rgba(42, 102, 173, 0.07);
+  --bg-grad-2: rgba(42, 102, 173, 0.04);
   --surface: #ffffff;
   --surface-2: var(--neutral-100);
   --text: var(--neutral-800);
   --heading: var(--neutral-900);
-  /* Le 500 (#64748B) ne donnait que 4,8:1 sur blanc — passable sur le papier,
-     pénible en 12 px, taille à laquelle ce gris sert le plus (libellés de tuile,
-     légendes, précisions). Le 600 monte à 7,5:1 tout en restant nettement plus
-     clair que --text, donc la hiérarchie tient. Le mode sombre garde le 400,
-     qui y vaut déjà 7,1:1 : les deux thèmes sont ainsi au même niveau. */
   --muted-text: var(--neutral-600);
   --border: var(--neutral-200);
+  /* Contour des champs : ≥ 3:1 sur blanc, sinon le champ ne se voit pas. */
+  --border-strong: var(--neutral-400);
 
-  --sidebar: var(--blue-900);
-  --sidebar-2: var(--blue-950);
-  --sidebar-text: var(--blue-100);
+  /* Menu latéral : une surface blanche, comme les cartes. L'identité bleue
+     passe par l'entrée active et les pastilles, pas par un aplat sombre. */
+  --nav-bg: var(--surface);
+  --nav-text: var(--muted-text);
+  --nav-title: var(--heading);
+  --nav-hover: var(--surface-2);
+  --nav-active-bg: var(--blue-100);
+  --nav-active-ink: var(--blue-700);
 
-  /* Surfaces de marque : les grands aplats bleus (bandeau d'accueil, panneau de
-     connexion). Littérales et identiques dans les deux thèmes — ce sont elles
-     qui font reconnaître la plateforme, et un parent doit la retrouver la même
-     qu'il soit en clair ou en sombre. Les laisser suivre le thème les faisait
-     fondre dans le fond en mode sombre : le panneau disparaissait. */
-  --brand-surface: #1e3a8a;
-  --brand-surface-2: #172554;
+  /* Surfaces de marque : les grands aplats bleus (bandeau d'accueil, panneau
+     de connexion). `--sidebar-text` est le texte clair qui se pose dessus — le
+     nom est historique, il sert à tous les bandeaux bleus. */
+  --brand-surface: #1f4f8a;
+  --brand-surface-2: #2a66ad;
   --brand-surface-ink: #ffffff;
+  --sidebar: var(--nav-bg);
+  --sidebar-2: var(--brand-surface);
+  --sidebar-text: #d6e6f8;
 
   --brand-accent: var(--blue-600);
   --brand-accent-ink: #ffffff;
-  /* Conservé pour le dégradé du panneau de connexion. */
-  --teal: var(--green-500);
+  --teal: var(--blue-400);
 
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow: 0 1px 2px rgba(20, 40, 70, 0.05), 0 6px 20px rgba(20, 40, 70, 0.06);
+  --shadow-lift: 0 2px 4px rgba(20, 40, 70, 0.06), 0 14px 32px rgba(20, 40, 70, 0.1);
+  --focus-ring: 0 0 0 3px rgba(42, 102, 173, 0.3);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
-  /* Rôles sémantiques. Chacun vient en trio fond / bordure / texte, pour que
-     bandeaux et badges se composent sans inventer une nuance à chaque écran. */
-  --success: var(--green-500);
-  --success-bg: var(--green-50);
-  --success-border: var(--green-200);
-  --success-text: var(--green-700);
+  /* Rôles sémantiques, en trio fond / bordure / texte. Le succès est bleu. */
+  --success: var(--blue-600);
+  --success-bg: var(--blue-50);
+  --success-border: var(--blue-200);
+  --success-text: var(--blue-700);
 
   --warning: var(--amber-500);
   --warning-bg: var(--amber-50);
   --warning-border: var(--amber-200);
   --warning-text: var(--amber-700);
 
-  /* Littéral, contrairement à ses voisins : `--danger` sert de FOND de bouton,
-     et l'échelle rouge s'éclaircit en mode sombre pour rester lisible en TEXTE.
-     L'y raccrocher donnait un « Supprimer » rose pâle. Un signal de destruction
-     ne s'atténue pas selon le thème. */
-  --danger: #ef4444;
+  /* Littéral : `--danger` sert de FOND de bouton, il ne doit pas pâlir en
+     mode sombre comme l'échelle rouge (qui s'éclaircit pour le texte). */
+  --danger: #b03a33;
   --danger-bg: var(--red-50);
   --danger-border: var(--red-200);
   --danger-text: var(--red-600);
@@ -250,45 +220,32 @@
   --info-border: var(--blue-200);
   --info-text: var(--blue-700);
 
-  /* Accent par module : repère discret (titre de groupe, liseré d'en-tête),
-     jamais une teinte de surface — sinon le vert « module Traitement » se
-     confondrait avec le vert « validé ». */
+  /* Accents par module : tous bleus désormais. Les noms restent, pour ne pas
+     toucher aux écrans qui les citent. */
   --module-parametre: var(--blue-600);
-  --module-traitement: var(--green-600);
-  --module-programme: var(--amber-600);
+  --module-traitement: var(--blue-600);
+  --module-programme: var(--blue-600);
+  --module-parametre-nav: var(--nav-title);
+  --module-traitement-nav: var(--nav-title);
+  --module-programme-nav: var(--nav-title);
 
-  /* Le menu, lui, est sombre dans les deux thèmes (bleu nuit en clair, ardoise
-     en sombre). Ses accents ne suivent donc pas le mode : ce sont toujours les
-     nuances claires, seules lisibles sur ce fond — littérales à dessein, car
-     les échelles ci-dessus s'inversent, elles. */
-  --module-parametre-nav: #bfdbfe;
-  --module-traitement-nav: #a7f3d0;
-  --module-programme-nav: #fde68a;
+  /* Pastilles d'icône : un bleu très clair et une encre bleue. */
+  --module-parametre-haut: var(--blue-50);
+  --module-parametre-bas: var(--blue-200);
+  --module-parametre-encre: var(--blue-700);
+  --module-traitement-haut: var(--blue-50);
+  --module-traitement-bas: var(--blue-200);
+  --module-traitement-encre: var(--blue-700);
+  --module-programme-haut: var(--blue-50);
+  --module-programme-bas: var(--blue-200);
+  --module-programme-encre: var(--blue-700);
 
-  /* Pastilles d'icône en relief. Trois valeurs par module : le haut du dégradé,
-     le bas, et l'encre du pictogramme. Le relief tient à la seule différence
-     haut/bas — un dégradé trop serré rend la pastille plate, trop large la rend
-     sale. Littérales comme leurs voisines : le menu est sombre dans les deux
-     thèmes, ces teintes ne doivent donc pas suivre le mode. */
-  --module-parametre-haut: #93c5fd;
-  --module-parametre-bas: #2563eb;
-  --module-parametre-encre: #10275c;
-
-  --module-traitement-haut: #6ee7b7;
-  --module-traitement-bas: #059669;
-  --module-traitement-encre: #043d2c;
-
-  --module-programme-haut: #fcd34d;
-  --module-programme-bas: #d97706;
-  --module-programme-encre: #4a2703;
-
-  /* Séries de graphiques (recharts) : bleu d'abord, puis vert et orange, puis
-     des teintes voisines. Définies avant le premier graphique, pas après. */
+  /* Séries de graphiques : nuances de bleu, puis un gris-bleu et l'ocre. */
   --chart-1: var(--blue-600);
-  --chart-2: var(--green-500);
-  --chart-3: var(--amber-500);
-  --chart-4: var(--blue-400);
-  --chart-5: var(--purple-700);
+  --chart-2: var(--blue-300);
+  --chart-3: var(--neutral-400);
+  --chart-4: var(--blue-900);
+  --chart-5: var(--amber-400);
 
   /* ── Tokens shadcn/ui, alignés sur les rôles ci-dessus ── */
   --background: var(--surface);
@@ -303,51 +260,42 @@
   --secondary-foreground: var(--heading);
   --muted: var(--surface-2);
   --muted-foreground: var(--muted-text);
-  --accent: color-mix(in srgb, var(--brand-accent) 12%, var(--surface));
+  --accent: var(--blue-100);
   --accent-foreground: var(--heading);
   --destructive: var(--danger);
-  --input: var(--border);
+  --input: var(--border-strong);
   --ring: var(--brand-accent);
-  --radius: 0.75rem;
+  --radius: 0.625rem;
 }
 
 /* ── 2 bis. Rôles — mode sombre ──────────────────────────────────────────────
-   Volontairement court. Les échelles s'étant déjà inversées plus haut, la
-   quasi-totalité des rôles bascule toute seule : `--text: var(--neutral-800)`
-   vaut #1E293B en clair et #F1F5F9 en sombre, sans rien redéfinir ici. Ne
-   figurent ci-dessous que les trois cas où l'échelle n'a pas la valeur voulue.
-
-   ⚠️ Ne pas « compléter » ce bloc par symétrie avec celui du mode clair : y
-   réécrire `--bg: var(--neutral-900)` donnerait un fond BLANC, puisque le 900
-   de l'échelle inversée est la teinte la plus claire. C'est l'erreur qui guette
-   ici, et elle ne se voit qu'à l'exécution.                                    */
+   Volontairement court : les échelles s'étant inversées plus haut, la plupart
+   des rôles basculent seuls. Ne pas « compléter » par symétrie : `--bg:
+   var(--neutral-900)` donnerait ici un fond BLANC.                            */
 .dark {
-  /* Le fond de page doit être d'un cran plus sombre que les cartes, comme en
-     clair il est d'un cran plus clair qu'elles. L'échelle n'a pas ce cran
-     supplémentaire : on le pose à la main. */
-  --bg: #0f172a;
+  --bg: #0e1726;
   --surface: var(--neutral-50);
-  /* L'échelle étant inversée, le 600 du mode clair vaut ici #CBD5E1 — presque la
-     couleur du texte, la hiérarchie disparaîtrait. Le 500 donne 7,1:1 sur les
-     cartes, soit le même niveau qu'en clair. (Le 400, essayé d'abord, retombait
-     à 5,7:1 : l'inversion rend l'intuition trompeuse, il faut mesurer.) */
   --muted-text: var(--neutral-500);
+  --border-strong: var(--neutral-300);
 
-  --bg-grad-1: rgba(59, 130, 246, 0.1);
-  --bg-grad-2: rgba(16, 185, 129, 0.06);
+  --bg-grad-1: rgba(111, 166, 230, 0.08);
+  --bg-grad-2: rgba(111, 166, 230, 0.04);
 
-  /* Le menu ne peut plus être bleu nuit : il se fondrait dans un fond déjà bleu
-     nuit. Il devient la surface élevée — l'identité bleue passe alors par
-     l'entrée active et par le liseré d'en-tête. */
-  --sidebar: var(--neutral-50);
-  --sidebar-text: var(--neutral-700);
+  --nav-active-bg: var(--blue-100);
+  --nav-active-ink: var(--blue-700);
 
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --brand-surface: #122641;
+  --brand-surface-2: #1c3457;
+  /* Bleu clair en sombre : l'encre des boutons devient le bleu nuit. */
+  --brand-accent-ink: #0e1726;
+
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 36px rgba(0, 0, 0, 0.35);
+  --focus-ring: 0 0 0 3px rgba(111, 166, 230, 0.4);
 }
 
-/* ── 3. Branchement des utilitaires Tailwind sur les échelles ci-dessus ──── */
 @theme {
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Nunito Sans Variable", "Nunito Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
 }
 
 @theme inline {
@@ -363,7 +311,7 @@
   --color-primary-800: var(--blue-800);
   --color-primary-900: var(--blue-900);
 
-  /* `secondary-*` : l'accent orange. */
+  /* `secondary-*` : l'ocre des avertissements. */
   --color-secondary-400: var(--amber-400);
   --color-secondary-500: var(--amber-500);
   --color-secondary-600: var(--amber-600);
@@ -393,28 +341,28 @@
   --color-blue-800: var(--blue-800);
   --color-blue-900: var(--blue-900);
 
-  --color-green-50: var(--green-50);
-  --color-green-100: var(--green-100);
-  --color-green-200: var(--green-200);
-  --color-green-300: var(--green-300);
-  --color-green-400: var(--green-400);
-  --color-green-500: var(--green-500);
-  --color-green-600: var(--green-600);
-  --color-green-700: var(--green-700);
-  --color-green-800: var(--green-800);
-  --color-green-900: var(--green-900);
+  --color-green-50: var(--blue-50);
+  --color-green-100: var(--blue-100);
+  --color-green-200: var(--blue-200);
+  --color-green-300: var(--blue-300);
+  --color-green-400: var(--blue-400);
+  --color-green-500: var(--blue-500);
+  --color-green-600: var(--blue-600);
+  --color-green-700: var(--blue-700);
+  --color-green-800: var(--blue-800);
+  --color-green-900: var(--blue-900);
 
-  /* Alias : un seul vert de succès dans l'application. */
-  --color-emerald-50: var(--green-50);
-  --color-emerald-100: var(--green-100);
-  --color-emerald-200: var(--green-200);
-  --color-emerald-300: var(--green-300);
-  --color-emerald-400: var(--green-400);
-  --color-emerald-500: var(--green-500);
-  --color-emerald-600: var(--green-600);
-  --color-emerald-700: var(--green-700);
-  --color-emerald-800: var(--green-800);
-  --color-emerald-900: var(--green-900);
+  /* Alias : pas de vert dans la charte, le succès est bleu. */
+  --color-emerald-50: var(--blue-50);
+  --color-emerald-100: var(--blue-100);
+  --color-emerald-200: var(--blue-200);
+  --color-emerald-300: var(--blue-300);
+  --color-emerald-400: var(--blue-400);
+  --color-emerald-500: var(--blue-500);
+  --color-emerald-600: var(--blue-600);
+  --color-emerald-700: var(--blue-700);
+  --color-emerald-800: var(--blue-800);
+  --color-emerald-900: var(--blue-900);
 
   --color-amber-50: var(--amber-50);
   --color-amber-100: var(--amber-100);
@@ -473,6 +421,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+
 * {
   border-color: var(--border);
 }
@@ -489,12 +438,19 @@ html.dark {
 body {
   font-family: var(--font-sans);
   color: var(--text);
+  line-height: 1.55;
   background:
     radial-gradient(1200px 520px at 100% -10%, var(--bg-grad-1), transparent),
     radial-gradient(900px 520px at -10% 110%, var(--bg-grad-2), transparent),
     var(--bg);
   min-height: 100vh;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
   @apply antialiased;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .card {
@@ -514,66 +470,53 @@ body {
 }
 
 /* ── Champs de formulaire ────────────────────────────────────────────────────
-   Le champ est une pastille pleine, sans bordure visible au repos : au calme,
-   c'est le remplissage qui dit « on écrit ici », et la page respire. La bordure
-   n'apparaît qu'au survol et au focus — mais elle est bien là dès le départ, en
-   transparent, pour que rien ne se décale au moment où elle se colore.
-
-   La hauteur (0.7rem de padding vertical) est délibérément inchangée : seize
-   barres de filtres alignent leurs champs avec des boutons en `items-end`, et
-   un champ plus haut les désalignerait toutes.                                */
+   Un rectangle aux coins adoucis, contour visible (≥ 3:1) : on voit tout de
+   suite où écrire. La hauteur (0.7rem de padding vertical) reste inchangée :
+   seize barres de filtres alignent leurs champs avec des boutons en
+   `items-end`, un champ plus haut les désalignerait toutes.                   */
 .field {
   width: 100%;
-  padding: 0.7rem 1.1rem;
-  border-radius: 9999px;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
   font-size: 0.95rem;
   font-weight: 500;
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
-  border: 1.5px solid transparent;
+  border: 1px solid var(--border-strong);
   outline: none;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background-color 0.15s var(--ease);
 }
 .field::placeholder {
   color: var(--muted-text);
   font-weight: 400;
+  opacity: 0.85;
 }
 .field:hover {
-  border-color: color-mix(in srgb, var(--brand-accent) 35%, transparent);
+  border-color: color-mix(in srgb, var(--brand-accent) 60%, var(--border-strong));
 }
 .field:focus {
   border-color: var(--brand-accent);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 22%, transparent);
+  box-shadow: var(--focus-ring);
 }
 .field:disabled,
 .field[readonly] {
-  background: color-mix(in srgb, var(--muted-text) 12%, var(--surface));
+  background: var(--surface-2);
   color: var(--muted-text);
+  border-color: var(--border);
 }
 
-/* Place pour une icône, à gauche ou à droite.
-   Ces deux règles existent parce que les utilitaires `pl-*` / `pr-*` de Tailwind
-   ne peuvent PAS y suffire : ils ont la même spécificité que `.field`, qui est
-   déclarée après eux dans la feuille et dont le raccourci `padding` écrase donc
-   leur `padding-left`. Le texte passait sous l'icône — c'était déjà le cas sur
-   l'écran de connexion avant cette reprise. Déclarées ici, après `.field`, elles
-   gagnent. */
+/* Place pour une icône, à gauche ou à droite. Déclarées après `.field`, dont le
+   raccourci `padding` écraserait sinon les utilitaires `pl-*` / `pr-*`. */
 .field--icone {
   padding-left: 2.7rem;
 }
 .field--action {
   padding-right: 2.7rem;
 }
-
-/* Zone de saisie multiligne : même remplissage, mais une pastille n'a pas de
-   sens sur plusieurs lignes — coins simplement adoucis. */
 .field--zone {
-  border-radius: 1rem;
+  border-radius: var(--radius);
 }
-
-/* Variante dense, pour les champs logés dans une cellule de tableau (saisie des
-   notes, cahier de textes). La pastille y serait illisible : à cette taille les
-   champs se touchent, et seul un rectangle discret laisse lire la grille. */
+/* Variante dense, pour les champs logés dans une cellule de tableau. */
 .field--dense {
   padding: 0.3rem 0.6rem;
   border-radius: 0.5rem;
@@ -581,36 +524,48 @@ body {
   border-color: var(--border);
 }
 
-/* Pastille d'icône en relief, pour les en-têtes de rubrique du menu.
-   Le volume vient de trois couches superposées, pas d'une image :
-     — un dégradé du clair vers le soutenu, qui simule la lumière du dessus ;
-     — une arête blanche en haut et une ombre interne en bas (`inset`), qui
-       creusent la pastille ;
-     — une ombre portée, qui la décolle du fond.
-   Dessinée en CSS et non en image : elle reste nette à toute densité d'écran,
-   ne pèse rien, et suit la couleur de son module.
-
+/* Pastille d'icône : un carré bleu très clair, encre bleue. Un léger dégradé
+   et une arête claire en haut suffisent à lui donner du volume sans l'alourdir.
    Les variables --pastille-* sont posées par le composant appelant. */
 .pastille-relief {
   background: linear-gradient(160deg, var(--pastille-haut), var(--pastille-bas));
   color: var(--pastille-encre);
   box-shadow:
-    0 2px 5px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.22);
+    0 1px 2px rgba(20, 40, 70, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.2s var(--ease);
 }
-/* Le groupe déplié s'enfonce légèrement : l'état ouvert se voit aussi au relief. */
-details[open] > summary .pastille-relief {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.35),
-    inset 0 2px 4px rgba(0, 0, 0, 0.28),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+.dark .pastille-relief {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+summary:hover .pastille-relief {
+  transform: scale(1.06);
 }
 
-/* Cases à cocher et boutons radio. Ils étaient restés bruts partout — une
-   douzaine de cases au bleu du navigateur au milieu d'une interface à l'identité
-   posée. `accent-color` les reprend toutes d'un coup, sans toucher au balisage
-   ni remplacer la case native (qui reste accessible au clavier). */
+/* ── Menu latéral ──────────────────────────────────────────────────────────── */
+.nav-survol:hover {
+  background: var(--nav-hover);
+  color: var(--nav-title) !important;
+}
+.nav-lien {
+  position: relative;
+}
+/* Le groupe déplié glisse doucement au lieu d'apparaître d'un coup. */
+details[open] > .nav-groupe {
+  animation: deplier 0.28s var(--ease) both;
+}
+@keyframes deplier {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Cases à cocher et boutons radio, à la couleur de la marque. */
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--brand-accent);
@@ -629,7 +584,7 @@ main table {
 }
 main table td,
 main table th {
-  padding: 0.6rem 0.85rem;
+  padding: 0.65rem 0.9rem;
   vertical-align: middle;
   border-color: var(--border);
 }
@@ -641,9 +596,16 @@ main table thead {
 }
 main table thead th {
   color: var(--muted-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+main table tbody tr {
+  transition: background-color 0.15s var(--ease);
 }
 main table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-accent) 7%, transparent);
+  background: color-mix(in srgb, var(--brand-accent) 6%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -651,17 +613,49 @@ main table tbody tr:hover {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--muted-text) 40%, transparent);
+  background: color-mix(in srgb, var(--muted-text) 35%, transparent);
   border-radius: 8px;
 }
 
-button, a, input, select {
-  transition: all 0.15s ease;
+button,
+a,
+input,
+select {
+  transition:
+    background-color 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease),
+    opacity 0.15s var(--ease),
+    transform 0.15s var(--ease);
 }
+
+/* ── Mouvements ────────────────────────────────────────────────────────────────
+   Tous courts (≤ 0.5 s) et sur une courbe douce : l'œil suit, sans attendre.
+   Ils sont posés par src/lib/mouvement.js (entrées, onde des boutons,
+   compteurs) et désactivés en bloc si le système demande moins d'animations. */
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fondu {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes zoomDoux {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -669,5 +663,177 @@ button, a, input, select {
   }
 }
 .animate-fade-up {
-  animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: fadeUp 0.4s var(--ease) both;
+}
+/* Entrée d'une carte ou d'un bloc, décalée pour un effet « en cascade ». */
+.anime-entree {
+  animation: zoomDoux 0.45s var(--ease) both;
+  animation-delay: var(--delai, 0ms);
+}
+/* Les lignes de tableau n'ont qu'un fondu : un déplacement ferait danser la grille. */
+.anime-ligne {
+  animation: fondu 0.35s var(--ease) both;
+  animation-delay: var(--delai, 0ms);
+}
+/* Cartes cliquables et tuiles : elles se soulèvent légèrement au survol. */
+.card {
+  transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+a.card:hover,
+button.card:hover,
+.card.survol-leger:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: color-mix(in srgb, var(--brand-accent) 30%, var(--border));
+}
+
+/* Onde au clic sur les boutons. */
+.onde {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0.22;
+  transform: scale(0);
+  animation: onde 0.55s var(--ease) forwards;
+}
+@keyframes onde {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* ── Page de connexion ─────────────────────────────────────────────────────── */
+.login-fond {
+  position: relative;
+  overflow: hidden;
+}
+/* Deux halos bleus qui dérivent très lentement derrière la carte. */
+.login-fond::before,
+.login-fond::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+.login-fond::before {
+  width: 520px;
+  height: 520px;
+  left: -140px;
+  top: -160px;
+  background: color-mix(in srgb, var(--brand-accent) 22%, transparent);
+  animation: derive 18s ease-in-out infinite alternate;
+}
+.login-fond::after {
+  width: 440px;
+  height: 440px;
+  right: -120px;
+  bottom: -140px;
+  background: color-mix(in srgb, var(--brand-accent) 16%, transparent);
+  animation: derive 22s ease-in-out infinite alternate-reverse;
+}
+.login-fond > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes derive {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(60px, 40px) scale(1.12);
+  }
+}
+
+/* Le panneau bleu coulissant. Ses cercles décoratifs suivent son mouvement
+   avec un léger retard, ce qui donne de la profondeur au glissement. */
+.login-panneau {
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--brand-surface-2) 0%, var(--brand-surface) 100%);
+}
+.login-panneau::before,
+.login-panneau::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+  transition: transform 0.9s cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+.login-panneau::before {
+  width: 520px;
+  height: 520px;
+  right: -200px;
+  bottom: -220px;
+}
+.login-panneau::after {
+  width: 320px;
+  height: 320px;
+  right: -90px;
+  bottom: -110px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.login-panneau.est-console::before {
+  transform: translate(-260px, -300px);
+}
+.login-panneau.est-console::after {
+  transform: translate(-250px, -330px) scale(0.8);
+}
+.login-panneau > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Formulaire caché sous le panneau : il s'efface ; celui découvert entre. */
+.login-face {
+  transition: opacity 0.5s var(--ease), transform 0.6s cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+.login-face.est-cachee {
+  opacity: 0;
+  pointer-events: none;
+}
+.login-face--gauche.est-cachee {
+  transform: translateX(-24px);
+}
+.login-face--droite.est-cachee {
+  transform: translateX(24px);
+}
+
+/* Choix segmenté mobile : la pastille blanche glisse sous l'option choisie. */
+.segment {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.segment__curseur {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(20, 40, 70, 0.1);
+  transition: transform 0.35s cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+.segment[data-choix='admin'] .segment__curseur {
+  transform: translateX(100%);
+}
+
+/* Moins d'animations si le système le demande. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

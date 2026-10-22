@@ -74,7 +74,7 @@ export default function EmploiDuTempsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Emplois du temps</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Grille par classe pour l’année {emploi?.annee ?? 'en cours'} (source : ECONOMAT.T_EMPLOIDUTEMPS).
+          Grille par classe pour l’année {emploi?.annee ?? 'en cours'}.
           L’enseignant est déduit de son affectation à la matière.
         </p>
       </div>
@@ -121,8 +121,8 @@ export default function EmploiDuTempsPage() {
 
       {classe && !isLoading && (heures.length === 0 || jours.length === 0) && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">
-          La trame horaire est vide : renseignez les jours (<code>T_EMPJOUR</code>) et les plages
-          horaires (<code>T_HORAIRE</code>) dans ECONOMAT pour pouvoir bâtir une grille.
+          La trame horaire est vide : renseignez les jours et les plages horaires dans ECONOMAT
+          pour pouvoir bâtir une grille.
         </div>
       )}
 

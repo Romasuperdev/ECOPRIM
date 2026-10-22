@@ -43,14 +43,14 @@ export default function AdminSidebar({ dansTiroir = false, onFermer }) {
   return (
     <aside
       className={`flex h-full flex-col overflow-y-auto p-4 ${dansTiroir ? 'w-full' : 'w-60 shrink-0'}`}
-      style={{ background: 'var(--sidebar-2)', color: 'var(--sidebar-text)' }}
+      style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
     >
       <div className="mb-1 flex items-center justify-between px-2">
         <Logo />
         {dansTiroir && (
           <button
             type="button" onClick={onFermer} title="Fermer le menu"
-            className="shrink-0 rounded-lg p-1.5 hover:bg-white/10"
+            className="shrink-0 rounded-lg p-1.5 nav-survol"
           >
             <X size={18} />
           </button>
@@ -75,10 +75,10 @@ export default function AdminSidebar({ dansTiroir = false, onFermer }) {
             end={end}
             onClick={dansTiroir ? onFermer : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'nav-survol'}`
             }
             style={({ isActive }) =>
-              isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+              isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
             }
           >
             <Icon size={19} />
@@ -87,10 +87,10 @@ export default function AdminSidebar({ dansTiroir = false, onFermer }) {
         ))}
 
         {superAdmin && (
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
             <p
               className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide"
-              style={{ color: 'color-mix(in srgb, var(--sidebar-text) 50%, transparent)' }}
+              style={{ color: 'color-mix(in srgb, var(--nav-text) 50%, transparent)' }}
             >
               Plateforme
             </p>
@@ -100,10 +100,10 @@ export default function AdminSidebar({ dansTiroir = false, onFermer }) {
                 to={to}
                 onClick={dansTiroir ? onFermer : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'hover:bg-white/5'}`
+                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'nav-survol'}`
                 }
                 style={({ isActive }) =>
-                  isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+                  isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
                 }
               >
                 <Icon size={19} />

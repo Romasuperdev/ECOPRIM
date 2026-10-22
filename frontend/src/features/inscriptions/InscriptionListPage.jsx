@@ -246,7 +246,7 @@ export default function InscriptionListPage() {
           </p>
           <p className="mt-0.5 text-sm text-muted">
             Consultez leur fiche, ou ouvrez un dossier d’inscription, de réinscription ou de
-            transfert — saisie directe dans ECONOMAT.T_ETUDIANT.
+            transfert.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -376,10 +376,9 @@ export default function InscriptionListPage() {
       {form && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onClick={() => setForm(null)}>
           <div className="my-8 w-full max-w-3xl rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <h2 className="mb-1 text-lg font-bold text-slate-800">
+            <h2 className="mb-5 text-lg font-bold text-slate-800">
               {form.id ? `Modifier — ${form.nom} ${form.prenom}` : 'Nouvelle inscription'}
             </h2>
-            <p className="mb-5 text-xs text-muted">Formulaire alimenté par ECONOMAT.T_ETUDIANT.</p>
 
             {dossierVerrouille && (
               <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

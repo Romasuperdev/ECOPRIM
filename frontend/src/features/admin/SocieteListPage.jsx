@@ -60,11 +60,10 @@ export default function SocieteListPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Sociétés</h1>
-          <p className="mt-1 text-sm text-slate-500">Sociétés réelles lues dans dbmasterbacou.US_SOCIETE, complétées par ECOPRIM.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" disabled={importer.isPending} onClick={() => importer.mutate()}>
-            {importer.isPending ? 'Import…' : 'Importer depuis US_SOCIETE'}
+            {importer.isPending ? 'Import…' : 'Importer les sociétés'}
           </Button>
           <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Reprendre une société</Button>
         </div>
@@ -124,7 +123,7 @@ export default function SocieteListPage() {
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
           <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code} dans ECOPRIM` : 'Reprendre une société')}</h2>
+            <h2 className="mb-4 text-lg font-bold text-slate-800">{form.id ? 'Modifier la société' : (form.code ? `Reprendre la société ${form.code}` : 'Reprendre une société')}</h2>
             <form
               onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
               className="space-y-3"
@@ -134,7 +133,7 @@ export default function SocieteListPage() {
                   <Input label="Code" value={form.code ?? ''} disabled onChange={() => {}} />
                 ) : (
                   <Select
-                    label="Société (US_SOCIETE) *"
+                    label="Société *"
                     value={form.code ?? ''}
                     error={erreurs.code?.[0]}
                     onChange={(e) => {
@@ -151,7 +150,7 @@ export default function SocieteListPage() {
                       }))
                     }}
                   >
-                    <option value="">— Choisir dans US_SOCIETE —</option>
+                    <option value="">— Choisir une société —</option>
                     {aReprendre.map((s) => (
                       <option key={s.code} value={s.code}>{s.nom} ({s.code})</option>
                     ))}
@@ -166,8 +165,8 @@ export default function SocieteListPage() {
               <Input label="Adresse" value={form.adresse ?? ''} onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]} />
               {!form.id && (
                 <p className="text-xs text-muted">
-                  Reprise : seule la copie ECOPRIM est créée, US_SOCIETE reste inchangée. ECOPRIM
-                  n'invente jamais de société — la liste ci-dessus vient exclusivement de US_SOCIETE.
+                  Reprise : la société existante est reprise telle quelle, sans être modifiée. Seules
+                  les sociétés déjà déclarées sur la plateforme peuvent être reprises.
                 </p>
               )}
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}

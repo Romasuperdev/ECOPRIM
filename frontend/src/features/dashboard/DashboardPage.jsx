@@ -9,6 +9,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import Compteur from '../../components/ui/Compteur'
 import { fetchDashboardStats } from './dashboardApi'
 import { Anneau, CarteGraphique, HistogrammeMensuel, Jauge } from './graphiques'
 
@@ -42,12 +43,12 @@ const VUES_MENSUELLES = {
 
 function Tuile({ icon: Icon, valeur, libelle, precision }) {
   return (
-    <div className="card flex items-center gap-3 rounded-2xl p-4">
+    <div className="card survol-leger flex items-center gap-3 rounded-2xl p-4">
       <div className="shrink-0 rounded-xl bg-primary-100 p-2.5 text-primary-800">
         <Icon size={20} />
       </div>
       <div className="min-w-0">
-        <p className="text-2xl font-extrabold leading-tight text-heading">{valeur ?? '—'}</p>
+        <p className="text-2xl font-extrabold leading-tight text-heading">{valeur == null ? '—' : <Compteur valeur={valeur} />}</p>
         <p className="truncate text-sm font-semibold text-heading">{libelle}</p>
         {precision && <p className="truncate text-xs font-medium text-muted">{precision}</p>}
       </div>

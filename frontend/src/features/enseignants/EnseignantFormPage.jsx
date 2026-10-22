@@ -131,7 +131,6 @@ export default function EnseignantFormPage() {
           <h1 className="text-2xl font-bold text-slate-800">
             {enEdition ? `${form.nom} ${form.prenom}` : 'Nouvel enseignant'}
           </h1>
-          <p className="text-xs text-muted">Fiche alimentée par ECONOMAT.T_PROFESSEUR.</p>
         </div>
       </div>
 

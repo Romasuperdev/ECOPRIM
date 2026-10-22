@@ -16,10 +16,10 @@ function NavItem({ to, end, children, onNaviguer }) {
       end={end}
       onClick={onNaviguer}
       className={({ isActive }) =>
-        `flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'font-bold' : 'font-medium hover:bg-white/5'}`
+        `flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'font-bold' : 'font-medium nav-survol'}`
       }
       style={({ isActive }) =>
-        isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+        isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
       }
     >
       {children}
@@ -48,8 +48,8 @@ function GroupSection({ group, hasActiveItem, onNaviguer }) {
         // le mot que « Configuration administrative » ne tenait plus. Le libellé
         // peut passer sur deux lignes plutôt que d'être coupé — un intitulé
         // tronqué ne se devine pas.
-        className="flex cursor-pointer select-none items-start gap-2.5 rounded-xl px-2 py-2.5 text-sm font-bold leading-tight hover:bg-white/5"
-        style={{ color: accent ?? 'var(--sidebar-text)' }}
+        className="flex cursor-pointer select-none items-start gap-2.5 rounded-xl px-2 py-2.5 text-sm font-bold leading-tight nav-survol"
+        style={{ color: accent ?? 'var(--nav-title)' }}
       >
         {Icone && (
           <span
@@ -65,10 +65,8 @@ function GroupSection({ group, hasActiveItem, onNaviguer }) {
       {/* Le filet vertical rattache visuellement les entrées à leur module. Posé
           en marge extérieure, il ne décale pas les libellés entre eux. */}
       <div
-        className="mt-1 ml-6 space-y-0.5 pl-2.5"
-        style={{
-          borderLeft: `2px solid ${accent ? `color-mix(in srgb, ${accent} 70%, transparent)` : 'transparent'}`,
-        }}
+        className="nav-groupe mt-1 ml-6 space-y-0.5 pl-2.5"
+        style={{ borderLeft: '2px solid var(--border)' }}
       >
         {group.items.map((item, index) =>
           item.to ? (
@@ -79,12 +77,12 @@ function GroupSection({ group, hasActiveItem, onNaviguer }) {
             <div
               key={`${item.label}-${index}`}
               className="flex items-center justify-between rounded-xl px-3 py-2 text-sm"
-              style={{ color: 'color-mix(in srgb, var(--sidebar-text) 40%, transparent)' }}
+              style={{ color: 'color-mix(in srgb, var(--nav-text) 40%, transparent)' }}
             >
               {item.label}
               <span
-                className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium"
-                style={{ color: 'color-mix(in srgb, var(--sidebar-text) 60%, transparent)' }}
+                className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ color: 'color-mix(in srgb, var(--nav-text) 60%, transparent)' }}
               >
                 Bientôt
               </span>
@@ -140,13 +138,13 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
     return (
       <aside
         className="flex h-full w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto py-4"
-        style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
+        style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
       >
         <button
           type="button"
           onClick={() => setRepliee(false)}
           title="Déplier le menu"
-          className="rounded-lg p-2.5 hover:bg-white/10"
+          className="rounded-lg p-2.5 nav-survol"
         >
           <PanelLeftOpen size={18} />
         </button>
@@ -154,9 +152,9 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
           to="/"
           end
           title="Tableau de bord"
-          className="rounded-lg p-2.5 hover:bg-white/10"
+          className="rounded-lg p-2.5 nav-survol"
           style={({ isActive }) =>
-            isActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--sidebar-text)' }
+            isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
           }
         >
           <LayoutDashboard size={18} />
@@ -168,7 +166,7 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
   return (
     <aside
       className={`flex h-full flex-col overflow-y-auto p-4 ${dansTiroir ? 'w-full' : 'w-60 shrink-0'}`}
-      style={{ background: 'var(--sidebar)', color: 'var(--sidebar-text)' }}
+      style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
     >
       <div className="mb-6 flex items-center justify-between px-2">
         <Logo />
@@ -176,7 +174,7 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
           type="button"
           onClick={() => (dansTiroir ? onFermer?.() : setRepliee(true))}
           title={dansTiroir ? 'Fermer le menu' : 'Replier le menu'}
-          className="shrink-0 rounded-lg p-1.5 hover:bg-white/10"
+          className="shrink-0 rounded-lg p-1.5 nav-survol"
         >
           {dansTiroir ? <X size={18} /> : <PanelLeftClose size={18} />}
         </button>

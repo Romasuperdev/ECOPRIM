@@ -4138,3 +4138,39 @@ changent à chaque build. `DEPLOIEMENT.md` rappelle qu'il doit accompagner ce qu
 Le script n'a pas pu être exécuté tel quel ici — son `composer install --no-dev`
 supprimerait les dépendances de test de ce poste. Son enchaînement a été validé sur une
 copie aux commandes lourdes neutralisées.
+
+## Thème « Bleu & Blanc » : plus calme pour les yeux, et des mouvements
+
+Charte validée le 22/10/2026 : deux couleurs de marque, bleu et blanc. Le texte est en bleu
+nuit, et un rouge discret est réservé aux erreurs.
+
+- **Palette** (`frontend/src/index.css`) : les échelles brutes ont été remplacées, et les
+  ~900 classes Tailwind nommées suivent sans édition. Le fond est un blanc bleuté (#F4F7FB),
+  pas un blanc pur, et le bleu principal est #2A66AD.
+  - `green-*` et `emerald-*` sont aliasés sur le bleu, car la charte n'a pas de vert.
+  - Un ocre très adouci reste disponible pour les seuls avertissements.
+  - Le mode sombre reprend la palette sombre de la charte.
+- **Police** : Nunito Sans, auto-hébergée (`@fontsource-variable/nunito-sans`), donc sans
+  dépendre d'Internet.
+- **Menu latéral** : il devient une surface blanche. L'entrée active est en bleu léger, et
+  les pastilles et accents de module sont tous bleus.
+- **Champs et boutons** : le champ « pilule » est remplacé par un rectangle à coins de 10 px
+  avec un contour visible (≥ 3:1). Les en-têtes de tableau passent en petites capitales.
+- **Mouvements** (`frontend/src/lib/mouvement.js`, un seul observateur pour toute l'appli) :
+  - les cartes entrent en cascade et les lignes de tableau en fondu ;
+  - les boutons font une onde au clic ;
+  - les pages s'enchaînent en fondu glissé ;
+  - les groupes du menu se déplient en douceur ;
+  - les chiffres du tableau de bord défilent (`Compteur.jsx`).
+  
+  Tout est coupé si le système demande moins d'animations.
+- **Connexion** : la barre coulissante Établissement / Console est conservée, en bleu dans
+  les deux positions.
+  - Ses cercles décoratifs glissent avec elle.
+  - La face recouverte s'efface et devient inerte, ni clic ni tabulation.
+  - Deux halos bleus dérivent lentement en fond.
+  - Sur mobile, le choix est un segment à pastille glissante.
+  - Le message d'erreur est un cadre rouge avec icône.
+- **Textes techniques retirés de l'interface** : « (source : ECONOMAT.T_…) », noms de
+  tables, « complétés par ECOPRIM », etc. sur 21 écrans. Les consignes métier réelles qui
+  disent où agir dans ECONOMAT ont été gardées, reformulées sans nom de table.

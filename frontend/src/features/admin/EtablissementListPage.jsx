@@ -61,9 +61,6 @@ export default function EtablissementListPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Établissements</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Établissements réels lus dans ECONOMAT.BEtablissements, complétés par ECOPRIM.
-          </p>
         </div>
         <Button disabled={!societes?.length} onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>
           + Nouvel établissement
@@ -159,7 +156,7 @@ export default function EtablissementListPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
             <h2 className="mb-4 text-lg font-bold text-slate-800">
-              {form.id ? "Modifier l'établissement" : (form.code ? `Reprendre ${form.code} dans ECOPRIM` : 'Nouvel établissement')}
+              {form.id ? "Modifier l'établissement" : (form.code ? `Reprendre ${form.code}` : 'Nouvel établissement')}
             </h2>
             <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-4">
 
@@ -195,8 +192,8 @@ export default function EtablissementListPage() {
               {!form.id && (
                 <p className="text-xs text-muted">
                   {form.repris
-                    ? 'Reprise : seule la copie ECOPRIM est créée, BEtablissements reste inchangée.'
-                    : 'Nouvel établissement : il sera enregistré dans BEtablissements puis dans ECOPRIM.'}
+                    ? "Reprise : l'établissement existant est repris tel quel, sans être modifié."
+                    : 'Nouvel établissement : il sera enregistré dans ECONOMAT puis repris ici.'}
                 </p>
               )}
               {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}

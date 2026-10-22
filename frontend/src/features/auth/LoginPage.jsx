@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School, Building2 } from 'lucide-react'
+import { GraduationCap, ShieldCheck, UserRound, Lock, Eye, EyeOff, School, Building2, CircleAlert } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import BasculeTheme from '../../components/ui/BasculeTheme'
@@ -109,7 +109,7 @@ export default function LoginPage() {
         className="mx-auto flex w-full max-w-[320px] flex-col gap-4"
         noValidate
       >
-        <div className="mb-1 flex items-center gap-2" style={{ color: isConsole ? 'var(--heading)' : 'var(--brand-accent)' }}>
+        <div className="mb-1 flex items-center gap-2" style={{ color: 'var(--brand-accent)' }}>
           {isConsole ? <ShieldCheck size={26} /> : <GraduationCap size={26} />}
           <h2 className="text-2xl font-extrabold text-heading">{isConsole ? 'Console Admin' : 'Établissement'}</h2>
         </div>
@@ -176,12 +176,20 @@ export default function LoginPage() {
         />
 
         {serverError && tab === kind && (
-          <p className="rounded-lg p-2 text-sm text-red-600" style={{ background: 'var(--danger-bg)' }}>
-            {serverError}
+          <p
+            role="alert"
+            className="animate-fade-up flex items-start gap-2 rounded-[var(--radius)] border px-3 py-2.5 text-sm"
+            style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger-border)', color: 'var(--danger-text)' }}
+          >
+            <CircleAlert size={18} className="mt-px shrink-0" />
+            <span>{serverError}</span>
           </p>
         )}
 
         <Button type="submit" variant="primary" disabled={isSubmitting} className="w-full justify-center py-3 text-base">
+          {isSubmitting && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden />
+          )}
           {isSubmitting ? 'Connexion…' : isConsole ? 'Accéder à la console' : 'Se connecter'}
         </Button>
       </form>
@@ -191,34 +199,43 @@ export default function LoginPage() {
   const consoleActive = tab === 'admin'
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center p-4">
+    <div className="login-fond flex min-h-screen items-center justify-center p-4">
       {/* Le thème se choisit avant de se connecter : quelqu'un qui travaille en
           salle sombre ne doit pas avoir à subir un écran blanc pour y arriver. */}
-      <div className="absolute right-3 top-3">
+      <div className="!absolute right-3 top-3 z-10">
         <BasculeTheme />
       </div>
 
       {/* ---------- Grand écran : panneau coulissant ---------- */}
       <div className="card relative hidden overflow-hidden rounded-2xl md:block" style={{ width: 880, height: 560 }}>
-        <div className="absolute left-0 top-0 flex h-full items-center justify-center p-10" style={{ width: '50%' }}>
+        {/* La face recouverte par le panneau s'efface et devient inerte (ni clic ni
+            tabulation) ; celle qu'il découvre glisse en place. */}
+        <div
+          className={`login-face login-face--gauche absolute left-0 top-0 flex h-full items-center justify-center p-10 ${consoleActive ? 'est-cachee' : ''}`}
+          style={{ width: '50%' }}
+          inert={consoleActive}
+        >
           {renderForm('etablissement', 'desktop')}
         </div>
-        <div className="absolute top-0 flex h-full items-center justify-center p-10" style={{ width: '50%', left: '50%' }}>
+        <div
+          className={`login-face login-face--droite absolute top-0 flex h-full items-center justify-center p-10 ${consoleActive ? '' : 'est-cachee'}`}
+          style={{ width: '50%', left: '50%' }}
+          inert={!consoleActive}
+        >
           {renderForm('admin', 'desktop')}
         </div>
+        {/* La barre coulissante : un seul bleu dans les deux positions, ses cercles
+            décoratifs glissent avec elle (voir .login-panneau dans index.css). */}
         <div
-          className="absolute top-0 z-20 flex h-full items-center justify-center p-10 text-white"
+          className={`login-panneau absolute top-0 z-20 flex h-full items-center justify-center p-10 text-white ${consoleActive ? 'est-console' : ''}`}
           style={{
             width: '50%',
             left: '50%',
             transform: consoleActive ? 'translateX(-100%)' : 'translateX(0)',
-            transition: 'transform .6s cubic-bezier(.6,.05,.2,1)',
-            background: consoleActive
-              ? 'linear-gradient(135deg, var(--brand-accent), var(--teal))'
-              : 'linear-gradient(135deg, var(--brand-surface), var(--brand-surface-2))',
+            transition: 'transform .7s cubic-bezier(.6,.05,.2,1)',
           }}
         >
-          <div className="flex max-w-[300px] flex-col items-center text-center">
+          <div key={tab} className="animate-fade-up flex max-w-[300px] flex-col items-center text-center">
             {/* Le mot seul, sans le symbole : celui-ci est bleu, et sur ce panneau bleu nuit
                 il ne se lisait pas — il formait une tache sombre à gauche du nom. L'image a
                 donc été recadrée sur le mot. Largeur réduite en conséquence : elle ne porte
@@ -238,7 +255,7 @@ export default function LoginPage() {
                 <p className="mt-3 text-base text-white/80">Vous gérez un établissement ? Connectez-vous à l'application.</p>
                 <button
                   onClick={() => switchTo('etablissement')}
-                  className="mt-5 rounded-xl border-2 border-white/80 px-6 py-2.5 text-base font-semibold transition hover:bg-white/10"
+                  className="mt-6 rounded-[var(--radius)] border-2 border-white/80 px-7 py-2.5 text-base font-bold transition hover:-translate-y-px hover:bg-white hover:text-[#1f4f8a]"
                 >
                   Établissement
                 </button>
@@ -248,7 +265,7 @@ export default function LoginPage() {
                 <p className="mt-3 text-base text-white/80">Vous êtes administrateur plateforme ? Accédez à la console.</p>
                 <button
                   onClick={() => switchTo('admin')}
-                  className="mt-5 rounded-xl border-2 border-white/80 px-6 py-2.5 text-base font-semibold transition hover:bg-white/10"
+                  className="mt-6 rounded-[var(--radius)] border-2 border-white/80 px-7 py-2.5 text-base font-bold transition hover:-translate-y-px hover:bg-white hover:text-[#1f4f8a]"
                 >
                   Console Admin
                 </button>
@@ -267,26 +284,30 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="card rounded-2xl p-6">
-          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl p-1" style={{ background: 'var(--surface-2)' }}>
+          {/* Version mobile de la barre coulissante : une pastille blanche glisse
+              sous l'option choisie. */}
+          <div className="segment mb-5" data-choix={tab} data-sans-onde>
+            <span className="segment__curseur" aria-hidden />
             <button
               type="button"
               onClick={() => switchTo('etablissement')}
-              className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold"
-              style={!consoleActive ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' } : { color: 'var(--muted-text)' }}
+              className="relative z-10 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-bold"
+              style={{ color: !consoleActive ? 'var(--brand-accent)' : 'var(--muted-text)' }}
             >
               <GraduationCap size={16} /> Établissement
             </button>
             <button
               type="button"
               onClick={() => switchTo('admin')}
-              className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold"
-              style={consoleActive ? { background: 'var(--brand-surface)', color: 'var(--brand-surface-ink)' } : { color: 'var(--muted-text)' }}
+              className="relative z-10 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-bold"
+              style={{ color: consoleActive ? 'var(--brand-accent)' : 'var(--muted-text)' }}
             >
               <ShieldCheck size={16} /> Console
             </button>
           </div>
-          <div className={tab === 'etablissement' ? '' : 'hidden'}>{renderForm('etablissement', 'mobile')}</div>
-          <div className={tab === 'admin' ? '' : 'hidden'}>{renderForm('admin', 'mobile')}</div>
+          <div key={tab} className="animate-fade-up">
+            {renderForm(tab, 'mobile')}
+          </div>
         </div>
       </div>
     </div>

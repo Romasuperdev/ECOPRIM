@@ -166,9 +166,8 @@ export function AbonnementsPage() {
               une erreur là où il n'y a simplement rien encore. */}
           {!data.alimentee && (
             <p className="mb-4 rounded-xl border border-slate-200 bg-card px-4 py-6 text-center text-sm font-medium text-muted">
-              Aucune formule ni abonnement n’est enregistré pour l’instant. Les tables existent
-              et répondent : la facturation de la plateforme n’est simplement pas encore
-              alimentée.
+              Aucune formule ni abonnement n’est enregistré pour l’instant : la facturation de
+              la plateforme n’est simplement pas encore en service.
             </p>
           )}
 

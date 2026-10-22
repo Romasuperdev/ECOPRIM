@@ -27,7 +27,7 @@ export default function NoteListPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Notes</h1>
-        <p className="mt-1 text-sm text-slate-500">Consultation (source : ECONOMAT).</p>
+        <p className="mt-1 text-sm text-slate-500">Consultation.</p>
       </div>
 
       <div className="mb-6 grid max-w-lg grid-cols-2 gap-4">

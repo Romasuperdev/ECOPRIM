@@ -79,7 +79,7 @@ export default function UtilisateurListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Utilisateurs &amp; Accès</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Comptes de connexion (dbmasterbacou.RH_USER). La suppression est volontairement
+            Comptes de connexion. La suppression est volontairement
             impossible : un compte retiré est désactivé.
           </p>
         </div>

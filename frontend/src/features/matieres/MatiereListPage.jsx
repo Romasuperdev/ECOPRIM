@@ -50,7 +50,6 @@ export default function MatiereListPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Matières</h1>
-          <p className="mt-1 text-sm text-slate-500">Source : ECONOMAT.T_MATIERE.</p>
         </div>
         <Button onClick={() => { setErreurs({}); setForm({ ...VIDE }) }}>+ Nouvelle matière</Button>
       </div>

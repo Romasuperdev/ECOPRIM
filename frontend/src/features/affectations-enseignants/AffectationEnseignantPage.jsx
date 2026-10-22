@@ -231,8 +231,8 @@ export default function AffectationEnseignantPage() {
       )}
 
       <p className="mt-3 text-xs text-muted">
-        Source : ECONOMAT.T_CORPROFCLASSE. Une matière n’a qu’un enseignant par classe et par
-        année : pour changer de professeur, on remplace l’affectation plutôt que d’en ajouter une.
+        Une matière n’a qu’un enseignant par classe et par année : pour changer de professeur,
+        on remplace l’affectation plutôt que d’en ajouter une.
       </p>
 
       {/* Formulaire */}

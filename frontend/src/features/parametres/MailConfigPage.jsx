@@ -33,8 +33,7 @@ export default function MailConfigPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Messagerie sortante (SMTP)</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Compte utilisé pour envoyer les mails depuis Communication
-          (source : ECONOMAT.T_MAIL_DIFFUSION).
+          Compte utilisé pour envoyer les mails depuis Communication.
         </p>
       </div>
 

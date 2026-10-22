@@ -58,8 +58,7 @@ export default function DocumentsElevesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Documents élèves</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Catalogue des documents et prérequis à fournir, par niveau et par année scolaire
-            (source : ECONOMAT.T_PREREQUIS).
+            Catalogue des documents et prérequis à fournir, par niveau et par année scolaire.
           </p>
         </div>
         <Button

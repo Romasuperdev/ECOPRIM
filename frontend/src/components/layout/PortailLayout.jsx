@@ -50,7 +50,10 @@ export default function PortailLayout() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-5xl">
           <ErrorBoundary resetKey={location.pathname}>
-            <Outlet />
+            {/* Clé = chemin : chaque page entre en fondu glissé au lieu d'apparaître d'un coup. */}
+            <div key={location.pathname} className="animate-fade-up">
+              <Outlet />
+            </div>
           </ErrorBoundary>
         </div>
       </div>

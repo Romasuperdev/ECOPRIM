@@ -56,7 +56,7 @@ export default function TracabilitePage() {
           {id ? `Traçabilité — ${data?.utilisateur?.nom ?? 'utilisateur'}` : 'Traçabilité'}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Journal d’activité tenu par ECONOMAT (T_TRACABILITE), en lecture seule.
+          Journal d’activité, en lecture seule.
           {data?.portee && <> Portée : <strong>{data.portee}</strong>.</>}
         </p>
       </div>

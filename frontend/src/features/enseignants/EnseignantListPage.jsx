@@ -22,7 +22,7 @@ export default function EnseignantListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Enseignants</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Enregistrement du personnel enseignant (source : ECONOMAT.T_PROFESSEUR).
+            Enregistrement du personnel enseignant.
           </p>
         </div>
         <Link to="/enseignants/nouveau">

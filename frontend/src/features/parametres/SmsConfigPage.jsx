@@ -35,8 +35,8 @@ export default function SmsConfigPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Passerelle SMS</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Configuration de l’opérateur d’envoi de SMS (source : ECONOMAT.ECO_SMS_CONFIG).
-          Les messages envoyés depuis Communication sont déposés dans la file <code>T_SMS</code>.
+          Configuration de l’opérateur d’envoi de SMS. Les messages envoyés depuis
+          Communication sont mis en file d’attente puis transmis par cet opérateur.
         </p>
       </div>
 
