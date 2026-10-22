@@ -189,7 +189,7 @@ export default function DashboardPage() {
         <div className="pointer-events-none absolute -bottom-16 left-1/4 h-56 w-56 rounded-full bg-primary-300/20 blur-3xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-white sm:text-2xl">Bonjour, {user?.name} 👋</h1>
+            <h1 className="text-xl font-bold text-white sm:text-2xl">Bonjour, {user?.name}</h1>
             <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--sidebar-text)' }}>
               {stats?.etablissement?.nom ?? 'Vue société'}
               {stats?.annee_scolaire_active ? ` — ${stats.annee_scolaire_active}` : ''}
