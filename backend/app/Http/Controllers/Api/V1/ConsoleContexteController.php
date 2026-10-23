@@ -7,6 +7,7 @@ use App\Models\Console\Affectation;
 use App\Models\Console\Etablissement;
 use App\Models\RhUser;
 use App\Support\PerimetreConsole;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -90,12 +91,21 @@ class ConsoleContexteController extends Controller
             abort_unless($request->user()->isSuperAdmin(), 403,
                 'Vous administrez une société précise : la vue générale ne vous est pas ouverte.');
             $request->session()->forget(PerimetreConsole::CLE_SESSION);
+            PerimetreEtablissement::oublier();
 
             return $this->show($request);
         }
 
         PerimetreConsole::assertAutorisee($code);
         $request->session()->put(PerimetreConsole::CLE_SESSION, $code);
+
+        // L'établissement de travail choisi auparavant appartient peut-être à une autre
+        // société : on l'oublie, pour ne pas afficher ses données sous la nouvelle.
+        $etablissement = $request->session()->get('etablissement_code');
+        if ($etablissement && ! in_array($etablissement, PerimetreEtablissement::etablissementsDeSociete($code), true)) {
+            $request->session()->forget(['etablissement_code', 'etablissement_nom']);
+        }
+        PerimetreEtablissement::oublier();
 
         return $this->show($request);
     }

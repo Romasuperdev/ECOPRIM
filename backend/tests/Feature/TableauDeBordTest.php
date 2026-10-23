@@ -16,10 +16,8 @@ use Tests\TestCase;
  * 1. Le périmètre établissement. T_ETUDIANT n'a pas de colonne établissement : le
  *    rattachement passe par la classe. Une classe sans CODEETABLISSEMENT n'appartient
  *    donc à personne, et ses élèves sortent des totaux.
- * 2. Le repli quand AUCUNE classe de l'année ne porte le code de l'établissement
- *    choisi. Restreindre donnerait zéro partout — un écran qui paraît en panne alors
- *    que le problème est dans les données. On garde les chiffres de la société et on
- *    signale que le filtre n'a pas pu s'appliquer.
+ * 2. Chaque établissement n'affiche que SES données, et une société choisie dans
+ *    l'en-tête borne aux siens : une société sans établissement n'affiche rien.
  *
  * Le taux d'assiduité est également couvert : il se rapporte aux journées-élèves
  * réellement écoulées, et non plus au seul effectif comme dans la première version,
@@ -147,6 +145,40 @@ class TableauDeBordTest extends TestCase
         $this->assertSame(0, $r->json('effectifs.total_classes'));
         $this->assertTrue($r->json('perimetre.applique'));
         $this->assertNull($r->json('perimetre.raison'));
+    }
+
+    /** Une société choisie sans établissement : rien de rattaché, donc rien à voir. */
+    public function test_une_societe_sans_etablissement_n_affiche_aucune_information(): void
+    {
+        $r = $this->withSession(['console_societe' => 'VIDE'])->getJson('/api/v1/dashboard/stats')->assertOk();
+
+        $this->assertSame(0, $r->json('effectifs.total_eleves'));
+        $this->assertSame(0, $r->json('effectifs.total_classes'));
+        $this->assertNull($r->json('moyenne_generale'));
+
+        $contexte = $this->withSession(['console_societe' => 'VIDE'])->getJson('/api/v1/contexte')->assertOk();
+        $this->assertSame([], $contexte->json('disponibles'));
+        $this->assertNull($contexte->json('etablissement_code'));
+    }
+
+    /** Société choisie, sans établissement précis : tous SES établissements, et eux seuls. */
+    public function test_une_societe_couvre_tous_ses_etablissements(): void
+    {
+        $r = $this->withSession(['console_societe' => 'ABN'])->getJson('/api/v1/dashboard/stats')->assertOk();
+
+        // CA (E1) et CB (E2) appartiennent à ABN ; CX n'a pas d'établissement.
+        $this->assertSame(3, $r->json('effectifs.total_eleves'));
+        $this->assertSame(2, $r->json('effectifs.total_classes'));
+    }
+
+    /** L'établissement choisi sous une autre société ne survit pas au changement de société. */
+    public function test_un_etablissement_d_une_autre_societe_est_ignore(): void
+    {
+        $this->choisirEtablissement('E1');
+
+        $r = $this->withSession(['console_societe' => 'VIDE'])->getJson('/api/v1/dashboard/stats')->assertOk();
+
+        $this->assertSame(0, $r->json('effectifs.total_eleves'));
     }
 
     public function test_le_taux_d_assiduite_se_rapporte_aux_journees_ecoulees(): void

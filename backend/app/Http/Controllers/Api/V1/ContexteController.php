@@ -51,11 +51,15 @@ class ContexteController extends Controller
         ];
     }
 
-    /** Choix explicite en session, sinon rattachement RH_USER, sinon rien. */
+    /**
+     * Choix explicite en session, sinon rattachement RH_USER, sinon rien — à condition
+     * qu'il fasse partie des établissements disponibles : après un changement de société,
+     * l'établissement d'une autre société ne doit plus s'afficher comme établissement actif.
+     */
     private function etablissementEffectif(Request $request, $disponibles): array
     {
         $code = $request->session()->get('etablissement_code');
-        if ($code) {
+        if ($code && $disponibles->contains('code', $code)) {
             return [
                 'code' => $code,
                 'nom' => $request->session()->get('etablissement_nom'),
@@ -64,7 +68,7 @@ class ContexteController extends Controller
         }
 
         $rattachement = trim((string) ($request->user()->Etab ?? ''));
-        if ($rattachement !== '') {
+        if ($rattachement !== '' && $disponibles->contains('code', $rattachement)) {
             $connu = $disponibles->firstWhere('code', $rattachement);
 
             return [
@@ -199,9 +203,15 @@ class ContexteController extends Controller
             }
         }
 
+        // Une société choisie dans l'en-tête borne la liste à SES établissements — vide si
+        // elle n'en a aucun : il n'y a alors rien à choisir, ni rien à afficher.
+        $societe = PerimetreEtablissement::societe();
+        $deLaSociete = $societe !== null ? PerimetreEtablissement::etablissementsDeSociete($societe) : null;
+
         return $lignes
             ->filter(fn ($r) => $r['actif'])
             ->filter(fn ($r) => $codesAutorises === null || in_array($r['code'], $codesAutorises, true))
+            ->filter(fn ($r) => $deLaSociete === null || in_array($r['code'], $deLaSociete, true))
             ->sortBy('intitule');
     }
 

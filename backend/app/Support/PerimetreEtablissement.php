@@ -97,13 +97,74 @@ class PerimetreEtablissement
         self::$cache = null;
     }
 
+    /**
+     * Société de travail (choisie dans l'en-tête), ou null en vue générale. Une société
+     * compte un ou plusieurs établissements : elle borne ceux qu'on peut voir.
+     */
+    public static function societe(): ?string
+    {
+        try {
+            return PerimetreConsole::codeCourant();
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Codes des établissements rattachés à une société : ceux d'ECONOMAT et ceux créés
+     * dans ECOPRIM. Chaque source est lue à part — l'une injoignable n'efface pas l'autre.
+     */
+    public static function etablissementsDeSociete(string $societe): array
+    {
+        $codes = [];
+
+        try {
+            $codes = DB::connection('economat')->table('BEtablissements')
+                ->where('CodeSociete', $societe)->pluck('CodeEtablissement')->all();
+        } catch (Throwable $e) {
+            // Source absente : on continue avec la seconde.
+        }
+        try {
+            $codes = array_merge($codes, DB::connection('ecoprim')->table('console_etablissements')
+                ->where('societe_code', $societe)->pluck('code')->all());
+        } catch (Throwable $e) {
+            // Idem.
+        }
+
+        return array_values(array_unique(array_filter(array_map(fn ($c) => trim((string) $c), $codes))));
+    }
+
+    /**
+     * Établissements dont on montre les données, ou null s'il n'y a rien à restreindre.
+     *
+     *   — un établissement est choisi (et appartient à la société de travail) : lui seul ;
+     *   — sinon, une société est choisie : tous SES établissements — et s'il n'y en a
+     *     aucun, la liste est vide : une société sans établissement n'a rien à montrer ;
+     *   — sinon (vue générale du Super Admin) : aucune restriction.
+     */
+    public static function etablissementsVisibles(): ?array
+    {
+        $choisi = self::code();
+        $societe = self::societe();
+
+        if ($societe === null) {
+            return $choisi === null ? null : [$choisi];
+        }
+
+        $deLaSociete = self::etablissementsDeSociete($societe);
+
+        // Un établissement choisi avant de changer de société n'en fait plus partie : il
+        // ne doit pas continuer à afficher les données d'une autre société.
+        return ($choisi !== null && in_array($choisi, $deLaSociete, true)) ? [$choisi] : $deLaSociete;
+    }
+
     private static function resoudre(): array
     {
         if (self::$cache !== null) {
             return self::$cache;
         }
 
-        $code = self::code();
+        $visibles = self::etablissementsVisibles();
 
         try {
             $classes = ContexteScolaire::appliquer(
@@ -117,12 +178,12 @@ class PerimetreEtablissement
 
             $orphelines = $classes->filter(fn ($c) => $etab($c) === '')->count();
 
-            if ($code === null) {
+            if ($visibles === null) {
                 return self::$cache = self::etat(null, $orphelines, false, 'aucun_etablissement');
             }
 
             $codes = $classes
-                ->filter(fn ($c) => $etab($c) === $code)
+                ->filter(fn ($c) => in_array($etab($c), $visibles, true))
                 ->pluck('CodeClasse')
                 ->map(fn ($c) => (string) $c)
                 ->values()
