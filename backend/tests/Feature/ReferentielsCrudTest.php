@@ -139,11 +139,13 @@ class ReferentielsCrudTest extends TestCase
 
     public function test_creer_modifier_et_supprimer_une_classe(): void
     {
+        $this->withSession(['etablissement_code' => 'E1']);
         $r = $this->postJson('/api/v1/classes', [
             'code' => 'CP1A', 'nom' => 'CP1 A', 'niveau_code' => 'CP1',
         ])->assertCreated()->assertJsonPath('code', 'CP1A');
 
-        $this->assertDatabaseHas('T_CLASSE', ['CodeClasse' => 'CP1A', 'ANNEE' => self::ANNEE], 'economat');
+        // Rattachée à l'établissement de travail : elle reste visible dans sa liste.
+        $this->assertDatabaseHas('T_CLASSE', ['CodeClasse' => 'CP1A', 'ANNEE' => self::ANNEE, 'CODEETABLISSEMENT' => 'E1'], 'economat');
 
         $this->putJson('/api/v1/classes/CP1A', ['nom' => 'CP1 A bis'])
             ->assertOk()->assertJsonPath('nom', 'CP1 A bis');
@@ -158,8 +160,18 @@ class ReferentielsCrudTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors('niveau_code');
     }
 
+    /** Sans établissement de travail, on ne sait pas où ouvrir la classe : refus. */
+    public function test_creer_une_classe_exige_un_etablissement_de_travail(): void
+    {
+        $this->postJson('/api/v1/classes', ['code' => 'CP1A', 'nom' => 'CP1 A', 'niveau_code' => 'CP1'])
+            ->assertStatus(422)->assertJsonValidationErrors('code');
+
+        $this->assertDatabaseMissing('T_CLASSE', ['CodeClasse' => 'CP1A'], 'economat');
+    }
+
     public function test_une_classe_qui_compte_des_eleves_ne_se_supprime_pas(): void
     {
+        $this->withSession(['etablissement_code' => 'E1']);
         $this->postJson('/api/v1/classes', ['code' => 'CP1A', 'nom' => 'CP1 A', 'niveau_code' => 'CP1'])
             ->assertCreated();
         DB::connection('economat')->table('T_ETUDIANT')->insert([

@@ -45,6 +45,9 @@ class ClasseController extends Controller
             'nom' => 'LibelleClasse',
             'niveau_code' => 'CodN',
             'annee' => 'ANNEE',
+            // Écrit à la création seulement : une classe appartient à l'établissement où
+            // elle a été ouverte (voir etablissementDeCreation()).
+            'etablissement' => 'CODEETABLISSEMENT',
         ]);
     }
 
@@ -83,9 +86,35 @@ class ClasseController extends Controller
         $this->assertCodeLibre($data['code'], $annee);
         $this->assertNiveauConnu($data['niveau_code'], $annee);
 
-        $num = $this->ecrivain->creer($data + ['annee' => $annee]);
+        $num = $this->ecrivain->creer($data + [
+            'annee' => $annee,
+            'etablissement' => $this->etablissementDeCreation(),
+        ]);
 
         return response()->json(Classe::where('num', $num)->firstOrFail(), 201);
+    }
+
+    /**
+     * Établissement auquel rattacher une nouvelle classe : celui sur lequel on travaille.
+     *
+     * Chaque établissement n'affiche que SES classes : une classe créée sans
+     * établissement disparaîtrait de la liste aussitôt créée. On la rattache donc à
+     * l'établissement visible dans l'en-tête, et l'on refuse si ce choix n'est pas
+     * déterminé — plusieurs établissements possibles, ou aucun.
+     */
+    private function etablissementDeCreation(): string
+    {
+        $visibles = PerimetreEtablissement::etablissementsVisibles();
+
+        if ($visibles === null || count($visibles) !== 1) {
+            throw ValidationException::withMessages([
+                'code' => [$visibles === []
+                    ? "Cette société n'a aucun établissement : impossible d'y ouvrir une classe."
+                    : "Choisissez d'abord, dans l'en-tête, l'établissement où ouvrir cette classe."],
+            ]);
+        }
+
+        return $visibles[0];
     }
 
     public function update(Request $request, Classe $classe)

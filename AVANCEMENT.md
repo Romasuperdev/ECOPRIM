@@ -4303,3 +4303,7 @@ rien.
 - **À trancher** : une classe créée dans NEXORA n'a pas d'établissement, car
   `ReferentielEcrivain` n'écrit pas `T_CLASSE.CODEETABLISSEMENT`. Avec la nouvelle règle,
   elle disparaît de la liste dès qu'un établissement est choisi.
+- **Tranché** : une classe créée dans NEXORA est rattachée (`T_CLASSE.CODEETABLISSEMENT`) à
+  l'établissement de travail visible dans l'en-tête. La création est refusée si cet
+  établissement n'est pas déterminé (plusieurs possibles, ou aucun). Les pages de
+  l'application travaillent sur ECONOMAT : NEXORA y écrit ce rattachement.

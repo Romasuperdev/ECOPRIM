@@ -7,8 +7,10 @@ namespace App\Services;
  *
  * Chaque référentiel déclare sa table, sa clé primaire et la correspondance
  * champ métier -> colonne réelle. Rien en dehors de cette correspondance n'est jamais
- * écrit : les colonnes de rattachement propres à ECONOMAT (CODESOCIETE, CODEETABLISSEMENT,
- * CodeEtab…) et tout ce que les autres applications de la suite y déposent restent intacts.
+ * écrit : les colonnes de rattachement propres à ECONOMAT (CODESOCIETE, CodeEtab…) et tout
+ * ce que les autres applications de la suite y déposent restent intacts. Seule exception,
+ * déclarée par ClasseController : CODEETABLISSEMENT d'une classe, posé à sa création pour
+ * qu'elle apparaisse dans l'établissement où on l'ouvre.
  *
  * La suppression est réelle mais conditionnelle : le contrôleur vérifie d'abord, via
  * DependancesReferentiel, que rien ne s'y réfère. Un référentiel n'est pas un historique,
