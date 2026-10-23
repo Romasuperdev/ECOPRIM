@@ -171,10 +171,16 @@ class VerifierDeploiement extends Command
         $attendues = [
             'economat' => ['T_ANNEEACADEMIQUE', 'T_CLASSE', 'T_NIVEAU', 'T_MATIERE',
                 'T_ETUDIANT', 'T_PROFESSEUR', 'V_NOTECLASSE', 'T_NOTEENTETE', 'T_NOTEDETAILS'],
-            'master' => ['RH_USER', 'US_SOCIETE'],
+            'master' => ['RH_USER', 'US_SOCIETE', 'US_APPLICATIONS', 'US_SOCIETE_APPLICATION',
+                'societe_utilisateur'],
+            // Toutes les tables créées par database/migrations/console : ce sont celles que
+            // NEXORA possède en propre (coefficients, évaluations, devoirs…), et une seule
+            // manquante laisse un écran vide ou refuse d'enregistrer.
             'ecoprim' => ['console_societes', 'console_etablissements', 'console_roles',
-                'console_affectations', 'console_role_permissions', 'evaluations',
-                'coefficients_matiere'],
+                'console_affectations', 'console_affectation_eleves', 'console_role_permissions',
+                'evaluations', 'devoirs', 'evenements', 'coefficients_matiere',
+                'aide_categories', 'aide_articles',
+                'nouveautes_versions', 'nouveautes_elements', 'nouveautes_lues'],
         ];
 
         foreach ($attendues as $connexion => $tables) {
@@ -188,7 +194,9 @@ class VerifierDeploiement extends Command
             $this->verifier(
                 strtoupper($connexion).' : '.(count($tables) - count($manquantes)).'/'.count($tables).' tables',
                 $manquantes === [],
-                $manquantes === [] ? '' : 'Manquantes : '.implode(', ', $manquantes),
+                $manquantes === [] ? '' : 'Manquantes : '.implode(', ', $manquantes).($connexion === 'ecoprim'
+                    ? ' — lancez : php artisan migrate --database=ecoprim --path=database/migrations/console --force'
+                    : ''),
             );
         }
     }
