@@ -7,6 +7,7 @@ use App\Services\CorProfClasseEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use App\Support\DependancesAffectation;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -32,9 +33,18 @@ class AffectationEnseignantController extends Controller
 {
     public function __construct(private CorProfClasseEcrivain $ecrivain) {}
 
-    /** Classes, matières et enseignants proposés, bornés à l'année de travail. */
+    /**
+     * Classes, matières et enseignants proposés, bornés à l'année de travail.
+     *
+     * Les classes se limitent à l'établissement de travail. Les enseignants NON : un
+     * enseignant n'entre dans un établissement que par ses affectations — les borner ici
+     * empêcherait d'affecter quiconque pour la première fois. Seule exception : sans
+     * aucune classe visible, il n'y a rien à affecter, donc personne à proposer.
+     */
     public function referentiels()
     {
+        $aucuneClasse = PerimetreEtablissement::codesClasses() === [];
+
         return [
             'annee' => ContexteScolaire::annee(),
             'annee_cloturee' => AnneeScolaireGuard::estCloturee(ContexteScolaire::annee()),
@@ -42,12 +52,12 @@ class AffectationEnseignantController extends Controller
                 'code' => trim((string) $l->CodeClasse),
                 'libelle' => $l->LibelleClasse ?: $l->CodeClasse,
                 'niveau_code' => $l->CodN ?? null,
-            ], 'ANNEE'),
+            ], 'ANNEE', fn ($l) => PerimetreEtablissement::classeVisible($l->CodeClasse ?? null)),
             'matieres' => $this->lire('T_MATIERE', 'LibelleMatiere', fn ($l) => [
                 'code' => trim((string) $l->CodeMatiere),
                 'libelle' => $l->LibelleMatiere ?: $l->CodeMatiere,
             ]),
-            'enseignants' => $this->lire('T_PROFESSEUR', 'NomProfesseur', fn ($l) => [
+            'enseignants' => $aucuneClasse ? [] : $this->lire('T_PROFESSEUR', 'NomProfesseur', fn ($l) => [
                 'code' => (int) $l->Code,
                 'matricule' => $l->MatriculeProfesseur ?? null,
                 'nom' => trim(($l->PrenomProfesseur ?? '').' '.($l->NomProfesseur ?? '')) ?: (string) $l->Code,
@@ -55,13 +65,19 @@ class AffectationEnseignantController extends Controller
         ];
     }
 
-    /** @param  string|null  $colonneAnnee  Borne l'année quand la table la porte. */
-    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null): array
+    /**
+     * @param  string|null  $colonneAnnee  Borne l'année quand la table la porte.
+     * @param  callable|null  $garder  Filtre les lignes lues (périmètre établissement).
+     */
+    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null, ?callable $garder = null): array
     {
         try {
             return DB::connection('economat')->table($table)
                 ->when($colonneAnnee, fn ($q) => ContexteScolaire::appliquer($q, $colonneAnnee))
-                ->orderBy($tri)->get()->map($projection)->values()->all();
+                ->orderBy($tri)->get()
+                // Pas de ->when($garder) : une fermeture y serait prise pour la condition.
+                ->pipe(fn ($lignes) => $garder ? $lignes->filter($garder) : $lignes)
+                ->map($projection)->values()->all();
         } catch (Throwable $e) {
             return [];
         }
@@ -84,6 +100,7 @@ class AffectationEnseignantController extends Controller
         try {
             $lignes = $this->ecrivain->requete()
                 ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+                ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q))
                 ->when($data['classe'] ?? null, fn ($q, $c) => $q->where('CodeClasse', $c))
                 ->when($data['enseignant'] ?? null, fn ($q, $e) => $q->where('CodeProfesseur', $e))
                 ->get();
@@ -192,6 +209,7 @@ class AffectationEnseignantController extends Controller
     {
         $ligne = $this->ecrivain->trouver($affectation);
         abort_if(! $ligne, 404, 'Affectation introuvable.');
+        PerimetreEtablissement::exigerClasse($ligne->CodeClasse ?? null, 'Affectation introuvable.');
 
         $data = $request->validate([
             'enseignant' => ['required', 'integer'],
@@ -219,6 +237,7 @@ class AffectationEnseignantController extends Controller
     {
         $ligne = $this->ecrivain->trouver($affectation);
         abort_if(! $ligne, 404, 'Affectation introuvable.');
+        PerimetreEtablissement::exigerClasse($ligne->CodeClasse ?? null, 'Affectation introuvable.');
 
         AnneeScolaireGuard::assertModifiable($ligne->ANNEE, 'Le retrait de cette affectation');
         DependancesAffectation::assertRetraitPossible(

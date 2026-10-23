@@ -8,6 +8,7 @@ use App\Services\ReferentielEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use App\Support\DependancesReferentiel;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -39,8 +40,20 @@ class NiveauController extends Controller
         ]);
     }
 
+    /**
+     * Les niveaux sont un référentiel de l'année, partagé par les établissements : ils ne
+     * se bornent PAS aux niveaux qui ont déjà une classe dans l'établissement de travail.
+     * La création d'une classe se fait à partir de cette liste — la borner empêcherait
+     * d'ouvrir la première classe d'un établissement, et un niveau tout juste créé
+     * disparaîtrait de l'écran. Seule une société sans établissement n'en voit aucun :
+     * elle n'a rien à montrer.
+     */
     public function index()
     {
+        if (PerimetreEtablissement::rienAMontrer()) {
+            return collect();
+        }
+
         return Niveau::query()
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
             ->orderBy('Ordre')->get();

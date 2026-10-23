@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Eleve;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -46,6 +47,8 @@ class BulletinController extends Controller
     private function donneesBulletin(Request $request, Eleve $eleve): array
     {
         abort_unless($eleve->classe_code, 422, "Cet élève n'est rattaché à aucune classe.");
+        // Pas de bulletin pour un élève d'un autre établissement : sa fiche n'est pas visible ici.
+        PerimetreEtablissement::exigerClasse($eleve->classe_code, 'Élève introuvable.');
 
         $session = $request->input('session');
 

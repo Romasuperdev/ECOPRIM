@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\EconomatTable;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -50,6 +51,10 @@ class CahierTextesController extends Controller
         $data = $request->validate(['classe' => ['nullable', 'string', 'max:50']]);
         $annee = ContexteScolaire::annee();
         $classe = $data['classe'] ?? null;
+        // Classe hors périmètre : rien à proposer, comme pour une classe inconnue.
+        if (! PerimetreEtablissement::classeVisible($classe)) {
+            $classe = null;
+        }
 
         return [
             'mois' => self::MOIS,
@@ -91,12 +96,16 @@ class CahierTextesController extends Controller
         $data = $request->validate(['classe' => ['required', 'string', 'max:50']]);
         $annee = ContexteScolaire::annee();
 
+        $entetes = collect();
         try {
-            $entetes = $this->t()->requete()
-                ->where('CodeClasse', $data['classe'])
-                ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'Annee'))
-                ->orderByDesc('NumSem')->orderByDesc('CodeEntete')
-                ->get();
+            // Classe d'un autre établissement : aucun cahier, comme toute liste filtrée.
+            if (PerimetreEtablissement::classeVisible($data['classe'])) {
+                $entetes = $this->t()->requete()
+                    ->where('CodeClasse', $data['classe'])
+                    ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'Annee'))
+                    ->orderByDesc('NumSem')->orderByDesc('CodeEntete')
+                    ->get();
+            }
         } catch (Throwable $e) {
             $entetes = collect();
         }
@@ -292,8 +301,7 @@ class CahierTextesController extends Controller
 
     public function update(Request $request, int $entete)
     {
-        $existant = $this->t()->trouver($entete);
-        abort_unless($existant, 404, 'Cahier de textes introuvable.');
+        $existant = $this->cahierVisible($entete);
 
         $d = $request->validate($this->reglesEntete());
         AnneeScolaireGuard::assertModifiable($existant->Annee, 'La modification de ce cahier de textes');
@@ -311,8 +319,7 @@ class CahierTextesController extends Controller
     /** Supprime la semaine et toutes ses lignes — voir l'exception assumée en tête de fichier. */
     public function destroy(int $entete)
     {
-        $existant = $this->t()->trouver($entete);
-        abort_unless($existant, 404, 'Cahier de textes introuvable.');
+        $existant = $this->cahierVisible($entete);
 
         AnneeScolaireGuard::assertModifiable($existant->Annee, 'La suppression de ce cahier de textes');
 
@@ -325,8 +332,7 @@ class CahierTextesController extends Controller
     /** Enregistre (crée ou met à jour) ce qui a été vu, jour par jour, pour une matière. */
     public function enregistrerLigne(Request $request, int $entete)
     {
-        $existant = $this->t()->trouver($entete);
-        abort_unless($existant, 404, 'Cahier de textes introuvable.');
+        $existant = $this->cahierVisible($entete);
 
         $d = $request->validate([
             'matiere' => ['required', 'string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')],
@@ -362,6 +368,16 @@ class CahierTextesController extends Controller
         );
     }
 
+    /** La semaine, ou 404 si elle n'existe pas ou concerne une classe hors périmètre. */
+    private function cahierVisible(int $entete): object
+    {
+        $existant = $this->t()->trouver($entete);
+        abort_unless($existant, 404, 'Cahier de textes introuvable.');
+        PerimetreEtablissement::exigerClasse($existant->CodeClasse ?? null, 'Cahier de textes introuvable.');
+
+        return $existant;
+    }
+
     private function assertMatiereAffectee(?string $classe, string $matiere, ?string $annee): void
     {
         try {
@@ -383,8 +399,7 @@ class CahierTextesController extends Controller
     /** Retire une matière du cahier — la ligne, pas seulement son contenu. */
     public function supprimerLigne(int $entete, string $matiere)
     {
-        $existant = $this->t()->trouver($entete);
-        abort_unless($existant, 404, 'Cahier de textes introuvable.');
+        $existant = $this->cahierVisible($entete);
 
         AnneeScolaireGuard::assertModifiable($existant->Annee, 'Le retrait de cette matière');
 

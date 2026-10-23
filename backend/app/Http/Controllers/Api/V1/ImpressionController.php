@@ -7,6 +7,7 @@ use App\Models\Eleve;
 use App\Models\Enseignant;
 use App\Services\PhotoEleveStockage;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -66,6 +67,7 @@ class ImpressionController extends Controller
     /** Fiche complète d'un élève, photo incluse si elle existe. */
     public function eleve(Request $request, Eleve $eleve)
     {
+        $this->exigerEleve($eleve);
         $pdf = Pdf::loadView('pdf.eleve', $this->commun($request) + [
             'eleve' => $eleve,
             'classe' => $this->libelleClasse($eleve->classe_code),
@@ -133,6 +135,7 @@ class ImpressionController extends Controller
     /** Certificat de scolarité : atteste l'inscription en cours d'un élève. */
     public function certificatScolarite(Request $request, Eleve $eleve)
     {
+        $this->exigerEleve($eleve);
         $pdf = Pdf::loadView('pdf.certificat-scolarite', $this->commun($request) + [
             'eleve' => $eleve,
             'classe' => $this->libelleClasse($eleve->classe_code),
@@ -145,6 +148,7 @@ class ImpressionController extends Controller
     /** Attestation de fréquentation : atteste qu'un élève a fréquenté l'établissement. */
     public function attestationFrequentation(Request $request, Eleve $eleve)
     {
+        $this->exigerEleve($eleve);
         $pdf = Pdf::loadView('pdf.attestation-frequentation', $this->commun($request) + [
             'eleve' => $eleve,
             'classe' => $this->libelleClasse($eleve->classe_code),
@@ -152,6 +156,15 @@ class ImpressionController extends Controller
         ]);
 
         return $pdf->download($this->nomFichier('attestation-frequentation', $eleve->matricule ?: $eleve->getKey()));
+    }
+
+    /**
+     * On n'imprime pas ce que l'écran ne montre pas : un élève d'un autre établissement
+     * (rattaché par sa classe) est introuvable d'ici.
+     */
+    private function exigerEleve(Eleve $eleve): void
+    {
+        PerimetreEtablissement::exigerClasse($eleve->getRawOriginal('CodeClasse'), 'Élève introuvable.');
     }
 
     /** Motif facultatif (visa, allocation familiale, transfert...), tapé avant impression. */
@@ -165,6 +178,9 @@ class ImpressionController extends Controller
     /** Fiche complète d'un enseignant : état civil, coordonnées, carrière, administration. */
     public function enseignant(Request $request, Enseignant $enseignant)
     {
+        // Même périmètre que la liste des enseignants : ceux affectés aux classes visibles.
+        PerimetreEtablissement::exigerEnseignant($enseignant->getKey());
+
         $pdf = Pdf::loadView('pdf.enseignant', $this->commun($request) + [
             'enseignant' => $enseignant,
         ]);
@@ -176,6 +192,7 @@ class ImpressionController extends Controller
     public function emploiDuTemps(Request $request, EmploiDuTempsController $emplois)
     {
         $data = $request->validate(['classe' => ['required', 'string', 'max:50']]);
+        PerimetreEtablissement::exigerClasse($data['classe']);
 
         $referentiels = $emplois->referentiels();
         $grille = $emplois->index($request);
@@ -196,6 +213,7 @@ class ImpressionController extends Controller
     public function listeClasse(Request $request)
     {
         $data = $request->validate(['classe' => ['required', 'string', 'max:50']]);
+        PerimetreEtablissement::exigerClasse($data['classe']);
 
         $eleves = Eleve::where('CodeClasse', $data['classe'])
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))

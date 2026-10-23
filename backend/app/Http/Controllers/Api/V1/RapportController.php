@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Classe;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +24,7 @@ class RapportController extends Controller
     /** Moyennes et classement des élèves d'une classe (V_MOYENNE_ELEVE_CLASSE). */
     public function moyennesClasse(Request $request, Classe $classe)
     {
+        PerimetreEtablissement::exigerClasse($classe->code);
         $lignes = $this->moyennes($classe->code, $request->input('session'));
 
         return [
@@ -88,6 +90,7 @@ class RapportController extends Controller
     /** Assiduité d'une classe : absences par élève (T_ABSENCEELEVE). */
     public function assiduiteClasse(Request $request, Classe $classe)
     {
+        PerimetreEtablissement::exigerClasse($classe->code);
         $requete = DB::connection('economat')->table('T_ABSENCEELEVE')
             ->where('CodeClasse', $classe->code)
             ->when($request->filled('session'), fn ($q) => $q->where('CodeSession', $request->input('session')));
@@ -150,6 +153,7 @@ class RapportController extends Controller
             ->when($request->filled('matiere_code'), fn ($q) => $q->where('CodeMatiere', $request->input('matiere_code')))
             ->when($request->filled('session'), fn ($q) => $q->where('CodeSession', $request->input('session')));
         ContexteScolaire::appliquer($requete, 'CodeAnnee');
+        PerimetreEtablissement::appliquerParClasse($requete);
 
         return $requete->get()
             ->groupBy(fn ($n) => implode('|', [$n->CodeClasse, $n->CodeMatiere, $n->CodeSession, $n->TypeNote]))

@@ -4275,3 +4275,31 @@ L'avertissement a été retiré de l'écran.
 
 Reste à décider : seul le tableau de bord (et les exports) filtrent par établissement. Les
 listes (classes, élèves, enseignants…) montrent encore toute la société.
+
+## Périmètre société / établissement appliqué à tout l'application
+
+Règle décidée avec l'utilisateur : une société compte un ou plusieurs établissements, et
+chacun n'affiche que ses informations. Une société choisie sans établissement n'affiche
+rien.
+
+- **`PerimetreEtablissement`** :
+  - un établissement choisi → lui seul ;
+  - sinon, une société choisie → tous ses établissements (ECONOMAT et ECOPRIM). Une
+    société qui n'en a aucun → rien ;
+  - sinon (vue générale du Super Admin) → tout ;
+  - un établissement d'une autre société est oublié quand on change de société.
+- **En-tête** : la liste des établissements se limite à ceux de la société choisie.
+- **Écrans filtrés** (listes, compteurs, listes déroulantes, et 404 sur un élément hors
+  périmètre) : classes, élèves, inscriptions, enseignants, absences, notes, saisie des
+  notes, évaluations, devoirs, événements, emploi du temps, cahier de textes,
+  affectations des enseignants, rapports, impressions, bulletins.
+- **Laissés tels quels, volontairement** :
+  - les niveaux (vidés seulement pour une société sans établissement) ;
+  - la liste des enseignants proposés à l'affectation ;
+  - les événements sans classe ;
+  - les portails Parent et Enseignant.
+- Tests : `PerimetreListesTest` (7 tests) et 3 nouveaux cas au tableau de bord. Suite
+  complète : 541 réussis, 2 échecs, ceux déjà connus sur les photos d'élèves.
+- **À trancher** : une classe créée dans NEXORA n'a pas d'établissement, car
+  `ReferentielEcrivain` n'écrit pas `T_CLASSE.CODEETABLISSEMENT`. Avec la nouvelle règle,
+  elle disparaît de la liste dès qu'un établissement est choisi.

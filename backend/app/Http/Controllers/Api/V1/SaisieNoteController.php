@@ -8,6 +8,7 @@ use App\Services\GrilleCoefficients;
 use App\Services\NoteEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use App\Support\SchemaNotes;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -92,6 +93,7 @@ class SaisieNoteController extends Controller
     public function feuille(Request $request)
     {
         $criteres = $this->critereFeuille($request);
+        PerimetreEtablissement::exigerClasse($criteres['classe']);
         $this->assertDisponible();
 
         $annee = ContexteScolaire::annee();
@@ -139,6 +141,8 @@ class SaisieNoteController extends Controller
     public function enregistrer(Request $request)
     {
         $criteres = $this->critereFeuille($request);
+        // On ne note pas une classe d'un autre établissement : elle n'est pas visible ici.
+        PerimetreEtablissement::exigerClasse($criteres['classe']);
         $this->assertDisponible();
 
         $annee = ContexteScolaire::annee();

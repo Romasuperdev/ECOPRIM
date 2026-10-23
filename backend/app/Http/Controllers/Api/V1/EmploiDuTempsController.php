@@ -7,6 +7,7 @@ use App\Services\EconomatTable;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ConflitsEmploiDuTemps;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -67,11 +68,15 @@ class EmploiDuTempsController extends Controller
         $data = $request->validate(['classe' => ['required', 'string', 'max:50']]);
         $annee = ContexteScolaire::annee();
 
+        $creneaux = collect();
         try {
-            $creneaux = DB::connection('economat')->table('T_EMPLOIDUTEMPS')
-                ->where('CODECLASSE', $data['classe'])
-                ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
-                ->get();
+            // Classe d'un autre établissement : grille vide, comme toute liste filtrée.
+            if (PerimetreEtablissement::classeVisible($data['classe'])) {
+                $creneaux = DB::connection('economat')->table('T_EMPLOIDUTEMPS')
+                    ->where('CODECLASSE', $data['classe'])
+                    ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+                    ->get();
+            }
         } catch (Throwable $e) {
             $creneaux = collect();
         }
@@ -173,6 +178,7 @@ class EmploiDuTempsController extends Controller
     {
         $existant = $this->t()->trouver($creneau);
         abort_unless($existant, 404, 'Créneau introuvable.');
+        PerimetreEtablissement::exigerClasse($existant->CODECLASSE ?? null, 'Créneau introuvable.');
 
         $d = $request->validate($this->regles());
         $d['annee'] = ContexteScolaire::annee();
@@ -197,6 +203,7 @@ class EmploiDuTempsController extends Controller
     {
         $existant = $this->t()->trouver($creneau);
         abort_unless($existant, 404, 'Créneau introuvable.');
+        PerimetreEtablissement::exigerClasse($existant->CODECLASSE ?? null, 'Créneau introuvable.');
 
         AnneeScolaireGuard::assertModifiable($existant->ANNEE, 'La suppression de ce créneau');
 

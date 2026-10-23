@@ -28,6 +28,9 @@ class PerimetreEtablissement
 {
     private static ?array $cache = null;
 
+    /** Enseignants du périmètre, mémorisés comme les classes ; `false` = pas encore lus. */
+    private static array|null|false $enseignants = false;
+
     /** Code de l'établissement de travail, ou null en vue société. */
     public static function code(): ?string
     {
@@ -92,9 +95,92 @@ class PerimetreEtablissement
         return $codes === null ? $query : $query->whereIn($colonne, $codes);
     }
 
+    /**
+     * La classe fait-elle partie du périmètre ? Toujours vrai quand rien n'est restreint ;
+     * une classe absente (élève sans classe) n'appartient, elle, à aucun établissement.
+     */
+    public static function classeVisible(?string $code): bool
+    {
+        $codes = self::codesClasses();
+        if ($codes === null) {
+            return true;
+        }
+
+        $code = trim((string) $code);
+
+        return $code !== '' && in_array($code, array_map('trim', $codes), true);
+    }
+
+    /**
+     * 404 pour un élément rattaché à une classe hors périmètre : ce qu'une liste ne montre
+     * pas, son détail ne doit pas le confirmer non plus.
+     */
+    public static function exigerClasse(?string $code, string $message = 'Classe introuvable.'): void
+    {
+        abort_unless(self::classeVisible($code), 404, $message);
+    }
+
+    /**
+     * Une société choisie sans aucun établissement : il n'y a rien à montrer, même dans
+     * les écrans qui ne passent pas par les classes.
+     */
+    public static function rienAMontrer(): bool
+    {
+        return self::etablissementsVisibles() === [];
+    }
+
+    /**
+     * Codes des enseignants (T_PROFESSEUR.Code) du périmètre, ou null sans restriction.
+     *
+     * T_PROFESSEUR ne porte ni classe ni établissement : un enseignant appartient au
+     * périmètre par ses affectations de l'année (T_CORPROFCLASSE) dans les classes visibles
+     * — même règle que le compteur du tableau de bord. Affectations illisibles : liste vide,
+     * comme ce compteur, qui tombe alors à zéro.
+     */
+    public static function codesEnseignants(): ?array
+    {
+        if (self::$enseignants !== false) {
+            return self::$enseignants;
+        }
+
+        $codes = self::codesClasses();
+        if ($codes === null) {
+            return self::$enseignants = null;
+        }
+        if ($codes === []) {
+            return self::$enseignants = [];
+        }
+
+        try {
+            $requete = DB::connection('economat')->table('T_CORPROFCLASSE')
+                ->whereIn('CodeClasse', $codes)
+                ->whereNotNull('CodeProfesseur');
+            ContexteScolaire::appliquer($requete, 'ANNEE');
+
+            return self::$enseignants = $requete->distinct()->pluck('CodeProfesseur')
+                ->map(fn ($c) => (int) $c)->values()->all();
+        } catch (Throwable $e) {
+            return self::$enseignants = [];
+        }
+    }
+
+    public static function enseignantVisible($code): bool
+    {
+        $codes = self::codesEnseignants();
+
+        return $codes === null || in_array((int) $code, $codes, true);
+    }
+
+    /** 404 pour un enseignant hors périmètre, comme exigerClasse() pour une classe. */
+    public static function exigerEnseignant($code, string $message = 'Enseignant introuvable.'): void
+    {
+        abort_unless(self::enseignantVisible($code), 404, $message);
+    }
+
     public static function oublier(): void
     {
         self::$cache = null;
+        self::$enseignants = false;
     }
 
     /**

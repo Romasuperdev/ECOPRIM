@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Devoir;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -31,26 +32,33 @@ class DevoirController extends Controller
         return [
             'annee' => $annee,
             'annee_cloturee' => AnneeScolaireGuard::estCloturee($annee),
+            // Classes et enseignants de l'établissement de travail seulement.
             'classes' => $this->lire('T_CLASSE', 'LibelleClasse', fn ($l) => [
                 'code' => trim((string) $l->CodeClasse), 'libelle' => $l->LibelleClasse ?: $l->CodeClasse,
-            ], 'ANNEE'),
+            ], 'ANNEE', fn ($l) => PerimetreEtablissement::classeVisible($l->CodeClasse ?? null)),
             'matieres' => $this->lire('T_MATIERE', 'LibelleMatiere', fn ($l) => [
                 'code' => trim((string) $l->CodeMatiere), 'libelle' => $l->LibelleMatiere ?: $l->CodeMatiere,
             ]),
             'enseignants' => $this->lire('T_PROFESSEUR', 'NomProfesseur', fn ($l) => [
                 'code' => (int) $l->Code,
                 'nom' => trim(($l->PrenomProfesseur ?? '').' '.($l->NomProfesseur ?? '')) ?: (string) $l->Code,
-            ]),
+            ], null, fn ($l) => PerimetreEtablissement::enseignantVisible($l->Code ?? null)),
         ];
     }
 
-    /** @param  string|null  $colonneAnnee  Borne l'année quand la table la porte. */
-    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null): array
+    /**
+     * @param  string|null  $colonneAnnee  Borne l'année quand la table la porte.
+     * @param  callable|null  $garder  Filtre les lignes lues (périmètre établissement).
+     */
+    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null, ?callable $garder = null): array
     {
         try {
             return DB::connection('economat')->table($table)
                 ->when($colonneAnnee, fn ($q) => ContexteScolaire::appliquer($q, $colonneAnnee))
-                ->orderBy($tri)->get()->map($projection)->values()->all();
+                ->orderBy($tri)->get()
+                // Pas de ->when($garder) : une fermeture y serait prise pour la condition.
+                ->pipe(fn ($lignes) => $garder ? $lignes->filter($garder) : $lignes)
+                ->map($projection)->values()->all();
         } catch (Throwable $e) {
             return [];
         }
@@ -62,6 +70,8 @@ class DevoirController extends Controller
 
         return Devoir::query()
             ->when($annee, fn ($q) => $q->where('annee', $annee))
+            // Table NEXORA sans établissement : le rattachement passe par la classe.
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q, 'classe_code'))
             ->when($request->filled('classe'), fn ($q) => $q->where('classe_code', $request->input('classe')))
             ->orderByDesc('date_remise')
             ->get()
@@ -142,6 +152,7 @@ class DevoirController extends Controller
 
     public function update(Request $request, Devoir $devoir)
     {
+        PerimetreEtablissement::exigerClasse($devoir->classe_code, 'Devoir introuvable.');
         $d = $request->validate($this->regles());
         AnneeScolaireGuard::assertModifiable($devoir->annee, 'La modification de ce devoir');
 
@@ -156,6 +167,7 @@ class DevoirController extends Controller
 
     public function destroy(Devoir $devoir)
     {
+        PerimetreEtablissement::exigerClasse($devoir->classe_code, 'Devoir introuvable.');
         AnneeScolaireGuard::assertModifiable($devoir->annee, 'La suppression de ce devoir');
         $devoir->delete();
 

@@ -10,6 +10,7 @@ use App\Services\PhotoEleveStockage;
 use App\Support\AnneeScolaireGuard;
 use App\Support\CoherenceScolaire;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -53,6 +54,8 @@ class InscriptionController extends Controller
             ->when($request->filled('annee'),
                 fn ($q) => $q->whereIn('AnneeAcad', ContexteScolaire::variantesDe($request->input('annee'))),
                 fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
+            // Chaque établissement ne voit que ses élèves, rattachés par leur classe.
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q))
             ->when($request->filled('classe'), fn ($q) => $q->where('CodeClasse', $request->input('classe')))
             ->when($request->filled('mouvement'), function ($q) use ($request) {
                 match ($request->input('mouvement')) {
@@ -76,7 +79,16 @@ class InscriptionController extends Controller
 
     public function show(int $inscription)
     {
-        return Eleve::findOrFail($inscription);
+        return $this->eleveVisible($inscription);
+    }
+
+    /** L'élève, ou 404 s'il n'existe pas ou relève d'un autre établissement. */
+    private function eleveVisible(int $code): Eleve
+    {
+        $eleve = Eleve::findOrFail($code);
+        PerimetreEtablissement::exigerClasse($eleve->getRawOriginal('CodeClasse'), 'Élève introuvable.');
+
+        return $eleve;
     }
 
     private function regles(bool $creation): array
@@ -236,7 +248,7 @@ class InscriptionController extends Controller
 
     public function update(Request $request, int $inscription)
     {
-        $eleve = Eleve::findOrFail($inscription);
+        $eleve = $this->eleveVisible($inscription);
         $data = $request->validate($this->regles(false));
 
         // L'année ACTUELLE du dossier verrouille sa modification, et on n'autorise pas
@@ -261,7 +273,7 @@ class InscriptionController extends Controller
      */
     public function photo(int $inscription)
     {
-        $eleve = Eleve::findOrFail($inscription);
+        $eleve = $this->eleveVisible($inscription);
         $valeur = DB::connection('economat')->table('T_ETUDIANT')
             ->where('Code', $eleve->getKey())->value('Photo');
 
@@ -277,7 +289,7 @@ class InscriptionController extends Controller
      */
     public function televerserPhoto(Request $request, int $inscription)
     {
-        $eleve = Eleve::findOrFail($inscription);
+        $eleve = $this->eleveVisible($inscription);
 
         AnneeScolaireGuard::assertModifiable($eleve->annee, "L'ajout d'une photo");
 

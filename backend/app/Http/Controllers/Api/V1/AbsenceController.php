@@ -8,6 +8,7 @@ use App\Models\Eleve;
 use App\Services\AbsenceEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -32,6 +33,7 @@ class AbsenceController extends Controller
     {
         return Absence::with('eleve')
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'AnneeCour'))
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q))
             ->when($request->filled('classe_code'), fn ($q) => $q->where('CodeClasse', $request->input('classe_code')))
             ->when($request->filled('matricule'), fn ($q) => $q->where('Matricule', $request->input('matricule')))
             ->when($request->filled('date'), fn ($q) => $q->whereDate('Date', $request->input('date')))
@@ -41,6 +43,8 @@ class AbsenceController extends Controller
 
     public function show(Absence $absence)
     {
+        PerimetreEtablissement::exigerClasse($absence->getRawOriginal('CodeClasse'), 'Absence introuvable.');
+
         return $absence->load('eleve');
     }
 
@@ -79,6 +83,7 @@ class AbsenceController extends Controller
     {
         $ligne = $this->ecrivain->trouver($absence);
         abort_if(! $ligne, 404, 'Absence introuvable.');
+        PerimetreEtablissement::exigerClasse($ligne->CodeClasse ?? null, 'Absence introuvable.');
 
         $data = $request->validate($this->regles(false));
         AnneeScolaireGuard::assertModifiable($ligne->AnneeCour ?? null, 'La modification de cette absence');
@@ -109,6 +114,7 @@ class AbsenceController extends Controller
     {
         $ligne = $this->ecrivain->trouver($absence);
         abort_if(! $ligne, 404, 'Absence introuvable.');
+        PerimetreEtablissement::exigerClasse($ligne->CodeClasse ?? null, 'Absence introuvable.');
 
         AnneeScolaireGuard::assertModifiable($ligne->AnneeCour ?? null, 'Le retrait de cette absence');
 
@@ -117,11 +123,15 @@ class AbsenceController extends Controller
         return response()->noContent();
     }
 
-    /** L'élève doit exister DANS l'année de travail : sinon l'absence serait orpheline. */
+    /**
+     * L'élève doit exister DANS l'année de travail : sinon l'absence serait orpheline.
+     * Et dans l'établissement de travail : on ne saisit pas pour un élève qu'on ne voit pas.
+     */
     private function eleve(string $matricule): Eleve
     {
         $eleve = Eleve::where('Matricule', $matricule)
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'AnneeAcad'))
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q))
             ->first();
 
         if (! $eleve) {

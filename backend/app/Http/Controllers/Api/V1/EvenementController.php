@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Evenement;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -41,28 +42,48 @@ class EvenementController extends Controller
                 ->values()->all(),
             'classes' => $this->lire('T_CLASSE', 'LibelleClasse', fn ($l) => [
                 'code' => trim((string) $l->CodeClasse), 'libelle' => $l->LibelleClasse ?: $l->CodeClasse,
-            ], 'ANNEE'),
+            ], 'ANNEE', fn ($l) => PerimetreEtablissement::classeVisible($l->CodeClasse ?? null)),
         ];
     }
 
-    /** @param  string|null  $colonneAnnee  Borne l'année quand la table la porte. */
-    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null): array
+    /**
+     * @param  string|null  $colonneAnnee  Borne l'année quand la table la porte.
+     * @param  callable|null  $garder  Filtre les lignes lues (périmètre établissement).
+     */
+    private function lire(string $table, string $tri, callable $projection, ?string $colonneAnnee = null, ?callable $garder = null): array
     {
         try {
             return DB::connection('economat')->table($table)
                 ->when($colonneAnnee, fn ($q) => ContexteScolaire::appliquer($q, $colonneAnnee))
-                ->orderBy($tri)->get()->map($projection)->values()->all();
+                ->orderBy($tri)->get()
+                // Pas de ->when($garder) : une fermeture y serait prise pour la condition.
+                ->pipe(fn ($lignes) => $garder ? $lignes->filter($garder) : $lignes)
+                ->map($projection)->values()->all();
         } catch (Throwable $e) {
             return [];
         }
     }
 
+    /**
+     * Événements de l'année. La table n'a pas de colonne établissement : un événement
+     * de classe suit sa classe ; un événement sans classe (« tout l'établissement ») ne
+     * peut être rattaché à aucun, il reste donc visible — sauf pour une société sans
+     * établissement, qui n'a rien à montrer.
+     */
     public function index(Request $request)
     {
         $annee = ContexteScolaire::annee();
 
+        if (PerimetreEtablissement::rienAMontrer()) {
+            return collect();
+        }
+        $codes = PerimetreEtablissement::codesClasses();
+
         return Evenement::query()
             ->when($annee, fn ($q) => $q->where('annee', $annee))
+            ->when($codes !== null, fn ($q) => $q->where(
+                fn ($w) => $w->whereNull('classe_code')->orWhereIn('classe_code', $codes)
+            ))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->input('type')))
             ->orderBy('date_debut')
             ->get()
@@ -102,6 +123,15 @@ class EvenementController extends Controller
         }
     }
 
+    /** 404 pour un événement que la liste ne montrerait pas (voir index). */
+    private function exigerVisible(Evenement $evenement): void
+    {
+        abort_if(PerimetreEtablissement::rienAMontrer(), 404, 'Événement introuvable.');
+        if ($evenement->classe_code) {
+            PerimetreEtablissement::exigerClasse($evenement->classe_code, 'Événement introuvable.');
+        }
+    }
+
     private function regles(): array
     {
         return [
@@ -132,6 +162,7 @@ class EvenementController extends Controller
 
     public function update(Request $request, Evenement $evenement)
     {
+        $this->exigerVisible($evenement);
         $d = $request->validate($this->regles());
         AnneeScolaireGuard::assertModifiable($evenement->annee, 'La modification de cet événement');
 
@@ -146,6 +177,7 @@ class EvenementController extends Controller
 
     public function destroy(Evenement $evenement)
     {
+        $this->exigerVisible($evenement);
         AnneeScolaireGuard::assertModifiable($evenement->annee, 'La suppression de cet événement');
         $evenement->delete();
 

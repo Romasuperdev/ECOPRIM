@@ -9,6 +9,7 @@ use App\Services\MatieresEnseignantEcrivain;
 use App\Services\ProfesseurEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -56,12 +57,22 @@ class EnseignantController extends Controller
                     ->when($matricules !== [], fn ($x) => $x->orWhereIn('MatriculeProfesseur', $matricules)));
             })
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'CodeAnnee'))
+            // T_PROFESSEUR ne porte pas d'établissement : un enseignant en relève par ses
+            // affectations de l'année dans les classes visibles (voir PerimetreEtablissement).
+            ->tap(function ($q) {
+                $codes = PerimetreEtablissement::codesEnseignants();
+                if ($codes !== null) {
+                    $q->whereIn('Code', $codes);
+                }
+            })
             ->orderBy('NomProfesseur')
             ->paginate(min($request->integer('per_page', 15), 200));
     }
 
     public function show(Enseignant $enseignant)
     {
+        PerimetreEtablissement::exigerEnseignant($enseignant->getKey());
+
         return array_merge($enseignant->toArray(), [
             'matieres' => $this->matieres->pour($enseignant->matricule, $enseignant->annee_code),
         ]);

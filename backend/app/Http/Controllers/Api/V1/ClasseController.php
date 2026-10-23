@@ -8,6 +8,7 @@ use App\Services\ReferentielEcrivain;
 use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use App\Support\DependancesReferentiel;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -51,6 +52,8 @@ class ClasseController extends Controller
     {
         return Classe::with('niveau')
             ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+            // Chaque établissement ne voit que SES classes (voir PerimetreEtablissement).
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerParClasse($q))
             ->when($request->filled('q'), fn ($query) => $query->where('LibelleClasse', 'like', "%{$request->input('q')}%"))
             ->orderBy('LibelleClasse')
             ->paginate(min($request->integer('per_page', 15), 200));
@@ -58,6 +61,8 @@ class ClasseController extends Controller
 
     public function show(Classe $classe)
     {
+        PerimetreEtablissement::exigerClasse($classe->getRawOriginal('CodeClasse'));
+
         return $classe->load('niveau');
     }
 
@@ -85,6 +90,7 @@ class ClasseController extends Controller
 
     public function update(Request $request, Classe $classe)
     {
+        PerimetreEtablissement::exigerClasse($classe->getRawOriginal('CodeClasse'));
         $data = $request->validate($this->regles(false));
         $num = $classe->getRawOriginal('num');
         $annee = $classe->getRawOriginal('ANNEE');
@@ -104,6 +110,7 @@ class ClasseController extends Controller
 
     public function destroy(Classe $classe)
     {
+        PerimetreEtablissement::exigerClasse($classe->getRawOriginal('CodeClasse'));
         AnneeScolaireGuard::assertModifiable($classe->getRawOriginal('ANNEE'), 'La suppression de cette classe');
         DependancesReferentiel::assertRetraitPossible(
             self::LIENS, $classe->getRawOriginal('CodeClasse'), 'Cette classe'
