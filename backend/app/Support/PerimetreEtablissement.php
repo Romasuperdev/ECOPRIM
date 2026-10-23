@@ -74,8 +74,7 @@ class PerimetreEtablissement
     /**
      * Pourquoi il ne s'est pas appliqué, le cas échéant :
      * 'aucun_etablissement'       — vue société, rien à restreindre ;
-     * 'aucune_classe_rattachee'   — un établissement est choisi, mais aucune classe
-     *                               de l'année ne porte son code (voir resoudre()).
+     * 'referentiel_injoignable'   — les classes n'ont pas pu être lues.
      */
     public static function raison(): ?string
     {
@@ -134,14 +133,11 @@ class PerimetreEtablissement
             return self::$cache = self::etat(null, 0, false, 'referentiel_injoignable');
         }
 
-        // Aucune classe de l'année ne porte le code de cet établissement. Restreindre
-        // donnerait zéro partout — un écran qui paraît cassé alors que le problème est
-        // dans les données. On garde les chiffres de la société et on le DIT : c'est à
-        // l'appelant d'afficher l'avertissement, pas de le taire.
-        if ($codes === []) {
-            return self::$cache = self::etat(null, $orphelines, false, 'aucune_classe_rattachee');
-        }
-
+        // Une société compte un ou plusieurs établissements, et chacun n'affiche que SES
+        // données. Un établissement sans classe cette année n'a donc rien à montrer :
+        // la liste vide s'applique telle quelle (zéro élève, zéro classe), au lieu de
+        // retomber sur les chiffres de toute la société — ce que faisait l'ancienne règle,
+        // au prix d'un avertissement que l'utilisateur ne voulait pas.
         return self::$cache = self::etat($codes, $orphelines, true, null);
     }
 

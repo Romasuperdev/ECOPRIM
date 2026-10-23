@@ -4260,3 +4260,18 @@ code de parcauto (zip) pour chaque écran.
     (`en_cours_provisionnement`) : c'est la plateforme qui met sa base en service.
   - Le code d'une société ne se modifie pas.
 - Tests : 532 réussis. Un échec, celui déjà connu sur les photos d'élèves.
+
+## Tableau de bord : chaque établissement n'affiche que ses données
+
+Une société compte un ou plusieurs établissements, et chacun montre SES informations.
+Quand aucune classe de l'année ne portait le code de l'établissement choisi, l'ancienne
+règle (`PerimetreEtablissement`) affichait les chiffres de toute la société, avec un
+avertissement (« Ces chiffres couvrent toute la société… »). L'utilisateur ne voulait ni
+de l'un ni de l'autre.
+
+Désormais, le filtre s'applique toujours. Un établissement sans classe affiche zéro élève et
+zéro classe ; c'est le cas aujourd'hui de SIEGE01, qui n'a aucune classe dans ECONOMAT.
+L'avertissement a été retiré de l'écran.
+
+Reste à décider : seul le tableau de bord (et les exports) filtrent par établissement. Les
+listes (classes, élèves, enseignants…) montrent encore toute la société.

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  AlertTriangle,
   CalendarClock,
   GraduationCap,
   School,
@@ -51,57 +50,6 @@ function Tuile({ icon: Icon, valeur, libelle, precision }) {
         <p className="text-2xl font-extrabold leading-tight text-heading">{valeur == null ? '—' : <Compteur valeur={valeur} />}</p>
         <p className="truncate text-sm font-semibold text-heading">{libelle}</p>
         {precision && <p className="truncate text-xs font-medium text-muted">{precision}</p>}
-      </div>
-    </div>
-  )
-}
-
-/**
- * Le périmètre demandé n'a pas pu s'appliquer : les chiffres affichés sont ceux de
- * toute la société. Le dire est le seul comportement acceptable — un écran à zéro
- * passerait pour une panne, et des chiffres élargis affichés en silence seraient faux.
- *
- * Ce message renvoyait vers l'écran des classes, laissant croire qu'on pouvait y corriger
- * le rattachement. C'était faux : le rattachement d'une classe à un établissement
- * appartient à ECONOMAT, et NEXORA ne fait que le lire — ReferentielEcrivain exclut
- * délibérément ces colonnes. Promettre une correction impossible est pire que de n'en
- * proposer aucune ; on indique désormais où cela se règle.
- */
-function AvertissementPerimetre({ perimetre, etablissement }) {
-  if (!perimetre || perimetre.applique || perimetre.raison === 'aucun_etablissement') return null
-
-  const orphelines = perimetre.classes_sans_etablissement
-  const code = etablissement?.code
-
-  return (
-    <div className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-      <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-      <div>
-        <p className="font-bold">
-          Ces chiffres couvrent toute la société, pas seulement {etablissement?.nom ?? 'cet établissement'}.
-        </p>
-        {perimetre.raison === 'aucune_classe_rattachee' ? (
-          <>
-            <p className="mt-1">
-              Aucune classe de cette année scolaire ne porte le code
-              {code ? <strong> {code}</strong> : ' de cet établissement'}. Un élève est
-              rattaché à un établissement <em>par sa classe</em> : sans ce code, le filtrage
-              ne peut pas s’appliquer.
-              {orphelines > 0
-                && ` ${orphelines} classe${orphelines > 1 ? 's' : ''} de l’année ${
-                  orphelines > 1 ? 'sont' : 'est'
-                } sans établissement.`}
-            </p>
-            <p className="mt-1.5 font-semibold">
-              Ce rattachement se renseigne dans ECONOMAT : NEXORA le lit sans jamais le modifier.
-            </p>
-          </>
-        ) : (
-          <p className="mt-1">
-            Le référentiel des classes n’a pas pu être lu ; le filtrage par établissement
-            est suspendu.
-          </p>
-        )}
       </div>
     </div>
   )
@@ -206,7 +154,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <AvertissementPerimetre perimetre={stats?.perimetre} etablissement={stats?.etablissement} />
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Tuile icon={Users} valeur={effectifs.total_eleves} libelle="Élèves" />

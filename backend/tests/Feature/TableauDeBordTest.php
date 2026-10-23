@@ -134,19 +134,19 @@ class TableauDeBordTest extends TestCase
         $this->assertEqualsWithDelta(18, $r->json('moyenne_generale'), 0.01);
     }
 
-    public function test_un_etablissement_sans_classe_rattachee_ne_vide_pas_l_ecran(): void
+    public function test_un_etablissement_sans_classe_n_affiche_que_ses_propres_chiffres(): void
     {
-        // Toutes les classes de l'année perdent leur rattachement : filtrer donnerait
-        // zéro partout. On garde les chiffres de la société, et on dit pourquoi.
+        // Chaque établissement n'affiche que SES données : sans classe rattachée, il n'a
+        // rien à montrer — et surtout pas les chiffres de toute la société.
         DB::connection('economat')->table('T_CLASSE')->update(['CODEETABLISSEMENT' => null]);
         $this->choisirEtablissement('E1');
 
         $r = $this->getJson('/api/v1/dashboard/stats')->assertOk();
 
-        $this->assertSame(4, $r->json('effectifs.total_eleves'));
-        $this->assertFalse($r->json('perimetre.applique'));
-        $this->assertSame('aucune_classe_rattachee', $r->json('perimetre.raison'));
-        $this->assertSame(3, $r->json('perimetre.classes_sans_etablissement'));
+        $this->assertSame(0, $r->json('effectifs.total_eleves'));
+        $this->assertSame(0, $r->json('effectifs.total_classes'));
+        $this->assertTrue($r->json('perimetre.applique'));
+        $this->assertNull($r->json('perimetre.raison'));
     }
 
     public function test_le_taux_d_assiduite_se_rapporte_aux_journees_ecoulees(): void
