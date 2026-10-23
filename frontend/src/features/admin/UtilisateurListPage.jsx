@@ -113,7 +113,7 @@ export default function UtilisateurListPage() {
             {data?.data?.map((u) => (
               <tr key={u.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
-                  <Link to={`/admin/utilisateurs/${u.id}`} className="font-medium text-primary-700 hover:underline">
+                  <Link to={`/configuration/utilisateurs/${u.id}`} className="font-medium text-primary-700 hover:underline">
                     {u.name}
                   </Link>
                   {u.super_admin && (
@@ -151,7 +151,7 @@ export default function UtilisateurListPage() {
                       </Button>
                     </div>
                   ) : (
-                    <Link to={`/admin/utilisateurs/${u.id}`} className="text-sm text-primary-700 hover:underline">
+                    <Link to={`/configuration/utilisateurs/${u.id}`} className="text-sm text-primary-700 hover:underline">
                       Rôles
                     </Link>
                   )}

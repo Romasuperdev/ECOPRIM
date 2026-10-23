@@ -837,3 +837,28 @@ button.card:hover,
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ── Console (constitution parcauto) ───────────────────────────────────────────
+   Boutons d'action de ligne : un contour coloré au repos, plein au survol. */
+.bouton-modifier {
+  border-color: var(--warning);
+  color: var(--warning-text);
+  background: var(--surface);
+}
+.bouton-modifier:hover {
+  background: var(--warning);
+  color: #ffffff;
+}
+.bouton-supprimer {
+  border-color: var(--danger);
+  color: var(--danger-text);
+  background: var(--surface);
+}
+.bouton-supprimer:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
+}
+/* Sous-menu « Affectations » du menu de la console : il se déplie en glissant. */
+.console-sous-menu {
+  animation: deplier 0.25s var(--ease) both;
+}

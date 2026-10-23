@@ -122,7 +122,7 @@ export const GROUPS = [
     module: 'parametre',
     peutConsoleOnly: true,
     items: [
-      { to: '/admin/utilisateurs', label: 'Utilisateurs' },
+      { to: '/configuration/utilisateurs', label: 'Utilisateurs' },
       { to: '/admin/roles', label: 'Rôles' },
       { to: '/admin/permissions', label: 'Permissions' },
     ],

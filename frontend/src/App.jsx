@@ -29,12 +29,7 @@ const InscriptionListPage = lazy(() => import('./features/inscriptions/Inscripti
 const EchangesPage = lazy(() => import('./features/echanges/EchangesPage'))
 const CoefficientsPage = lazy(() => import('./features/coefficients/CoefficientsPage'))
 const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPage'))
-const SocieteListPage = lazy(() => import('./features/admin/SocieteListPage'))
-// Console plateforme : quatre écrans dans un même module, ils partagent tout sauf
-// leurs colonnes (voir PlateformePages).
-const AffectationsEtablissementPage = lazy(() => import('./features/admin/AffectationsEtablissementPage'))
-const ApplicationsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ApplicationsPage })))
-const AffectationsPlateformePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AffectationsPlateformePage })))
+// Console plateforme : écrans en consultation, dans un même module (voir PlateformePages).
 const AbonnementsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AbonnementsPage })))
 const ParametresSystemePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ParametresSystemePage })))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
@@ -51,10 +46,22 @@ const HistoriquePage = lazy(() => import('./features/communication/HistoriquePag
 const RoleListPage = lazy(() => import('./features/admin/RoleListPage'))
 const PermissionsPage = lazy(() => import('./features/admin/PermissionsPage'))
 const TracabilitePage = lazy(() => import('./features/tracabilite/TracabilitePage'))
-const EtablissementListPage = lazy(() => import('./features/admin/EtablissementListPage'))
 const EtablissementDetailPage = lazy(() => import('./features/admin/EtablissementDetailPage'))
 const UtilisateurListPage = lazy(() => import('./features/admin/UtilisateurListPage'))
 const UtilisateurDetailPage = lazy(() => import('./features/admin/UtilisateurDetailPage'))
+// Console, constitution parcauto (features/admin/console) : listes, formulaires sur leur
+// propre page, et les deux écrans d'affectation (formulaire à gauche, liste à droite).
+const ConsoleUtilisateursPage = lazy(() => import('./features/admin/console/UtilisateursPage'))
+const ConsoleUtilisateurFormPage = lazy(() => import('./features/admin/console/UtilisateurFormPage'))
+const ConsoleEtablissementsPage = lazy(() => import('./features/admin/console/EtablissementsPage'))
+const ConsoleEtablissementFormPage = lazy(() => import('./features/admin/console/EtablissementFormPage'))
+const SocieteUtilisateursPage = lazy(() => import('./features/admin/console/SocieteUtilisateursPage'))
+const UtilisateurEtablissementsPage = lazy(() => import('./features/admin/console/UtilisateurEtablissementsPage'))
+const ConsoleSocietesPage = lazy(() => import('./features/admin/console/SocietesPage'))
+const ConsoleSocieteFormPage = lazy(() => import('./features/admin/console/SocieteFormPage'))
+const ConsoleApplicationsPage = lazy(() => import('./features/admin/console/ApplicationsPage'))
+const ConsoleApplicationFormPage = lazy(() => import('./features/admin/console/ApplicationFormPage'))
+const SocietesApplicationsPage = lazy(() => import('./features/admin/console/SocietesApplicationsPage'))
 const EnseignantAccueilPage = lazy(() => import('./features/portail-enseignant/EnseignantAccueilPage'))
 const EnseignantClassePage = lazy(() => import('./features/portail-enseignant/EnseignantClassePage'))
 const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAccueilPage'))
@@ -63,8 +70,6 @@ const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfa
 const AidePage = lazy(() => import('./features/aide/AidePage'))
 const AideArticlePage = lazy(() => import('./features/aide/AideArticlePage'))
 const NouveautesPage = lazy(() => import('./features/nouveautes/NouveautesPage'))
-const AideGestionPage = lazy(() => import('./features/admin/AideGestionPage'))
-const NouveautesGestionPage = lazy(() => import('./features/admin/NouveautesGestionPage'))
 
 const queryClient = new QueryClient()
 
@@ -113,7 +118,15 @@ export default function App() {
               {/* Console générale : réservée au Super Admin, côté écran comme côté serveur. */}
               <Route
                 path="/admin/societes"
-                element={<ProtectedRoute exigeSuperAdmin><SocieteListPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleSocietesPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/societes/nouvelle"
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleSocieteFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/societes/:code/modifier"
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleSocieteFormPage /></ProtectedRoute>}
               />
               {/* Établissements et traçabilité : niveau société — un Admin Établissement
                   n'y a pas accès. Utilisateurs & Accès et Rôles, en revanche, sont son
@@ -121,7 +134,15 @@ export default function App() {
                   à sa société, sans dépendre d'un admin de société ou général. */}
               <Route
                 path="/admin/etablissements"
-                element={<ProtectedRoute exigeNiveauSociete><EtablissementListPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeNiveauSociete><ConsoleEtablissementsPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/etablissements/nouveau"
+                element={<ProtectedRoute exigeNiveauSociete><ConsoleEtablissementFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/etablissements/:code/modifier"
+                element={<ProtectedRoute exigeNiveauSociete><ConsoleEtablissementFormPage /></ProtectedRoute>}
               />
               <Route
                 path="/admin/etablissements/:code"
@@ -140,22 +161,54 @@ export default function App() {
                 element={<ProtectedRoute exigeNiveauSociete><TracabilitePage /></ProtectedRoute>}
               />
               {/* Affectations du périmètre : qui travaille dans quel établissement. Niveau
-                  établissement — un Directeur doit pouvoir voir les siennes. Lecture seule :
-                  on affecte depuis la fiche de l'utilisateur, où les règles s'appliquent. */}
+                  établissement — un Directeur doit pouvoir gérer les siennes. Les règles
+                  (une société par compte, pas de doublon…) restent dans l'API. */}
               <Route
                 path="/admin/affectations-etablissement"
-                element={<ProtectedRoute exigeConsole><AffectationsEtablissementPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeConsole><UtilisateurEtablissementsPage /></ProtectedRoute>}
+              />
+              {/* Utilisateurs de la console (comptes RH_USER) : les trois niveaux
+                  d'administrateur, le serveur bornant chacun à son périmètre. La fiche
+                  (rôles, affectations) y est aussi ; l'application garde sa propre entrée,
+                  /configuration/utilisateurs, pour ne pas quitter l'application. */}
+              <Route
+                path="/admin/utilisateurs"
+                element={<ProtectedRoute exigeConsole><ConsoleUtilisateursPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/utilisateurs/nouveau"
+                element={<ProtectedRoute exigeConsole><ConsoleUtilisateurFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/utilisateurs/:id/modifier"
+                element={<ProtectedRoute exigeConsole><ConsoleUtilisateurFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/utilisateurs/:id"
+                element={<ProtectedRoute exigeConsole><UtilisateurDetailPage /></ProtectedRoute>}
               />
               {/* Console plateforme : données communes à toute la suite NEXORA, lues dans la
                   base partagée. Réservées au Super Admin, côté écran comme côté serveur —
                   elles dépassent le périmètre d'une société. */}
               <Route
                 path="/admin/applications"
-                element={<ProtectedRoute exigeSuperAdmin><ApplicationsPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleApplicationsPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/applications/nouvelle"
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleApplicationFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/applications/:code/modifier"
+                element={<ProtectedRoute exigeSuperAdmin><ConsoleApplicationFormPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/affectations-applications"
+                element={<ProtectedRoute exigeSuperAdmin><SocietesApplicationsPage /></ProtectedRoute>}
               />
               <Route
                 path="/admin/affectations"
-                element={<ProtectedRoute exigeSuperAdmin><AffectationsPlateformePage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeSuperAdmin><SocieteUtilisateursPage /></ProtectedRoute>}
               />
               <Route
                 path="/admin/abonnements"
@@ -164,14 +217,6 @@ export default function App() {
               <Route
                 path="/admin/parametres-systeme"
                 element={<ProtectedRoute exigeSuperAdmin><ParametresSystemePage /></ProtectedRoute>}
-              />
-              <Route
-                path="/admin/aide"
-                element={<ProtectedRoute exigeSuperAdmin><AideGestionPage /></ProtectedRoute>}
-              />
-              <Route
-                path="/admin/nouveautes"
-                element={<ProtectedRoute exigeSuperAdmin><NouveautesGestionPage /></ProtectedRoute>}
               />
               </Route>
 
@@ -214,11 +259,11 @@ export default function App() {
                   mais SANS quitter l'application (pas de bascule vers AdminLayout/console) —
                   contrairement à Sociétés/Établissements/Traçabilité, qui restent la console. */}
               <Route
-                path="/admin/utilisateurs"
+                path="/configuration/utilisateurs"
                 element={<ProtectedRoute exigeConsole><UtilisateurListPage /></ProtectedRoute>}
               />
               <Route
-                path="/admin/utilisateurs/:id"
+                path="/configuration/utilisateurs/:id"
                 element={<ProtectedRoute exigeConsole><UtilisateurDetailPage /></ProtectedRoute>}
               />
               <Route

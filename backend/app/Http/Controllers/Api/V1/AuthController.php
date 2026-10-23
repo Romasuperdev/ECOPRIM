@@ -93,6 +93,8 @@ class AuthController extends Controller
         return [
             'id' => $rhUser->Id,
             'name' => trim("{$rhUser->Prenom} {$rhUser->Nom}") ?: $rhUser->Login,
+            // Affiché dans l'en-tête de la console, comme dans parcauto.
+            'login' => $rhUser->Login,
             'email' => $rhUser->Email,
             'roles' => $rhUser->getRoleNames(),
             // Les deux sortes d'administrateur de la console. Le front s'en sert pour

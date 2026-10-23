@@ -122,6 +122,86 @@ class SocieteUtilisateurTest extends TestCase
         $this->assertCount(0, $this->liaisons());
     }
 
+    /** Le formulaire envoie la liste complète : décocher une société la détache. */
+    public function test_synchroniser_fait_de_la_liste_la_liste_des_societes(): void
+    {
+        $this->compte(2, 'mobio', false, userId: 1);
+        $this->postJson('/api/v1/plateforme/affectations', ['utilisateur_id' => 2, 'societes' => ['AURIAK']]);
+
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', [
+            'utilisateur_id' => 2, 'societes' => ['CI'], 'admins' => ['CI'],
+        ])->assertOk()->assertJson(['crees' => 1, 'retires' => 1]);
+
+        $lignes = $this->liaisons();
+        $this->assertSame(['CI'], $lignes->pluck('societe_id')->all());
+        $this->assertSame(2, (int) $lignes[0]->user_id);
+        $this->assertSame(27, (int) $lignes[0]->societe_numauto);
+        $this->assertTrue((bool) $lignes[0]->EstAdminSociete);
+
+        // Même liste, admin retiré : la liaison est conservée, seul le statut change.
+        $id = (int) $lignes[0]->id;
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', [
+            'utilisateur_id' => 2, 'societes' => ['CI', 'AURIAK'],
+        ])->assertOk()->assertJson(['crees' => 1, 'retires' => 0]);
+
+        $ci = $this->liaisons()->firstWhere('societe_id', 'CI');
+        $this->assertSame($id, (int) $ci->id);
+        $this->assertFalse((bool) $ci->EstAdminSociete);
+    }
+
+    public function test_synchroniser_une_liste_vide_retire_tout_meme_pour_un_compte_desactive(): void
+    {
+        $this->compte(3, 'parti', false, supprime: true);
+        DB::connection('master')->table('societe_utilisateur')->insert([
+            ['user_id' => 3, 'societe_id' => 'CI', 'EstAdminSociete' => false],
+        ]);
+
+        // Lui donner une société est refusé...
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', ['utilisateur_id' => 3, 'societes' => ['AURIAK']])
+            ->assertStatus(422)->assertJsonValidationErrors('utilisateur_id');
+        // ... la lui retirer, non.
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', ['utilisateur_id' => 3, 'societes' => []])
+            ->assertOk()->assertJson(['crees' => 0, 'retires' => 1]);
+        $this->assertCount(0, $this->liaisons());
+    }
+
+    public function test_synchroniser_refuse_une_societe_inconnue_sans_rien_toucher(): void
+    {
+        $this->compte(2, 'mobio', false);
+        $this->postJson('/api/v1/plateforme/affectations', ['utilisateur_id' => 2, 'societes' => ['AURIAK']]);
+
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', ['utilisateur_id' => 2, 'societes' => ['XX']])
+            ->assertStatus(422)->assertJsonValidationErrors('societes');
+
+        $this->assertSame(['AURIAK'], $this->liaisons()->pluck('societe_id')->all());
+    }
+
+    public function test_retirer_tout_ne_touche_que_le_compte_vise(): void
+    {
+        $this->compte(2, 'mobio', false);
+        $this->compte(3, 'kone', false);
+        $this->postJson('/api/v1/plateforme/affectations', ['utilisateur_id' => 2, 'societes' => ['AURIAK', 'CI']]);
+        $this->postJson('/api/v1/plateforme/affectations', ['utilisateur_id' => 3, 'societes' => ['CI']]);
+
+        $this->deleteJson('/api/v1/plateforme/affectations/utilisateurs/2')->assertOk()->assertJson(['retires' => 2]);
+
+        $this->assertSame([3], $this->liaisons()->pluck('user_id')->map(fn ($v) => (int) $v)->all());
+        $this->assertTrue(DB::connection('master')->table('RH_USER')->where('Id', 2)->exists());
+    }
+
+    public function test_synchroniser_et_retirer_tout_sont_reserves_au_super_admin(): void
+    {
+        $this->compte(3, 'kone', false);
+        DB::connection('master')->table('societe_utilisateur')->insert([
+            ['user_id' => 3, 'societe_id' => 'CI', 'EstAdminSociete' => true],
+        ]);
+        $this->actingAs($this->compte(2, 'simple', false), 'sanctum');
+
+        $this->putJson('/api/v1/plateforme/affectations/synchroniser', ['utilisateur_id' => 3, 'societes' => []])->assertStatus(403);
+        $this->deleteJson('/api/v1/plateforme/affectations/utilisateurs/3')->assertStatus(403);
+        $this->assertCount(1, $this->liaisons());
+    }
+
     /** Le périmètre d'un compte se lit par RH_USER.Id — l'ancienne jointure sur user_id se trompait de compte. */
     public function test_le_perimetre_d_un_compte_suit_son_id(): void
     {

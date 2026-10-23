@@ -73,4 +73,30 @@ class SocieteUtilisateurController extends Controller
 
         return response()->noContent();
     }
+
+    /**
+     * Enregistre la liste COMPLÈTE des sociétés d'un compte, telle que cochée dans le
+     * formulaire : les sociétés décochées sont détachées. `admins` désigne, parmi elles,
+     * celles dont le compte est administrateur.
+     */
+    public function synchroniser(Request $request)
+    {
+        $data = $request->validate([
+            'utilisateur_id' => ['required', 'integer'],
+            'societes' => ['present', 'array'],
+            'societes.*' => ['string', 'max:50'],
+            'admins' => ['sometimes', 'array'],
+            'admins.*' => ['string', 'max:50'],
+        ]);
+
+        return response()->json($this->ecrivain->synchroniser(
+            (int) $data['utilisateur_id'], $data['societes'], $data['admins'] ?? []
+        ));
+    }
+
+    /** « Retirer tout » : détache le compte de toutes ses sociétés. */
+    public function detacherTout(int $userId)
+    {
+        return response()->json(['retires' => $this->ecrivain->detacherTout($userId)]);
+    }
 }

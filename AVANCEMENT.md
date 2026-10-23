@@ -4215,3 +4215,48 @@ qui manquaient. Les défauts de parcauto relevés à la lecture n'ont pas été 
 
 À appliquer sur la machine (nouvelles tables Aide et Nouveautés) :
 `php artisan migrate --database=ecoprim --path=database/migrations/console --force`
+
+## Console : même constitution que parcauto
+
+L'utilisateur voulait une console identique à celle de parcauto : mêmes rubriques, même
+constitution, même fonctionnement. Sa capture d'écran a servi de modèle pour la coquille, le
+code de parcauto (zip) pour chaque écran.
+
+- **Coquille** :
+  - menu blanc à gauche, avec la marque « Console d'admin » ;
+  - rubriques Sociétés, Établissements, Applications, Utilisateurs ;
+  - « Affectations ▾ », qui regroupe Société - Applications, Société - Utilisateurs et
+    Utilisateur - Établissements ;
+  - section « Autres » avec Retour à l'application ;
+  - en-tête : ☰ (réduit le menu ou ouvre le tiroir), « Console d'administration », bouton
+    de thème, menu du compte (Déconnexion) et avatar.
+  - Retirés du menu à la demande (pages toujours accessibles par leur adresse) : Tableau de
+    bord, Traçabilité, Abonnements, Paramètres système.
+  - Supprimées à la demande : les pages de gestion de l'aide et des nouveautés
+    (`/admin/aide`, `/admin/nouveautes`).
+- **Kit** (`frontend/src/features/admin/console/kit.jsx`), commun à tous les écrans :
+  - carte à en-tête bleu dégradé, avec un bouton « Nouvelle … » ;
+  - tableau façon DataTables : recherche, « Afficher N éléments », tri, pagination ;
+  - boutons Modifier et Supprimer avec confirmation ;
+  - message de réussite qui disparaît après 4 s ;
+  - formulaires sur leur propre page.
+- **Écrans** :
+  - Sociétés : création dans `dbmasterbacou.US_SOCIETE`, reprise dans ECOPRIM dans la même
+    transaction.
+  - Applications : création, modification et suppression dans `US_APPLICATIONS`. La
+    suppression est refusée si l'application est encore utilisée.
+  - Société - Applications : synchronisation de `US_SOCIETE_APPLICATION`.
+  - Utilisateurs et Établissements : liste, création et modification.
+  - Société - Utilisateurs : formulaire à gauche et tableau à droite regroupé par compte.
+    Enregistrer synchronise la liste ; une case Admin par société.
+  - Utilisateur - Établissements : formulaire Société → Établissement, Utilisateur, Rôle.
+- **« Supprimer » = désactiver** pour les sociétés, les comptes (`RH_USER.Supprimer`) et les
+  établissements, avec réactivation. Seules les lignes de liaison sont vraiment effacées.
+  Rien de partagé avec ECONOMAT n'est détruit.
+- Côté application, la liste des utilisateurs de Configuration administrative passe à
+  `/configuration/utilisateurs`, parce que `/admin/utilisateurs` revient à la console.
+- À confirmer :
+  - Une société créée depuis ECOPRIM laisse `STATUT_BASE` à sa valeur par défaut
+    (`en_cours_provisionnement`) : c'est la plateforme qui met sa base en service.
+  - Le code d'une société ne se modifie pas.
+- Tests : 532 réussis. Un échec, celui déjà connu sur les photos d'élèves.

@@ -14,9 +14,9 @@ use Tests\TestCase;
  *
  * CES DONNÉES SONT PARTAGÉES. Elles vivent dans `dbmasterbacou`, la même base que RH_USER,
  * qu'ECONOMAT et les autres applications de la suite utilisent aussi. ECOPRIM n'en est pas
- * propriétaire : la console les LIT — à une exception près, le rattachement compte ↔ société,
- * éprouvé dans SocieteUtilisateurTest. Ce que ces tests vérifient d'abord, c'est qu'il n'y en a
- * pas d'autre.
+ * propriétaire : la console les LIT, et n'en écrit que ce qui a été décidé (rattachements compte ↔
+ * société, sociétés, applications, Société - Applications). Ce que ces tests vérifient d'abord,
+ * c'est qu'il n'y a pas d'autre écriture.
  *
  * Ils éprouvent ensuite ce que l'écran doit savoir dire : une table absente de
  * l'installation, une table présente mais vide, et un secret qu'on n'affiche pas.
@@ -168,20 +168,33 @@ class PlateformeTest extends TestCase
     }
 
     /**
-     * La console LIT la plateforme ; elle n'y écrit qu'une chose, le rattachement compte ↔
-     * société (societe_utilisateur, voir SocieteUtilisateurTest). Applications, abonnements
-     * et paramètres appartiennent à la suite entière et restent hors d'atteinte. La garantie
-     * se vérifie sur la table de routage plutôt que sur une intention.
+     * La console LIT la plateforme ; elle n'y écrit que ce qui a été décidé, chacun par un
+     * service dédié et éprouvé ailleurs : le rattachement compte ↔ société
+     * (SocieteUtilisateurTest), les sociétés, les applications et Société - Applications
+     * (ConsolePlateformeEcritureTest). Abonnements et paramètres appartiennent à la suite
+     * entière et restent hors d'atteinte. La garantie se vérifie sur la table de routage
+     * plutôt que sur une intention : toute nouvelle écriture doit s'ajouter ici, sciemment.
      */
-    public function test_seul_le_rattachement_societe_s_ecrit_sur_la_plateforme(): void
+    public function test_seules_les_ecritures_prevues_touchent_la_plateforme(): void
     {
         $ecritures = collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($r) => str_contains($r->uri(), 'plateforme/'))
             ->reject(fn ($r) => $r->methods() === ['GET', 'HEAD'])
             ->reject(fn ($r) => str_starts_with($r->uri(), 'api/v1/plateforme/affectations'))
             ->map(fn ($r) => implode('|', $r->methods()).' '.$r->uri())
-            ->values()->all();
+            ->sort()->values()->all();
 
-        $this->assertSame([], $ecritures);
+        $this->assertSame([
+            'DELETE api/v1/plateforme/applications/{code}',
+            'DELETE api/v1/plateforme/societes-applications/{code}',
+            'DELETE api/v1/plateforme/societes-applications/{code}/{codeApp}',
+            'POST api/v1/plateforme/applications',
+            'POST api/v1/plateforme/societes',
+            'POST api/v1/plateforme/societes/{code}/activer',
+            'POST api/v1/plateforme/societes/{code}/desactiver',
+            'PUT api/v1/plateforme/applications/{code}',
+            'PUT api/v1/plateforme/societes-applications/{code}',
+            'PUT api/v1/plateforme/societes/{code}',
+        ], $ecritures);
     }
 }

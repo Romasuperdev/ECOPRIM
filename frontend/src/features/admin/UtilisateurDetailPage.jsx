@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, History, KeyRound, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
@@ -100,6 +100,9 @@ function EnfantsAffectation({ affectation, onSaved }) {
 
 export default function UtilisateurDetailPage() {
   const { id } = useParams()
+  // La fiche s'ouvre depuis la console (/admin/utilisateurs) comme depuis l'application
+  // (/configuration/utilisateurs) : le retour ramène à la liste d'où l'on vient.
+  const listeUtilisateurs = useLocation().pathname.startsWith('/configuration') ? '/configuration/utilisateurs' : '/admin/utilisateurs'
   const qc = useQueryClient()
   // La traçabilité reste un outil de la console (niveau société) : un Admin Établissement
   // n'y a pas accès (voir AVANCEMENT.md) — le bouton est masqué plutôt que de le renvoyer
@@ -146,7 +149,7 @@ export default function UtilisateurDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/admin/utilisateurs" className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
+        <Link to={listeUtilisateurs} className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><ArrowLeft size={18} /></Link>
         <h1 className="text-2xl font-bold text-slate-800">{user.name}</h1>
         <Button variant="outline" className="ml-auto" onClick={() => setResetMdp(true)}>
           <KeyRound size={16} className="mr-1.5 inline" />

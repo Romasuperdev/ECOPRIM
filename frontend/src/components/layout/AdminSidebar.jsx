@@ -1,121 +1,145 @@
-import { NavLink } from 'react-router-dom'
-import Logo from '../ui/Logo'
+import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
-  AppWindow, ArrowLeftCircle, Bell, Building2, CircleHelp, CreditCard, History, LayoutDashboard,
-  Link2, School, Settings2, Users, X,
+  ArrowLeft, Building, Building2, ChevronDown, LayoutGrid, Link2, Settings, Users, X,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
-// « generale » : réservé au Super Admin. « niveauSociete » : Super Admin ou Admin
-// Société, pas l'Admin Établissement. Utilisateurs, Rôles et Permissions ont déménagé
-// dans l'application (Configuration administrative, voir Sidebar.jsx) : un Directeur n'a
-// plus besoin de passer par la console pour son quotidien. Ne reste ici que ce qui est
-// propre à la console : vue d'ensemble multi-établissement et traçabilité.
-// On masque plutôt que de laisser cliquer vers un 403.
+/*
+ * Menu de la console — même constitution que la console parcauto :
+ *
+ *   Sociétés · Établissements · Applications · Utilisateurs
+ *   Affectations ▾  (Société - Applications · Société - Utilisateurs · Utilisateur - Établissements)
+ *   AUTRES : Retour à l'application
+ *
+ * La gestion de l'aide et des nouveautés a été retirée de la console à la demande de
+ * l'utilisateur.
+ *
+ * Les rubriques propres à ECOPRIM qui n'existent pas dans parcauto (tableau de bord,
+ * traçabilité, abonnements, paramètres système) ont quitté le menu à la demande de
+ * l'utilisateur ; leurs pages restent atteignables par leur adresse.
+ *
+ * On masque ce que le compte ne peut pas ouvrir plutôt que de laisser cliquer vers un
+ * 403 : « generale » = Super Admin seul, « niveauSociete » = Super Admin ou Admin Société.
+ */
 const ITEMS = [
-  { to: '/admin', end: true, icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/admin/societes', icon: Building2, label: 'Sociétés', generale: true },
-  { to: '/admin/etablissements', icon: School, label: 'Établissements', niveauSociete: true },
-  { to: '/admin/tracabilite', icon: History, label: 'Traçabilité', niveauSociete: true },
-  // Utilisateurs et Affectations manquaient au menu de la console : le premier n'était
-  // atteignable que depuis l'application, le second n'existait nulle part. On administre
-  // des comptes depuis une console — leur absence obligeait à en sortir.
+  { to: '/admin/etablissements', icon: Building, label: 'Établissements', niveauSociete: true },
+  { to: '/admin/applications', icon: LayoutGrid, label: 'Applications', generale: true },
   { to: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
-  { to: '/admin/affectations-etablissement', icon: Link2, label: 'Utilisateur - Établissements' },
 ]
 
-// Données communes à toute la suite NEXORA, lues dans la base partagée avec ECONOMAT :
-// elles dépassent le périmètre d'une société, d'où le Super Admin seul. Elles étaient
-// annoncées « à venir » alors qu'elles existaient déjà — il ne manquait que l'écran.
-const PLATEFORME = [
-  { to: '/admin/applications', icon: AppWindow, label: 'Applications' },
-  { to: '/admin/affectations', icon: Link2, label: 'Société - Utilisateurs' },
-  { to: '/admin/abonnements', icon: CreditCard, label: 'Abonnements' },
-  { to: '/admin/parametres-systeme', icon: Settings2, label: 'Paramètres système' },
-  // Contenus éditoriaux lus par tous les comptes : ils se rédigent ici, une seule fois
-  // pour toute la plateforme.
-  { to: '/admin/aide', icon: CircleHelp, label: 'Aide' },
-  { to: '/admin/nouveautes', icon: Bell, label: 'Nouveautés' },
+const AFFECTATIONS = [
+  { to: '/admin/affectations-applications', label: 'Société - Applications', generale: true },
+  { to: '/admin/affectations', label: 'Société - Utilisateurs', generale: true },
+  { to: '/admin/affectations-etablissement', label: 'Utilisateur - Établissements' },
 ]
 
-/** `dansTiroir` : ouvert par-dessus le contenu sur petit écran (voir AdminLayout). */
-export default function AdminSidebar({ dansTiroir = false, onFermer }) {
+const CLASSE_LIEN = 'flex items-center gap-3 rounded-lg px-4 py-2.5 text-[15px] font-medium transition'
+
+function styleLien({ isActive }) {
+  return isActive
+    ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' }
+    : { color: 'var(--nav-text)' }
+}
+
+function Lien({ to, icon: Icone, label, end, replie, onNaviguer }) {
+  return (
+    <NavLink
+      to={to} end={end} onClick={onNaviguer} title={replie ? label : undefined}
+      className={`${CLASSE_LIEN} nav-survol ${replie ? 'justify-center px-0' : ''}`}
+      style={styleLien}
+    >
+      <Icone size={18} className="shrink-0" />
+      {!replie && <span className="truncate">{label}</span>}
+    </NavLink>
+  )
+}
+
+/**
+ * @param {boolean} replie     Menu réduit aux icônes (bouton ☰ de l'en-tête, sur grand écran).
+ * @param {boolean} dansTiroir Ouvert par-dessus le contenu sur petit écran.
+ */
+export default function AdminSidebar({ replie = false, dansTiroir = false, onFermer }) {
+  const location = useLocation()
   const superAdmin = useAuthStore((s) => s.superAdmin)
   const niveauSociete = useAuthStore((s) => s.niveauSociete)
-  const items = ITEMS.filter((i) => (!i.generale || superAdmin) && (!i.niveauSociete || niveauSociete))
+  const autorise = (i) => (!i.generale || superAdmin) && (!i.niveauSociete || niveauSociete)
+
+  const items = ITEMS.filter(autorise)
+  const affectations = AFFECTATIONS.filter(autorise)
+  const dansAffectations = affectations.some((a) => location.pathname.startsWith(a.to))
+  const [affectationsOuvert, setAffectationsOuvert] = useState(dansAffectations)
+  const ouvert = affectationsOuvert || dansAffectations
+  const reduit = replie && !dansTiroir
+  const fermer = dansTiroir ? onFermer : undefined
 
   return (
     <aside
-      className={`flex h-full flex-col overflow-y-auto p-4 ${dansTiroir ? 'w-full' : 'w-60 shrink-0'}`}
-      style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
+      className={`flex h-full shrink-0 flex-col overflow-y-auto transition-[width] duration-300 ${dansTiroir ? 'w-full' : reduit ? 'w-[4.5rem]' : 'w-60'}`}
+      style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)' }}
     >
-      <div className="mb-1 flex items-center justify-between px-2">
-        <Logo />
+      {/* Marque */}
+      <div className="flex h-16 shrink-0 items-center gap-2.5 px-5" style={{ borderBottom: '1px solid var(--border)' }}>
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
+          style={{ background: 'linear-gradient(135deg, var(--blue-500), var(--brand-surface))' }}
+        >
+          <Settings size={18} />
+        </span>
+        {!reduit && <span className="flex-1 truncate font-bold" style={{ color: 'var(--nav-title)' }}>Console d’admin</span>}
         {dansTiroir && (
-          <button
-            type="button" onClick={onFermer} title="Fermer le menu"
-            className="shrink-0 rounded-lg p-1.5 nav-survol"
-          >
+          <button type="button" onClick={onFermer} title="Fermer le menu" className="rounded-lg p-1.5 nav-survol">
             <X size={18} />
           </button>
         )}
       </div>
-      <div className="mb-4 px-2 text-[10px] font-semibold" style={{ color: 'var(--brand-accent)' }}>
-        CONSOLE ADMINISTRATIVE
-      </div>
-      <NavLink
-        to="/"
-        onClick={dansTiroir ? onFermer : undefined}
-        className="mb-4 flex items-center gap-2 px-2 text-xs font-medium opacity-70 hover:opacity-100"
-      >
-        <ArrowLeftCircle size={14} /> Retour à l’application
-      </NavLink>
 
-      <nav className="flex-1 space-y-1 text-sm">
-        {items.map(({ to, end, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={dansTiroir ? onFermer : undefined}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'nav-survol'}`
-            }
-            style={({ isActive }) =>
-              isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
-            }
-          >
-            <Icon size={19} />
-            {label}
-          </NavLink>
-        ))}
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {items.map((i) => <Lien key={i.to} {...i} replie={reduit} onNaviguer={fermer} />)}
 
-        {superAdmin && (
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-            <p
-              className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide"
-              style={{ color: 'color-mix(in srgb, var(--nav-text) 50%, transparent)' }}
+        {affectations.length > 0 && (
+          <div className="pt-3">
+            <button
+              type="button"
+              onClick={() => setAffectationsOuvert(!ouvert)}
+              title={reduit ? 'Affectations' : undefined}
+              className={`${CLASSE_LIEN} nav-survol w-full ${reduit ? 'justify-center px-0' : ''}`}
+              style={{ color: dansAffectations ? 'var(--nav-active-ink)' : 'var(--nav-text)' }}
+              aria-expanded={ouvert}
             >
-              Plateforme
-            </p>
-            {PLATEFORME.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={dansTiroir ? onFermer : undefined}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'font-semibold' : 'nav-survol'}`
-                }
-                style={({ isActive }) =>
-                  isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
-                }
-              >
-                <Icon size={19} />
-                {label}
-              </NavLink>
-            ))}
+              <Link2 size={18} className="shrink-0" />
+              {!reduit && (
+                <>
+                  <span className="flex-1 text-left">Affectations</span>
+                  <ChevronDown size={16} className={`transition-transform ${ouvert ? 'rotate-180' : ''}`} />
+                </>
+              )}
+            </button>
+            {ouvert && !reduit && (
+              <div className="console-sous-menu ml-6 mt-1 space-y-0.5 pl-3" style={{ borderLeft: '2px solid var(--border)' }}>
+                {affectations.map((a) => (
+                  <NavLink
+                    key={a.to} to={a.to} onClick={fermer}
+                    className="nav-survol block rounded-lg px-3 py-2 text-sm font-medium"
+                    style={styleLien}
+                  >
+                    {a.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        <div className="pt-4">
+          {!reduit && (
+            <p className="px-4 pb-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--muted-text)' }}>
+              Autres
+            </p>
+          )}
+          <Lien to="/" end icon={ArrowLeft} label="Retour à l’application" replie={reduit} onNaviguer={fermer} />
+        </div>
       </nav>
     </aside>
   )

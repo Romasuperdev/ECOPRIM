@@ -19,9 +19,10 @@ use Throwable;
  * n'existerait que côté ECOPRIM. La page affiche donc les vraies sociétés même si la
  * surcouche est vide ou si les tables Console ne sont pas encore migrées.
  *
- * ECOPRIM n'invente jamais de société : toute création se fait EN REPRENANT un code déjà
- * présent dans US_SOCIETE (géré par l'application maîtresse). Créer une société, ici,
- * c'est donc toujours choisir dans US_SOCIETE — jamais taper un code inédit.
+ * Ce contrôleur n'écrit jamais dans US_SOCIETE : store/update ne font que REPRENDRE un code
+ * déjà présent dans US_SOCIETE. La création d'une société dans US_SOCIETE (console, comme
+ * parcauto) passe par PlateformeSocieteController / UsSocieteEcrivain, qui la reprend
+ * ensuite ici automatiquement.
  */
 class SocieteController extends Controller
 {

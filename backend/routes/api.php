@@ -38,6 +38,9 @@ use App\Http\Controllers\Api\V1\DevoirController;
 use App\Http\Controllers\Api\V1\EvenementController;
 use App\Http\Controllers\Api\V1\PortailEnseignantController;
 use App\Http\Controllers\Api\V1\PlateformeController;
+use App\Http\Controllers\Api\V1\PlateformeSocieteController;
+use App\Http\Controllers\Api\V1\PlateformeApplicationController;
+use App\Http\Controllers\Api\V1\SocieteApplicationController;
 use App\Http\Controllers\Api\V1\SocieteUtilisateurController;
 use App\Http\Controllers\Api\V1\PortailParentController;
 use App\Http\Controllers\Api\V1\AideController;
@@ -310,7 +313,8 @@ Route::prefix('v1')->group(function () {
             Route::post('societes/{societe}/desactiver', [SocieteController::class, 'desactiver']);
 
             // Console plateforme : ce qui dépasse ECOPRIM et vaut pour toute la suite.
-            // LECTURE SEULE (sauf societe_utilisateur, ci-dessous) — ces tables vivent dans dbmasterbacou, partagée avec ECONOMAT
+            // LECTURE SEULE, sauf les écritures listées ci-dessous (rattachements, sociétés,
+            // applications, Société - Applications) — ces tables vivent dans dbmasterbacou, partagée avec ECONOMAT
             // et les autres applications ; ECOPRIM n'en est pas propriétaire.
             Route::get('plateforme/applications', [PlateformeController::class, 'applications']);
             Route::get('plateforme/affectations', [PlateformeController::class, 'affectations']);
@@ -321,6 +325,26 @@ Route::prefix('v1')->group(function () {
             Route::post('plateforme/affectations', [SocieteUtilisateurController::class, 'store']);
             Route::put('plateforme/affectations/{id}', [SocieteUtilisateurController::class, 'update'])->whereNumber('id');
             Route::delete('plateforme/affectations/{id}', [SocieteUtilisateurController::class, 'destroy'])->whereNumber('id');
+            // Le formulaire de la console enregistre la liste entière des sociétés d'un
+            // compte ; « Retirer tout » le détache de toutes d'un coup.
+            Route::put('plateforme/affectations/synchroniser', [SocieteUtilisateurController::class, 'synchroniser']);
+            Route::delete('plateforme/affectations/utilisateurs/{userId}', [SocieteUtilisateurController::class, 'detacherTout'])->whereNumber('userId');
+            // Sociétés, applications et Société - Applications, comme la console parcauto.
+            // Sociétés : US_SOCIETE puis la copie ECOPRIM ; « supprimer » = désactiver.
+            // Applications : refus de supprimer une application encore utilisée.
+            Route::get('plateforme/societes/{code}', [PlateformeSocieteController::class, 'show']);
+            Route::post('plateforme/societes', [PlateformeSocieteController::class, 'store']);
+            Route::put('plateforme/societes/{code}', [PlateformeSocieteController::class, 'update']);
+            Route::post('plateforme/societes/{code}/activer', [PlateformeSocieteController::class, 'activer']);
+            Route::post('plateforme/societes/{code}/desactiver', [PlateformeSocieteController::class, 'desactiver']);
+            Route::get('plateforme/applications/{code}', [PlateformeApplicationController::class, 'show']);
+            Route::post('plateforme/applications', [PlateformeApplicationController::class, 'store']);
+            Route::put('plateforme/applications/{code}', [PlateformeApplicationController::class, 'update']);
+            Route::delete('plateforme/applications/{code}', [PlateformeApplicationController::class, 'destroy']);
+            Route::get('plateforme/societes-applications', [SocieteApplicationController::class, 'index']);
+            Route::put('plateforme/societes-applications/{code}', [SocieteApplicationController::class, 'synchroniser']);
+            Route::delete('plateforme/societes-applications/{code}', [SocieteApplicationController::class, 'retirerTout']);
+            Route::delete('plateforme/societes-applications/{code}/{codeApp}', [SocieteApplicationController::class, 'detacher']);
             Route::get('plateforme/abonnements', [PlateformeController::class, 'abonnements']);
             Route::get('plateforme/parametres', [PlateformeController::class, 'parametres']);
 

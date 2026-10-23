@@ -167,3 +167,42 @@ export async function rechercherEleves(q) {
 
 // Sociétés et établissements ne se suppriment pas : ils se désactivent
 // (activerSociete / desactiverSociete, et l'équivalent établissement).
+
+// Console : listes complètes, toutes pages réunies. Les tableaux de la console trient,
+// cherchent et paginent côté écran (comme les DataTables de parcauto) : il leur faut
+// tout, pas une page. 200 est le maximum que l'API accepte par page.
+async function toutesLesPages(url, params = {}) {
+  const lignes = []
+  for (let page = 1; ; page++) {
+    const { data } = await apiClient.get(url, { params: { ...params, page, per_page: 200 } })
+    lignes.push(...(data.data ?? []))
+    if (!data.last_page || page >= data.last_page) return lignes
+  }
+}
+
+export const fetchTousUtilisateurs = () => toutesLesPages('/utilisateurs')
+
+export const fetchTousEtablissements = (societeCode) =>
+  toutesLesPages('/etablissements', { societe_code: societeCode || undefined })
+
+// Sociétés de la console (comme parcauto console/societes) : la liste fusionnée, et
+// l'écriture dans le registre des sociétés de la plateforme, reprise aussitôt dans
+// ECOPRIM. « Supprimer » désactive ; une société désactivée se réactive.
+export const fetchToutesSocietes = () => toutesLesPages('/societes')
+
+const societePlateforme = (code) => `plateforme/societes/${encodeURIComponent(code)}`
+
+export const fetchSocietePlateforme = (code) =>
+  apiClient.get(societePlateforme(code)).then((r) => r.data)
+
+export const creerSocietePlateforme = (v) =>
+  apiClient.post('plateforme/societes', v).then((r) => r.data)
+
+export const modifierSocietePlateforme = (code, v) =>
+  apiClient.put(societePlateforme(code), v).then((r) => r.data)
+
+export const activerSocietePlateforme = (code) =>
+  apiClient.post(`${societePlateforme(code)}/activer`).then((r) => r.data)
+
+export const desactiverSocietePlateforme = (code) =>
+  apiClient.post(`${societePlateforme(code)}/desactiver`).then((r) => r.data)

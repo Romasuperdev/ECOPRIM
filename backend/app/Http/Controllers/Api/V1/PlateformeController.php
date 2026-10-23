@@ -15,7 +15,10 @@ use Throwable;
  * RH_USER, celle qu'ECONOMAT et les autres applications de la suite utilisent aussi.
  * ECOPRIM n'en est pas propriétaire.
  *
- * D'OÙ LA LECTURE SEULE, sans exception. La règle qui protège ECONOMAT vaut ici pour la
+ * D'OÙ LA LECTURE SEULE dans ce contrôleur. Les seules écritures permises sur la plateforme
+ * passent par des services dédiés (*Ecrivain), chacun avec ses garde-fous : rattachements
+ * compte ↔ société, sociétés, applications, Société - Applications — voir
+ * PlateformeTest::test_seules_les_ecritures_prevues_touchent_la_plateforme. La règle qui protège ECONOMAT vaut ici pour la
  * même raison : une écriture depuis ce produit toucherait les comptes et les abonnements
  * des autres. Ce qu'ECOPRIM possède en propre — ses sociétés, ses établissements, ses
  * rôles — se gère ailleurs, dans la base `ecoprim`, et s'écrit normalement.

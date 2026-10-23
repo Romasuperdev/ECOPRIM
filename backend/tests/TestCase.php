@@ -87,6 +87,10 @@ abstract class TestCase extends BaseTestCase
             $t->string('TELSOCIETE')->nullable();
             $t->string('EMAILSOCIETE')->nullable();
             $t->string('NOMPRENOMREPRESENTANT')->nullable();
+            $t->boolean('CODIFICATION')->nullable();
+            $t->bigInteger('CAPITAL')->nullable();
+            // uniqueidentifier côté SQL Server ; US_SOCIETE_APPLICATION.societe_id le reprend.
+            $t->string('id')->nullable();
         });
 
         $s->create('ECO_SOCIETE_SUSPENSION', function ($t) {
@@ -110,11 +114,21 @@ abstract class TestCase extends BaseTestCase
         });
 
         // Tables de la PLATEFORME, communes à toute la suite NEXORA : la console les lit
-        // (voir PlateformeController), elle ne les écrit jamais. Abonnements et formules
-        // sont vides en production comme ici — c'est l'état qu'il faut pouvoir éprouver.
+        // (voir PlateformeController) et n'en écrit que quelques-unes, par des services
+        // dédiés (*Ecrivain). Abonnements et formules sont vides en production comme ici —
+        // c'est l'état qu'il faut pouvoir éprouver.
         $s->create('US_APPLICATIONS', function ($t) {
             $t->string('CodeApp');
             $t->string('Intitule')->nullable();
+        });
+
+        $s->create('US_SOCIETE_APPLICATION', function ($t) {
+            // Identité côté SQL Server.
+            $t->increments('ID');
+            $t->string('CODESOCIETE');
+            $t->string('CodeApp');
+            $t->timestamps();
+            $t->string('societe_id')->nullable();
         });
 
         $s->create('parametres_systeme', function ($t) {
