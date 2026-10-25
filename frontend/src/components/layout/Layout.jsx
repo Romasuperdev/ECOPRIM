@@ -11,6 +11,7 @@ import ContexteBarre from '../../features/contexte/ContexteBarre'
 import SocieteBarre from '../../features/admin/SocieteBarre'
 import NouveautesCloche from '../../features/nouveautes/NouveautesCloche'
 import ErrorBoundary from '../ErrorBoundary'
+import { ID_HOTE_FORMULAIRE } from '../ui/ModaleFormulaire'
 
 export default function Layout() {
   const location = useLocation()
@@ -91,12 +92,17 @@ export default function Layout() {
         </div>
         <div className="p-4 sm:p-6 lg:p-8 lg:pt-6">
           <div className="mx-auto w-full max-w-6xl">
-            <ErrorBoundary resetKey={location.pathname}>
-              {/* Clé = chemin : chaque page entre en fondu glissé au lieu d'apparaître d'un coup. */}
-              <div key={location.pathname} className="animate-fade-up">
-                <Outlet />
-              </div>
-            </ErrorBoundary>
+            {/* Formulaires « Nouveau / Modifier » : ils s'affichent ici, en page, à la place
+                du contenu (voir ModaleFormulaire). */}
+            <div id={ID_HOTE_FORMULAIRE} className="hote-formulaire" />
+            <div className="zone-contenu">
+              <ErrorBoundary resetKey={location.pathname}>
+                {/* Clé = chemin : chaque page entre en fondu glissé au lieu d'apparaître d'un coup. */}
+                <div key={location.pathname} className="animate-fade-up">
+                  <Outlet />
+                </div>
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
       </main>

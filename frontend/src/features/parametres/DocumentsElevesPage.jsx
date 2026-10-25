@@ -3,11 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
-import { Trash2 } from 'lucide-react'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
+import { FileText, Trash2 } from 'lucide-react'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { createPrerequis, deletePrerequis, fetchPrerequis, updatePrerequis } from './parametresApi'
 import { fetchContexte } from '../contexte/contexteApi'
-import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
   libelle: '', type: '', code: '', niveau: '',
@@ -21,7 +22,6 @@ export default function DocumentsElevesPage() {
   const [refus, setRefus] = useState(null)
   const qc = useQueryClient()
 
-  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
 
@@ -142,46 +142,41 @@ export default function DocumentsElevesPage() {
       </p>
 
       {form && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">
-              {form.id ? 'Modifier le document' : 'Nouveau document / prérequis'}
-            </h2>
-            <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-3">
-              <Input label="Libellé *" value={form.libelle ?? ''} onChange={(ev) => champ('libelle', ev.target.value)}
-                     error={erreurs.libelle?.[0]} placeholder="ex. Extrait de naissance" />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Type" value={form.type ?? ''} onChange={(ev) => champ('type', ev.target.value)}
-                       error={erreurs.type?.[0]} placeholder="ex. DOCUMENT, FOURNITURE" />
-                <Input label="Code" value={form.code ?? ''} onChange={(ev) => champ('code', ev.target.value)} error={erreurs.code?.[0]} />
-                <Input label="Niveau (vide = tous)" value={form.niveau ?? ''} onChange={(ev) => champ('niveau', ev.target.value)} error={erreurs.niveau?.[0]} />
-                <Input label="Montant (F CFA)" type="number" min="0" value={form.montant ?? ''}
-                       onChange={(ev) => champ('montant', ev.target.value)} error={erreurs.montant?.[0]} />
-                <Input label="Quantité" type="number" min="0" value={form.quantite ?? ''}
-                       onChange={(ev) => champ('quantite', ev.target.value)} error={erreurs.quantite?.[0]} />
-              </div>
+        <ModaleFormulaire
+          titrePage="Documents élèves"
+          titre={form.id ? 'Modifier le document' : 'Nouveau document / prérequis'}
+          icon={FileText}
+          large
+          onFermer={() => setForm(null)}
+          onValider={() => enregistrer.mutate(form)}
+          enCours={enregistrer.isPending}
+        >
+          <RecapErreurs erreurs={erreurs._ ?? erreurs.annee} />
 
-              <div className="space-y-2 pt-1">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input type="checkbox" checked={!!form.a_inscription} onChange={(ev) => champ('a_inscription', ev.target.checked)} />
-                  Exigé à l’inscription
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input type="checkbox" checked={!!form.a_scolarite} onChange={(ev) => champ('a_scolarite', ev.target.checked)} />
-                  Exigé au titre de la scolarité
-                </label>
-              </div>
+          <Input label="Libellé *" value={form.libelle ?? ''} onChange={(ev) => champ('libelle', ev.target.value)}
+                 error={erreurs.libelle?.[0]} placeholder="ex. Extrait de naissance" />
+          <GrilleFormulaire>
+            <Input label="Type" value={form.type ?? ''} onChange={(ev) => champ('type', ev.target.value)}
+                   error={erreurs.type?.[0]} placeholder="ex. DOCUMENT, FOURNITURE" />
+            <Input label="Code" value={form.code ?? ''} onChange={(ev) => champ('code', ev.target.value)} error={erreurs.code?.[0]} />
+            <Input label="Niveau (vide = tous)" value={form.niveau ?? ''} onChange={(ev) => champ('niveau', ev.target.value)} error={erreurs.niveau?.[0]} />
+            <Input label="Montant (F CFA)" type="number" min="0" value={form.montant ?? ''}
+                   onChange={(ev) => champ('montant', ev.target.value)} error={erreurs.montant?.[0]} />
+            <Input label="Quantité" type="number" min="0" value={form.quantite ?? ''}
+                   onChange={(ev) => champ('quantite', ev.target.value)} error={erreurs.quantite?.[0]} />
+          </GrilleFormulaire>
 
-              {(erreurs._ || erreurs.annee) && (
-                <p className="text-sm text-red-600">{(erreurs._ ?? erreurs.annee)[0]}</p>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                <Button type="submit" disabled={enregistrer.isPending}>{enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}</Button>
-              </div>
-            </form>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={!!form.a_inscription} onChange={(ev) => champ('a_inscription', ev.target.checked)} />
+              Exigé à l’inscription
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={!!form.a_scolarite} onChange={(ev) => champ('a_scolarite', ev.target.checked)} />
+              Exigé au titre de la scolarité
+            </label>
           </div>
-        </div>
+        </ModaleFormulaire>
       )}
     </div>
   )

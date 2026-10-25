@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { KeyRound, Trash2 } from 'lucide-react'
+import { KeyRound, ShieldPlus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import { createRole, deleteRole, fetchRoles } from './adminApi'
-import useEchap from '../../hooks/useEchap'
 
 export default function RoleListPage() {
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
-
-  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: roles, isLoading } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
   const invalider = () => qc.invalidateQueries({ queryKey: ['roles'] })
@@ -89,26 +88,27 @@ export default function RoleListPage() {
 
       <p className="mt-3 text-xs text-muted">
         Retirer un rôle du catalogue n’efface aucun compte : seules les affectations qui l’utilisent
-        deviennent invalides. Les rôles sont propres à NEXORA et n’altèrent pas RH_USER.
+        deviennent invalides. Les rôles sont propres à NEXORA et ne modifient pas les comptes.
       </p>
 
       {form && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">Nouveau rôle</h2>
-            <form onSubmit={(ev) => { ev.preventDefault(); creer.mutate(form) }} className="space-y-3">
-              <Input label="Code *" value={form.code} onChange={(ev) => champ('code', ev.target.value)}
-                     error={erreurs.code?.[0]} placeholder="ex. surveillant" />
-              <Input label="Nom *" value={form.nom} onChange={(ev) => champ('nom', ev.target.value)}
-                     error={erreurs.nom?.[0]} placeholder="ex. Surveillant" />
-              {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                <Button type="submit" disabled={creer.isPending}>{creer.isPending ? 'Création…' : 'Créer'}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ModaleFormulaire
+          titrePage="Rôles"
+          titre="Nouveau rôle"
+          icon={ShieldPlus}
+          onFermer={() => setForm(null)}
+          onValider={() => creer.mutate(form)}
+          enCours={creer.isPending}
+          libelleValider="Créer"
+        >
+          <RecapErreurs erreurs={erreurs._} />
+          <GrilleFormulaire colonnes={2}>
+            <Input label="Code *" value={form.code} onChange={(ev) => champ('code', ev.target.value)}
+                   error={erreurs.code?.[0]} placeholder="ex. surveillant" />
+            <Input label="Nom *" value={form.nom} onChange={(ev) => champ('nom', ev.target.value)}
+                   error={erreurs.nom?.[0]} placeholder="ex. Surveillant" />
+          </GrilleFormulaire>
+        </ModaleFormulaire>
       )}
     </div>
   )

@@ -169,7 +169,7 @@ export default function UtilisateurDetailPage() {
       {resetMdp && <ReinitialiserMotDePasse userId={user.id} onFermer={() => setResetMdp(false)} />}
 
       <section className="rounded-xl border border-slate-200 bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Compte (RH_USER — lecture seule)</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-800">Compte (lecture seule)</h2>
         <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Champ label="Login" value={user.login} />
           <Champ label="Matricule" value={user.matricule} />

@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { UserCog, UserPlus } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import SelecteurEleves from './SelecteurEleves'
 import { useAuthStore } from '../../store/authStore'
 import {
@@ -15,7 +18,6 @@ import {
   fetchUtilisateurs,
   updateUtilisateur,
 } from './adminApi'
-import useEchap from '../../hooks/useEchap'
 
 const VIDE = {
   login: '', mot_de_passe: '', nom: '', prenom: '', email: '',
@@ -40,7 +42,6 @@ export default function UtilisateurListPage() {
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
 
-  useEchap(form ? () => setForm(null) : undefined)
 
   const { data, isLoading } = useQuery({
     queryKey: ['utilisateurs', page, q],
@@ -170,119 +171,110 @@ export default function UtilisateurListPage() {
       )}
 
       {form && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <h2 className="mb-4 text-lg font-bold text-slate-800">
-              {form.id ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}
-            </h2>
-            <form onSubmit={(ev) => { ev.preventDefault(); enregistrer.mutate(form) }} className="space-y-4">
+        <ModaleFormulaire
+          titrePage="Utilisateurs & Accès"
+          titre={form.id ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}
+          icon={form.id ? UserCog : UserPlus}
+          large
+          onFermer={() => setForm(null)}
+          onValider={() => enregistrer.mutate(form)}
+          enCours={enregistrer.isPending}
+          valideDesactive={!form.id && !superAdmin && (!form.etablissement_code || !form.role_id)}
+        >
+          <RecapErreurs erreurs={erreurs._} />
 
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">Connexion</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Login *" value={form.login ?? ''} onChange={(ev) => champ('login', ev.target.value)} error={erreurs.login?.[0]} />
-                <Input label={form.id ? 'Mot de passe (laisser vide pour conserver)' : 'Mot de passe *'}
-                       type="password" value={form.mot_de_passe ?? ''}
-                       onChange={(ev) => champ('mot_de_passe', ev.target.value)} error={erreurs.mot_de_passe?.[0]} />
-              </div>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Connexion</p>
+          <GrilleFormulaire colonnes={2}>
+            <Input label="Login *" value={form.login ?? ''} onChange={(ev) => champ('login', ev.target.value)} error={erreurs.login?.[0]} />
+            <Input label={form.id ? 'Mot de passe (laisser vide pour conserver)' : 'Mot de passe *'}
+                   type="password" value={form.mot_de_passe ?? ''}
+                   onChange={(ev) => champ('mot_de_passe', ev.target.value)} error={erreurs.mot_de_passe?.[0]} />
+          </GrilleFormulaire>
 
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">Identité</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Nom *" value={form.nom ?? ''} onChange={(ev) => champ('nom', ev.target.value)} error={erreurs.nom?.[0]} />
-                <Input label="Prénom" value={form.prenom ?? ''} onChange={(ev) => champ('prenom', ev.target.value)} error={erreurs.prenom?.[0]} />
-                <Input label="Email" value={form.email ?? ''} onChange={(ev) => champ('email', ev.target.value)} error={erreurs.email?.[0]} />
-                <Input label="Matricule" value={form.matricule ?? ''} onChange={(ev) => champ('matricule', ev.target.value)} error={erreurs.matricule?.[0]} />
-                <Input label="Contact" value={form.contact ?? ''} onChange={(ev) => champ('contact', ev.target.value)} error={erreurs.contact?.[0]} />
-              </div>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Identité</p>
+          <GrilleFormulaire colonnes={2}>
+            <Input label="Nom *" value={form.nom ?? ''} onChange={(ev) => champ('nom', ev.target.value)} error={erreurs.nom?.[0]} />
+            <Input label="Prénom" value={form.prenom ?? ''} onChange={(ev) => champ('prenom', ev.target.value)} error={erreurs.prenom?.[0]} />
+            <Input label="Email" value={form.email ?? ''} onChange={(ev) => champ('email', ev.target.value)} error={erreurs.email?.[0]} />
+            <Input label="Matricule" value={form.matricule ?? ''} onChange={(ev) => champ('matricule', ev.target.value)} error={erreurs.matricule?.[0]} />
+            <Input label="Contact" value={form.contact ?? ''} onChange={(ev) => champ('contact', ev.target.value)} error={erreurs.contact?.[0]} />
+          </GrilleFormulaire>
 
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">Rattachement</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Select label="Établissement" value={form.etab ?? ''} onChange={(ev) => champ('etab', ev.target.value)} error={erreurs.etab?.[0]}>
-                  <option value="">— Aucun —</option>
-                  {etablissements?.map((e) => (
-                    <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>
-                  ))}
-                  {/* Valeur héritée de RH_USER qui ne correspond à aucun établissement connu :
-                      on la conserve pour ne pas l'effacer en enregistrant. */}
-                  {form.etab && !etablissements?.some((e) => e.code === form.etab) && (
-                    <option value={form.etab}>{form.etab} (inconnu)</option>
-                  )}
-                </Select>
-                <Input label="Profil" value={form.profil ?? ''} onChange={(ev) => champ('profil', ev.target.value)} error={erreurs.profil?.[0]} />
-                <Input label="Application (CodeApp)" value={form.code_app ?? ''} onChange={(ev) => champ('code_app', ev.target.value)} error={erreurs.code_app?.[0]} />
-              </div>
-
-              {/* Le drapeau Super Admin ouvre la console générale et TOUTES les sociétés :
-                  seul un Super Admin peut le conférer. La case ne s'affiche donc que pour
-                  lui — et le serveur refuse de toute façon (UserController::filtrerSuperAdmin),
-                  cet écran n'étant qu'une courtoisie. */}
-              {superAdmin && (
-                <label className="flex items-center gap-2 text-sm font-medium text-heading">
-                  <input
-                    type="checkbox"
-                    checked={!!form.super_admin}
-                    onChange={(ev) => champ('super_admin', ev.target.checked)}
-                  />
-                  Super Admin (accès complet à la console, toutes sociétés)
-                </label>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Rattachement</p>
+          <GrilleFormulaire colonnes={2}>
+            <Select label="Établissement" value={form.etab ?? ''} onChange={(ev) => champ('etab', ev.target.value)} error={erreurs.etab?.[0]}>
+              <option value="">— Aucun —</option>
+              {etablissements?.map((e) => (
+                <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>
+              ))}
+              {/* Valeur héritée de RH_USER qui ne correspond à aucun établissement connu :
+                  on la conserve pour ne pas l'effacer en enregistrant. */}
+              {form.etab && !etablissements?.some((e) => e.code === form.etab) && (
+                <option value={form.etab}>{form.etab} (inconnu)</option>
               )}
+            </Select>
+            <Input label="Profil" value={form.profil ?? ''} onChange={(ev) => champ('profil', ev.target.value)} error={erreurs.profil?.[0]} />
+            <Input label="Application (CodeApp)" value={form.code_app ?? ''} onChange={(ev) => champ('code_app', ev.target.value)} error={erreurs.code_app?.[0]} />
+          </GrilleFormulaire>
 
-              {!form.id && (
-                <>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                    Rôle (Enseignant, Parent, Secrétaire…)
-                  </p>
-                  <p className="-mt-2 text-xs text-muted">
-                    C'est ce rôle qui décide de l'écran que verra ce compte : un compte affecté
-                    du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
-                    restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
-                    l'application complète.
-                    {!superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Select
-                      label={!superAdmin ? 'Établissement *' : 'Établissement'}
-                      value={form.etablissement_code ?? ''} error={erreurs.etablissement_code?.[0]}
-                      onChange={(ev) => champ('etablissement_code', ev.target.value)}
-                    >
-                      <option value="">— Choisir —</option>
-                      {etablissements?.map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
-                    </Select>
-                    <Select
-                      label={!superAdmin ? 'Rôle *' : 'Rôle'}
-                      value={form.role_id ?? ''} error={erreurs.role_id?.[0]}
-                      onChange={(ev) => champ('role_id', ev.target.value)}
-                    >
-                      <option value="">— Choisir —</option>
-                      {roles?.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
-                    </Select>
-                  </div>
-                  {estRoleParent && (
-                    <div className="max-w-md">
-                      <SelecteurEleves selection={enfants} onChange={setEnfants} />
-                    </div>
-                  )}
-                </>
-              )}
+          {/* Le drapeau Super Admin ouvre la console générale et TOUTES les sociétés :
+              seul un Super Admin peut le conférer. La case ne s'affiche donc que pour
+              lui — et le serveur refuse de toute façon (UserController::filtrerSuperAdmin),
+              cet écran n'étant qu'une courtoisie. */}
+          {superAdmin && (
+            <label className="flex items-center gap-2 text-sm font-medium text-heading">
+              <input
+                type="checkbox"
+                checked={!!form.super_admin}
+                onChange={(ev) => champ('super_admin', ev.target.checked)}
+              />
+              Super Admin (accès complet à la console, toutes sociétés)
+            </label>
+          )}
 
-              <p className="text-xs text-muted">
-                Le compte est enregistré dans RH_USER, partagée avec les autres applications de la suite.
-                Le mot de passe est haché (bcrypt).
+          {!form.id && (
+            <>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                Rôle (Enseignant, Parent, Secrétaire…)
               </p>
-              {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                <Button
-                  type="submit"
-                  disabled={enregistrer.isPending
-                    || (!form.id && !superAdmin && (!form.etablissement_code || !form.role_id))}
+              <p className="-mt-2 text-xs text-muted">
+                C'est ce rôle qui décide de l'écran que verra ce compte : un compte affecté
+                du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
+                restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
+                l'application complète.
+                {!superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
+              </p>
+              <GrilleFormulaire colonnes={2}>
+                <Select
+                  label={!superAdmin ? 'Établissement *' : 'Établissement'}
+                  value={form.etablissement_code ?? ''} error={erreurs.etablissement_code?.[0]}
+                  onChange={(ev) => champ('etablissement_code', ev.target.value)}
                 >
-                  {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+                  <option value="">— Choisir —</option>
+                  {etablissements?.map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
+                </Select>
+                <Select
+                  label={!superAdmin ? 'Rôle *' : 'Rôle'}
+                  value={form.role_id ?? ''} error={erreurs.role_id?.[0]}
+                  onChange={(ev) => champ('role_id', ev.target.value)}
+                >
+                  <option value="">— Choisir —</option>
+                  {roles?.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
+                </Select>
+              </GrilleFormulaire>
+              {estRoleParent && (
+                <div className="max-w-md">
+                  <SelecteurEleves selection={enfants} onChange={setEnfants} />
+                </div>
+              )}
+            </>
+          )}
+
+          <p className="text-xs text-muted">
+            Le compte est partagé avec les autres applications de la suite.
+            Le mot de passe est haché (bcrypt).
+          </p>
+        </ModaleFormulaire>
       )}
     </div>
   )

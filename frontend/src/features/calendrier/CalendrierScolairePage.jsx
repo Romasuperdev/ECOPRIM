@@ -151,6 +151,7 @@ export default function CalendrierScolairePage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Calendrier scolaire"
           titre={form.id ? 'Modifier l’événement' : 'Ajouter un événement'}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}

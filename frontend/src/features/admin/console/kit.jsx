@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
+import CarteFormulaire, { BoutonsFormulaire } from '../../../components/ui/CarteFormulaire'
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Pencil, Trash2, TriangleAlert, X } from 'lucide-react'
 
 /*
@@ -296,37 +297,22 @@ function BoutonPage({ actif, disabled, onClick, children }) {
 // ── Page de formulaire (créer / modifier) ────────────────────────────────────
 
 /**
- * Formulaire sur sa propre page, comme `create.blade.php` / `edit.blade.php` :
- * même carte à en-tête dégradé, boutons Annuler (retour à la liste) et Enregistrer.
+ * Formulaire sur sa propre page, comme `create.blade.php` / `edit.blade.php` de parcauto :
+ * titre + Retour, carte à en-tête dégradé, récapitulatif des erreurs, boutons Annuler
+ * (gris) et Enregistrer (bleu). Le gabarit est celui de toute l'application
+ * (components/ui/CarteFormulaire).
  */
-export function PageFormulaire({ icon, titre, retour, onSubmit, enCours, erreur, children, libelle = 'Enregistrer', largeur = 'max-w-3xl' }) {
+export function PageFormulaire({ icon, titre, retour, onSubmit, enCours, erreur, children, libelle = 'Enregistrer', largeur = 'max-w-4xl' }) {
   return (
-    <CarteConsole icon={icon} titre={titre} largeur={largeur}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit() }} noValidate className="space-y-4">
-        {children}
-        {erreur && (
-          <p className="flex items-start gap-2 rounded-lg border px-3 py-2 text-sm" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger-border)', color: 'var(--danger-text)' }}>
-            <TriangleAlert size={16} className="mt-0.5 shrink-0" /> {erreur}
-          </p>
-        )}
-        <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-          <Link
-            to={retour}
-            className="rounded-[var(--radius)] border px-5 py-2 text-sm font-bold"
-            style={{ borderColor: 'var(--border)', color: 'var(--text)', background: 'var(--surface)' }}
-          >
-            Annuler
-          </Link>
-          <button
-            type="submit" disabled={enCours}
-            className="rounded-[var(--radius)] px-5 py-2 text-sm font-bold disabled:opacity-60"
-            style={{ background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }}
-          >
-            {enCours ? 'Enregistrement…' : libelle}
-          </button>
-        </div>
-      </form>
-    </CarteConsole>
+    <div className={`mx-auto ${largeur}`}>
+      <MessageFlash />
+      <CarteFormulaire icon={icon} titre={titre} retour={retour} iconeCarte={icon} erreurs={erreur ? [erreur] : []} largeur="">
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit() }} noValidate className="space-y-4">
+          {children}
+          <BoutonsFormulaire annulerVers={retour} enCours={enCours} libelle={libelle} />
+        </form>
+      </CarteFormulaire>
+    </div>
   )
 }
 

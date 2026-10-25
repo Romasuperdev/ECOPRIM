@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import Button from '../../components/ui/Button'
+import { MessageSquare } from 'lucide-react'
+import CarteFormulaire, { BoutonsFormulaire, GrilleFormulaire } from '../../components/ui/CarteFormulaire'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import { fetchConfigSms, saveConfigSms } from './parametresApi'
@@ -30,15 +31,21 @@ export default function SmsConfigPage() {
 
   if (isLoading || !form) return <p className="text-muted">Chargement…</p>
 
+  // « Annuler » abandonne les modifications non enregistrées : la page reste ouverte.
+  const annuler = () => { setModifs({}); setErreurs({}) }
+
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Passerelle SMS</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Configuration de l’opérateur d’envoi de SMS. Les messages envoyés depuis
-          Communication sont mis en file d’attente puis transmis par cet opérateur.
-        </p>
-      </div>
+    <CarteFormulaire
+      icon={MessageSquare} iconeCarte={MessageSquare}
+      titre="Passerelle SMS"
+      titreCarte="Configurer la passerelle SMS"
+      erreurs={erreurs._}
+      largeur="max-w-4xl"
+    >
+      <p className="mb-4 text-sm text-muted">
+        Configuration de l’opérateur d’envoi de SMS. Les messages envoyés depuis
+        Communication sont mis en file d’attente puis transmis par cet opérateur.
+      </p>
 
       {ok && (
         <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -46,8 +53,7 @@ export default function SmsConfigPage() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
-            className="space-y-6 rounded-xl border border-slate-200 bg-card p-6">
+      <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }} noValidate className="space-y-6">
 
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input type="checkbox" checked={!!form.actif} onChange={(e) => champ('actif', e.target.checked)} />
@@ -56,7 +62,7 @@ export default function SmsConfigPage() {
 
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Opérateur</p>
-          <div className="grid grid-cols-2 gap-3">
+          <GrilleFormulaire>
             <Input label="Nom de la configuration" value={form.nom ?? ''} onChange={(e) => champ('nom', e.target.value)}
                    error={erreurs.nom?.[0]} placeholder="ex. Orange CI production" />
             <Input label="Fournisseur" value={form.fournisseur ?? ''} onChange={(e) => champ('fournisseur', e.target.value)}
@@ -69,12 +75,12 @@ export default function SmsConfigPage() {
             <Input label="Expéditeur (SENDER_ID)" value={form.expediteur ?? ''} onChange={(e) => champ('expediteur', e.target.value)}
                    error={erreurs.expediteur?.[0]} placeholder="ex. NEXORA" />
             <Input label="Pays" value={form.pays ?? ''} onChange={(e) => champ('pays', e.target.value)} error={erreurs.pays?.[0]} />
-          </div>
+          </GrilleFormulaire>
         </div>
 
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Accès API</p>
-          <div className="grid grid-cols-2 gap-3">
+          <GrilleFormulaire>
             <Input label="URL de l’API" value={form.api_url ?? ''} onChange={(e) => champ('api_url', e.target.value)}
                    error={erreurs.api_url?.[0]} placeholder="https://…" />
             <Input label={form.api_key_definie ? 'Clé API (déjà définie — laisser vide pour conserver)' : 'Clé API'}
@@ -82,7 +88,7 @@ export default function SmsConfigPage() {
                    error={erreurs.api_key?.[0]} />
             <Input label="Secret API (laisser vide pour conserver)" type="password" value={form.api_secret ?? ''}
                    onChange={(e) => champ('api_secret', e.target.value)} error={erreurs.api_secret?.[0]} />
-          </div>
+          </GrilleFormulaire>
           <p className="mt-2 text-xs text-muted">
             La clé et le secret ne sont jamais réaffichés après enregistrement.
           </p>
@@ -108,14 +114,8 @@ export default function SmsConfigPage() {
 
         <Input label="Description" value={form.description ?? ''} onChange={(e) => champ('description', e.target.value)} error={erreurs.description?.[0]} />
 
-        {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={enregistrer.isPending}>
-            {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer la configuration'}
-          </Button>
-        </div>
+        <BoutonsFormulaire onAnnuler={annuler} enCours={enregistrer.isPending} libelle="Enregistrer la configuration" />
       </form>
-    </div>
+    </CarteFormulaire>
   )
 }

@@ -476,13 +476,16 @@ body {
    `items-end`, un champ plus haut les désalignerait toutes.                   */
 .field {
   width: 100%;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius);
-  font-size: 0.95rem;
+  /* Champ « parcauto » : contour de 2 px, coins de 8 px, texte en 14 px. La hauteur
+     totale reste celle d'avant (padding réduit d'autant que la bordure a grossi) : les
+     barres de filtres alignent ces champs avec des boutons. */
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 500;
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border-strong);
+  border: 2px solid var(--border);
   outline: none;
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background-color 0.15s var(--ease);
 }
@@ -492,17 +495,34 @@ body {
   opacity: 0.85;
 }
 .field:hover {
-  border-color: color-mix(in srgb, var(--brand-accent) 60%, var(--border-strong));
+  border-color: color-mix(in srgb, var(--brand-accent) 35%, var(--border));
 }
+/* Au focus : contour bleu et halo léger, comme `focus:border-primary focus:ring-2`. */
 .field:focus {
   border-color: var(--brand-accent);
-  box-shadow: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 20%, transparent);
+}
+.field[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 .field:disabled,
 .field[readonly] {
   background: var(--surface-2);
   color: var(--muted-text);
   border-color: var(--border);
+}
+
+/* Libellé de champ « parcauto » : en couleur de marque, semi-gras ; l'astérisque des
+   champs obligatoires en rouge (voir components/ui/Libelle.jsx). */
+.libelle-champ {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--brand-accent);
+}
+.libelle-champ .obligatoire {
+  color: var(--danger);
 }
 
 /* Place pour une icône, à gauche ou à droite. Déclarées après `.field`, dont le
@@ -861,4 +881,10 @@ button.card:hover,
 /* Sous-menu « Affectations » du menu de la console : il se déplie en glissant. */
 .console-sous-menu {
   animation: deplier 0.25s var(--ease) both;
+}
+/* Formulaires « Nouveau / Modifier » (ModaleFormulaire) : ils s'affichent en page, dans
+   le point d'accueil posé par la coquille. Tant qu'il en porte un, le contenu de la page
+   est masqué — masqué seulement : la liste reste montée et retrouve son état au retour. */
+.hote-formulaire:not(:empty) + .zone-contenu {
+  display: none;
 }

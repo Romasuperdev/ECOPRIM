@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, Star, Trash2, UserPlus } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { RecapErreurs } from '../../components/ui/CarteFormulaire'
 import {
   createAffectation,
   deleteAffectation,
@@ -10,7 +12,6 @@ import {
   fetchReferentiels,
   updateAffectation,
 } from './affectationEnseignantApi'
-import useEchap from '../../hooks/useEchap'
 
 /**
  * Qui enseigne quoi, dans quelle classe.
@@ -48,7 +49,6 @@ export default function AffectationEnseignantPage() {
   }
 
   const fermer = () => { setForm(null); setErreurs({}) }
-  useEchap(form ? fermer : undefined)
 
   const enregistrer = useMutation({
     mutationFn: (v) => (v.id
@@ -237,62 +237,50 @@ export default function AffectationEnseignantPage() {
 
       {/* Formulaire */}
       {form && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={fermer}>
-          <div className="w-full max-w-md rounded-2xl bg-card p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800">
-              {form.id ? 'Remplacer l’enseignant' : 'Affecter un enseignant'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {ref?.classes?.find((c) => c.code === form.classe)?.libelle ?? form.classe}
-            </p>
+        <ModaleFormulaire
+          titrePage="Affectation enseignant – classe"
+          titre={form.id ? 'Remplacer l’enseignant' : 'Affecter un enseignant'}
+          sousTitre={ref?.classes?.find((c) => c.code === form.classe)?.libelle ?? form.classe}
+          icon={UserPlus}
+          onFermer={fermer}
+          onValider={() => enregistrer.mutate(form)}
+          enCours={enregistrer.isPending}
+          valideDesactive={!form.enseignant || (!form.id && !form.matiere)}
+        >
+          <RecapErreurs erreurs={erreurs._} />
 
-            <form
-              className="mt-4 space-y-4"
-              onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
+          {!form.id && (
+            <Select
+              label="Matière"
+              value={form.matiere}
+              error={erreurs.matiere?.[0]}
+              onChange={(e) => champ('matiere', e.target.value)}
             >
-              {!form.id && (
-                <Select
-                  label="Matière"
-                  value={form.matiere}
-                  error={erreurs.matiere?.[0]}
-                  onChange={(e) => champ('matiere', e.target.value)}
-                >
-                  <option value="">— Choisir —</option>
-                  {ref?.matieres?.map((m) => <option key={m.code} value={m.code}>{m.libelle}</option>)}
-                </Select>
-              )}
+              <option value="">— Choisir —</option>
+              {ref?.matieres?.map((m) => <option key={m.code} value={m.code}>{m.libelle}</option>)}
+            </Select>
+          )}
 
-              <Select
-                label="Enseignant"
-                value={form.enseignant}
-                error={erreurs.enseignant?.[0]}
-                onChange={(e) => champ('enseignant', e.target.value)}
-              >
-                <option value="">— Choisir —</option>
-                {ref?.enseignants?.map((p) => <option key={p.code} value={p.code}>{p.nom}</option>)}
-              </Select>
+          <Select
+            label="Enseignant"
+            value={form.enseignant}
+            error={erreurs.enseignant?.[0]}
+            onChange={(e) => champ('enseignant', e.target.value)}
+          >
+            <option value="">— Choisir —</option>
+            {ref?.enseignants?.map((p) => <option key={p.code} value={p.code}>{p.nom}</option>)}
+          </Select>
 
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form.principale)}
-                  onChange={(e) => champ('principale', e.target.checked)}
-                />
-                Titulaire de la classe
-                <span className="text-xs text-muted">(un seul par classe)</span>
-              </label>
-
-              {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={fermer}>Annuler</Button>
-                <Button type="submit" disabled={enregistrer.isPending || !form.enseignant || (!form.id && !form.matiere)}>
-                  {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={Boolean(form.principale)}
+              onChange={(e) => champ('principale', e.target.checked)}
+            />
+            Titulaire de la classe
+            <span className="text-xs text-muted">(un seul par classe)</span>
+          </label>
+        </ModaleFormulaire>
       )}
     </div>
   )

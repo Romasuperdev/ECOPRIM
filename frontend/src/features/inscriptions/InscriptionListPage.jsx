@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
-import StepIndicator from '../../components/ui/StepIndicator'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { GrilleFormulaire, OngletsFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import { fetchContexte } from '../contexte/contexteApi'
-import { Eye, ImagePlus, Lock, Printer, User } from 'lucide-react'
+import { Eye, ImagePlus, Lock, Printer, User, UserPlus } from 'lucide-react'
 import {
   createInscription,
   fetchInscriptions,
@@ -17,7 +18,6 @@ import {
 } from './inscriptionsApi'
 import { imprimerFicheEleve, imprimerListeClasse } from '../impressions/impressionApi'
 import ModaleAcces from '../../components/ui/ModaleAcces'
-import useEchap from '../../hooks/useEchap'
 
 const MOUVEMENTS = [
   { cle: 'inscription', label: 'Inscription' },
@@ -26,12 +26,32 @@ const MOUVEMENTS = [
   { cle: 'transfert_sortant', label: 'Transfert sortant' },
 ]
 
-// Assistant de saisie : une section par étape, dans l'ordre demandé.
-const ETAPES = ['Identité de l’élève', 'Coordonnées', 'Scolarité', 'Père / Tuteur', 'Mère', 'Photo']
+// Formulaire à onglets librement accessibles, dans l'ordre demandé. Chaque onglet liste
+// ses champs : une erreur (locale ou du serveur) sur l'un d'eux marque l'onglet, et
+// l'enregistrement y ramène l'utilisateur. `annee`, refusée par le serveur pour une année
+// clôturée, relève de la Scolarité.
+const ONGLETS = [
+  { libelle: 'Identité de l’élève', champs: ['matricule', 'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance', 'nationalite'] },
+  { libelle: 'Coordonnées', champs: ['adresse', 'ville', 'commune', 'quartier', 'telephone', 'email'] },
+  { libelle: 'Scolarité', champs: ['mouvement', 'niveau_code', 'classe_code', 'redoublant', 'date_inscription', 'etab_origine', 'niveau_origine', 'annee'] },
+  { libelle: 'Père / Tuteur', champs: ['pere_nom', 'pere_prenom', 'pere_profession', 'pere_telephone', 'pere_email'] },
+  { libelle: 'Mère', champs: ['mere_nom', 'mere_prenom', 'mere_profession', 'mere_telephone', 'mere_email'] },
+  { libelle: 'Photo', champs: ['photo'] },
+]
+const ONGLET_PHOTO = ONGLETS.length - 1
 
-// Champs bloquants par étape : « Suivant » ne passe pas s'ils sont vides.
-// L'année n'y figure plus : elle n'est plus saisie, elle vient de l'en-tête.
-const REQUIS = [['matricule', 'nom', 'prenom'], [], ['mouvement'], [], [], []]
+// Champs bloquants : l'enregistrement ne part pas s'ils sont vides, quel que soit
+// l'onglet affiché. L'année n'y figure plus : elle n'est plus saisie, elle vient de l'en-tête.
+const REQUIS = ['matricule', 'nom', 'prenom', 'mouvement']
+
+/** Index de l'onglet portant le champ `cle` (« eleves.0 » relève de « eleves »), -1 sinon. */
+const ongletDe = (cle) => ONGLETS.findIndex((o) => o.champs.includes(String(cle).split('.')[0]))
+
+/** Premier onglet concerné par ces erreurs, -1 si aucune ne vise un champ connu. */
+const premierOngletEnErreur = (err) => {
+  const indices = Object.keys(err).map(ongletDe).filter((i) => i >= 0)
+  return indices.length ? Math.min(...indices) : -1
+}
 
 const VIDE = {
   mouvement: 'inscription',
@@ -48,7 +68,7 @@ export default function InscriptionListPage() {
   const [page, setPage] = useState(1)
   const [filtres, setFiltres] = useState({ q: '', classe: '' })
   const [form, setForm] = useState(null)
-  const [etape, setEtape] = useState(0)
+  const [onglet, setOnglet] = useState(0)
   const [photo, setPhoto] = useState(null)        // fichier choisi, pas encore envoyé
   const [apercu, setApercu] = useState(null)      // URL locale d'aperçu
   const [erreurPhoto, setErreurPhoto] = useState(null)
@@ -57,8 +77,6 @@ export default function InscriptionListPage() {
   // Identifiants du parent, affichés une seule fois après l'enregistrement.
   const [accesParent, setAccesParent] = useState(null)
   const qc = useQueryClient()
-
-  useEchap(form ? () => setForm(null) : undefined)
 
   const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
   // L'année de travail se choisit une fois pour toutes dans l'en-tête : la page la
@@ -116,7 +134,7 @@ export default function InscriptionListPage() {
       if (e?.photoSeulement) {
         invalider()
         setErreurPhoto(e.photoSeulement)
-        setEtape(ETAPES.length - 1)
+        setOnglet(ONGLET_PHOTO)
         // Le dossier existe désormais : le formulaire passe en modification, pour qu'un
         // nouvel essai corrige la photo au lieu de recréer l'élève.
         if (e.eleveId) setForm((f) => (f ? { ...f, id: e.eleveId, _anneeInitiale: f._anneeInitiale ?? '' } : f))
@@ -124,9 +142,9 @@ export default function InscriptionListPage() {
       }
       const err = e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }
       setErreurs(err)
-      // Si un champ d'une étape précédente est refusé, on y ramène l'utilisateur.
-      const fautive = REQUIS.findIndex((champs) => champs.some((c) => err[c]))
-      if (fautive >= 0 && fautive !== etape) setEtape(fautive)
+      // Si un champ d'un autre onglet est refusé, on y ramène l'utilisateur.
+      const fautif = premierOngletEnErreur(err)
+      if (fautif >= 0) setOnglet(fautif)
     },
   })
 
@@ -189,40 +207,29 @@ export default function InscriptionListPage() {
   const dossierVerrouille = Boolean(form)
     && (form.id ? anneeCloturee(form._anneeInitiale) : filtreVerrouille)
 
-  // Assistant identique en création et en modification.
-  const enAssistant = Boolean(form)
-  const visible = (index) => !enAssistant || etape === index
-  const derniere = etape === ETAPES.length - 1
-
-  /** Contrôle les champs bloquants de l'étape courante avant de passer à la suivante. */
-  const suivant = () => {
-    const manquants = REQUIS[etape].filter((c) => !String(form?.[c] ?? '').trim())
-    if (manquants.length) {
-      setErreurs(Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']])))
-      return
-    }
-    setErreurs({})
-    setEtape((e) => e + 1)
-  }
+  // Onglets identiques en création et en modification.
+  const visible = (index) => onglet === index
+  const ongletEnErreur = (index) =>
+    Object.keys(erreurs).some((cle) => ongletDe(cle) === index) || (index === ONGLET_PHOTO && Boolean(erreurPhoto))
 
   /**
-   * Enregistrement : un clic explicite, et rien d'autre.
+   * Enregistrement : un clic explicite sur « Enregistrer », et rien d'autre.
    *
-   * Le bouton du pied passait de « Suivant » (type button) à « Enregistrer » (type submit)
-   * DANS le même nœud du DOM. Or le navigateur exécute l'action par défaut d'un clic APRÈS
-   * le gestionnaire : le clic qui amenait à la dernière étape retrouvait un bouton devenu
-   * « submit » et envoyait le formulaire. L'élève s'enregistrait avant qu'on ait pu joindre
-   * sa photo. Les deux boutons sont désormais de type « button » : plus aucune soumission
-   * implicite n'est possible.
+   * Tout le dossier est contrôlé d'un coup, quel que soit l'onglet affiché : un champ
+   * requis vide sur un autre onglet y ramène l'utilisateur, l'onglet étant marqué.
+   * La touche Entrée n'enregistre pas (`entreeValide={false}`) : un Entrée réflexe, juste
+   * après avoir choisi la photo par exemple, aurait envoyé un dossier inachevé.
    */
   const soumettre = () => {
     if (dossierVerrouille || enregistrer.isPending) return
-    // Ceinture et bretelles : on n'enregistre que depuis la dernière étape.
-    if (enAssistant && !derniere) {
-      suivant()
-
+    const manquants = REQUIS.filter((c) => !String(form?.[c] ?? '').trim())
+    if (manquants.length) {
+      const errLocales = Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']]))
+      setErreurs(errLocales)
+      setOnglet(premierOngletEnErreur(errLocales))
       return
     }
+    setErreurs({})
     enregistrer.mutate(form)
   }
 
@@ -263,7 +270,7 @@ export default function InscriptionListPage() {
           title={filtreVerrouille ? 'Année clôturée : consultation seule.' : undefined}
           onClick={() => {
             setErreurs({})
-            setEtape(0)
+            setOnglet(0)
             reinitPhoto()
             setForm({ ...VIDE })
           }}
@@ -342,7 +349,7 @@ export default function InscriptionListPage() {
                   <Button variant="outline" className="!px-3 !py-1"
                           onClick={() => {
                             setErreurs({})
-                            setEtape(0)
+                            setOnglet(0)
                             reinitPhoto()
                             setForm({
                               ...VIDE,
@@ -374,226 +381,180 @@ export default function InscriptionListPage() {
       </p>
 
       {form && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onClick={() => setForm(null)}>
-          <div className="my-8 w-full max-w-3xl rounded-xl bg-card p-6 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
-            <h2 className="mb-5 text-lg font-bold text-slate-800">
-              {form.id ? `Modifier — ${form.nom} ${form.prenom}` : 'Nouvelle inscription'}
-            </h2>
+        <ModaleFormulaire
+          titrePage="Élèves et inscriptions"
+          titre={form.id ? `Modifier — ${form.nom} ${form.prenom}` : 'Nouvelle inscription'}
+          icon={UserPlus}
+          large
+          onFermer={() => setForm(null)}
+          onValider={soumettre}
+          entreeValide={false}
+          enCours={enregistrer.isPending}
+          valideDesactive={dossierVerrouille}
+          titreValider={dossierVerrouille ? 'Année clôturée : consultation seule.' : undefined}
+          // « Enregistrer avec la photo » se lisait « enregistrer la photo », comme si le
+          // reste de la saisie ne partait pas. Le bouton nomme donc ce qu'il enregistre :
+          // le dossier entier, photo comprise.
+          libelleValider={form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'}
+        >
+          {dossierVerrouille && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <Lock size={16} className="mt-0.5 shrink-0" />
+              <span>
+                Année clôturée : ce dossier est en consultation seule. L’enregistrement est
+                désactivé.
+              </span>
+            </div>
+          )}
 
-            {dossierVerrouille && (
-              <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <Lock size={16} className="mt-0.5 shrink-0" />
-                <span>
-                  Année clôturée : ce dossier est en consultation seule. L’enregistrement est
-                  désactivé.
-                </span>
-              </div>
+          <RecapErreurs erreurs={[...Object.values(erreurs).flat(), erreurPhoto]} />
+
+          <OngletsFormulaire
+            onglets={ONGLETS.map((o, i) => ({ cle: i, libelle: o.libelle, erreur: ongletEnErreur(i) }))}
+            actif={onglet}
+            onChanger={setOnglet}
+          />
+
+          <div className={visible(0) ? '' : 'hidden'}>
+            {!form.id && (
+              <p className="mb-3 text-xs text-muted">
+                Le matricule identifie l’élève de façon unique. Pour un élève déjà connu de
+                l’établissement, saisissez son matricule et choisissez « Réinscription » à
+                l’onglet Scolarité : son dossier sera mis à jour, pas dupliqué.
+              </p>
             )}
-
-            {enAssistant && (
-              <StepIndicator etapes={ETAPES} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
-            )}
-
-            <form
-              // Le formulaire ne se soumet plus de lui-même : l'enregistrement passe par
-              // `soumettre`, appelé par le seul bouton « Enregistrer ». Ce garde-fou reste
-              // pour qu'une soumission accidentelle ne fasse rien.
-              onSubmit={(ev) => ev.preventDefault()}
-              onKeyDown={(ev) => {
-                // La touche Entrée ne doit JAMAIS déclencher l'enregistrement (même sur la
-                // dernière étape, juste après avoir choisi la photo) : elle avance seulement
-                // dans l'assistant. Seul un clic explicite sur « Enregistrer » sauvegarde.
-                if (ev.key !== 'Enter' || ev.target.tagName === 'TEXTAREA') return
-                ev.preventDefault()
-                if (enAssistant && !derniere) suivant()
-              }}
-              className="space-y-5"
-            >
-
-              <div className={visible(0) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Identité de l’élève</p>
-                {!form.id && (
-                  <p className="mb-3 text-xs text-muted">
-                    Le matricule identifie l’élève de façon unique. Pour un élève déjà connu de
-                    l’établissement, saisissez son matricule et choisissez « Réinscription » à
-                    l’étape Scolarité : son dossier sera mis à jour, pas dupliqué.
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
-                  <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
-                  <Input label="Prénom(s) *" value={form.prenom} onChange={(e) => champ('prenom', e.target.value)} error={err('prenom')} />
-                  <Select label="Sexe" value={form.sexe} onChange={(e) => champ('sexe', e.target.value)} error={err('sexe')}>
-                    <option value="">—</option>
-                    <option value="M">Masculin</option>
-                    <option value="F">Féminin</option>
-                  </Select>
-                  <Input label="Date de naissance" type="date" value={form.date_naissance} onChange={(e) => champ('date_naissance', e.target.value)} error={err('date_naissance')} />
-                  <Input label="Lieu de naissance" value={form.lieu_naissance} onChange={(e) => champ('lieu_naissance', e.target.value)} error={err('lieu_naissance')} />
-                  <Input label="Nationalité" value={form.nationalite} onChange={(e) => champ('nationalite', e.target.value)} error={err('nationalite')} />
-                </div>
-              </div>
-
-              <div className={visible(1) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Coordonnées</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
-                  <Input label="Ville" value={form.ville} onChange={(e) => champ('ville', e.target.value)} error={err('ville')} />
-                  <Input label="Commune" value={form.commune} onChange={(e) => champ('commune', e.target.value)} error={err('commune')} />
-                  <Input label="Quartier" value={form.quartier} onChange={(e) => champ('quartier', e.target.value)} error={err('quartier')} />
-                  <Input label="Téléphone" value={form.telephone} onChange={(e) => champ('telephone', e.target.value)} error={err('telephone')} />
-                  <Input label="Email" value={form.email} onChange={(e) => champ('email', e.target.value)} error={err('email')} />
-                </div>
-              </div>
-
-              <div className={visible(2) ? '' : 'hidden'}>
-                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">Scolarité</p>
-                {/* L'année ne se saisit plus. On la rappelle quand même : savoir dans
-                    quelle année on inscrit ne doit pas obliger à regarder l'en-tête. */}
-                <p className="mb-3 text-sm font-medium text-muted">
-                  {form.id
-                    ? <>Dossier de l’année <strong className="text-heading">{form._anneeInitiale || '—'}</strong>.</>
-                    : <>Inscription dans l’année <strong className="text-heading">{anneeEffective || '—'}</strong>, celle choisie dans l’en-tête.</>}
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Select label="Type de mouvement *" value={form.mouvement}
-                          onChange={(e) => champ('mouvement', e.target.value)} error={err('mouvement')}>
-                    {MOUVEMENTS.map((m) => <option key={m.cle} value={m.cle}>{m.label}</option>)}
-                  </Select>
-                  <Select label="Niveau" value={form.niveau_code} onChange={(e) => { champ('niveau_code', e.target.value); champ('classe_code', '') }} error={err('niveau_code')}>
-                    <option value="">—</option>
-                    {niveauxFiltres.map((n) => <option key={n.id ?? n.code} value={n.code}>{n.libelle ?? n.code}</option>)}
-                  </Select>
-                  <Select label="Classe" value={form.classe_code} onChange={(e) => champ('classe_code', e.target.value)} error={err('classe_code')}>
-                    <option value="">—</option>
-                    {classesFiltrees.map((c) => <option key={c.id ?? c.code} value={c.code}>{c.libelle ?? c.code}</option>)}
-                  </Select>
-                  <Select label="Redoublant" value={form.redoublant} onChange={(e) => champ('redoublant', e.target.value)} error={err('redoublant')}>
-                    <option value="">—</option>
-                    <option value="OUI">Oui</option>
-                    <option value="NON">Non</option>
-                  </Select>
-                  <Input label="Date d’inscription" type="date" value={form.date_inscription} onChange={(e) => champ('date_inscription', e.target.value)} error={err('date_inscription')} />
-                </div>
-                {(form.mouvement === 'transfert_entrant' || form.mouvement === 'transfert_sortant') && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <Input label="Établissement d’origine / d’accueil" value={form.etab_origine} onChange={(e) => champ('etab_origine', e.target.value)} error={err('etab_origine')} />
-                    <Input label="Niveau d’origine" value={form.niveau_origine} onChange={(e) => champ('niveau_origine', e.target.value)} error={err('niveau_origine')} />
-                  </div>
-                )}
-              </div>
-
-              <div className={visible(3) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Père / Tuteur</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Input label="Nom" value={form.pere_nom} onChange={(e) => champ('pere_nom', e.target.value)} error={err('pere_nom')} />
-                  <Input label="Prénom(s)" value={form.pere_prenom} onChange={(e) => champ('pere_prenom', e.target.value)} error={err('pere_prenom')} />
-                  <Input label="Profession" value={form.pere_profession} onChange={(e) => champ('pere_profession', e.target.value)} error={err('pere_profession')} />
-                  <Input label="Téléphone" value={form.pere_telephone} onChange={(e) => champ('pere_telephone', e.target.value)} error={err('pere_telephone')} />
-                  <Input label="Email" value={form.pere_email} onChange={(e) => champ('pere_email', e.target.value)} error={err('pere_email')} />
-                </div>
-              </div>
-
-              <div className={visible(4) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Mère</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Input label="Nom" value={form.mere_nom} onChange={(e) => champ('mere_nom', e.target.value)} error={err('mere_nom')} />
-                  <Input label="Prénom(s)" value={form.mere_prenom} onChange={(e) => champ('mere_prenom', e.target.value)} error={err('mere_prenom')} />
-                  <Input label="Profession" value={form.mere_profession} onChange={(e) => champ('mere_profession', e.target.value)} error={err('mere_profession')} />
-                  <Input label="Téléphone" value={form.mere_telephone} onChange={(e) => champ('mere_telephone', e.target.value)} error={err('mere_telephone')} />
-                  <Input label="Email" value={form.mere_email} onChange={(e) => champ('mere_email', e.target.value)} error={err('mere_email')} />
-                </div>
-              </div>
-
-              <div className={visible(5) ? '' : 'hidden'}>
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Photo</p>
-
-                <div className="flex flex-wrap items-start gap-6">
-                  {/* Aperçu : le fichier choisi, sinon la photo déjà en base */}
-                  <div className="flex h-36 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                    {apercu ? (
-                      <img src={apercu} alt="Aperçu de la photo" className="h-full w-full object-cover" />
-                    ) : photoExistante ? (
-                      <img src={photoExistante} alt={`Photo de ${form.nom}`} className="h-full w-full object-cover" />
-                    ) : (
-                      <User size={32} className="text-slate-300" />
-                    )}
-                  </div>
-
-                  <div className="min-w-[240px] flex-1">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                      <ImagePlus size={16} />
-                      {photo ? 'Changer la photo' : 'Choisir une photo'}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={(e) => choisirPhoto(e.target.files?.[0])}
-                      />
-                    </label>
-
-                    {photo && (
-                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                        <span className="truncate">{photo.name}</span>
-                        <button type="button" onClick={reinitPhoto} className="font-medium text-red-600 hover:underline">
-                          Retirer
-                        </button>
-                      </div>
-                    )}
-
-                    {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
-
-                    <p className="mt-3 text-xs text-muted">
-                      JPG, PNG ou WebP, {photoMaxMo} Mo maximum. La photo est enregistrée dans le dossier
-                      partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
-                      remplace la précédente s’il en existait une.
-                    </p>
-                    <p className="mt-1 text-xs text-muted">
-                      Elle part avec le dossier : c’est le bouton
-                      <strong> {form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'} </strong>
-                      ci-dessous qui enregistre tout, informations et photo comprises.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-              <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
-                {enAssistant && etape > 0 ? (
-                  <Button type="button" variant="outline" onClick={() => { setErreurs({}); setEtape((e) => e - 1) }}>
-                    Précédent
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => setForm(null)}>Annuler</Button>
-                )}
-
-                <div className="flex items-center gap-2">
-                  {enAssistant && (
-                    <span className="text-xs text-muted">Étape {etape + 1} sur {ETAPES.length}</span>
-                  )}
-                  {enAssistant && !derniere ? (
-                    <Button type="button" onClick={suivant}>Suivant</Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={soumettre}
-                      disabled={enregistrer.isPending || dossierVerrouille}
-                      title={dossierVerrouille ? 'Année clôturée : consultation seule.' : undefined}
-                    >
-                      {/* « Enregistrer avec la photo » se lisait « enregistrer la photo »,
-                          comme si le reste de la saisie ne partait pas. Le bouton nomme donc
-                          ce qu'il enregistre : le dossier entier, photo comprise. */}
-                      {enregistrer.isPending
-                        ? 'Enregistrement…'
-                        : form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
+            <GrilleFormulaire>
+              <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
+              <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
+              <Input label="Prénom(s) *" value={form.prenom} onChange={(e) => champ('prenom', e.target.value)} error={err('prenom')} />
+              <Select label="Sexe" value={form.sexe} onChange={(e) => champ('sexe', e.target.value)} error={err('sexe')}>
+                <option value="">—</option>
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </Select>
+              <Input label="Date de naissance" type="date" value={form.date_naissance} onChange={(e) => champ('date_naissance', e.target.value)} error={err('date_naissance')} />
+              <Input label="Lieu de naissance" value={form.lieu_naissance} onChange={(e) => champ('lieu_naissance', e.target.value)} error={err('lieu_naissance')} />
+              <Input label="Nationalité" value={form.nationalite} onChange={(e) => champ('nationalite', e.target.value)} error={err('nationalite')} />
+            </GrilleFormulaire>
           </div>
-        </div>
+
+          <div className={visible(1) ? '' : 'hidden'}>
+            <GrilleFormulaire>
+              <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
+              <Input label="Ville" value={form.ville} onChange={(e) => champ('ville', e.target.value)} error={err('ville')} />
+              <Input label="Commune" value={form.commune} onChange={(e) => champ('commune', e.target.value)} error={err('commune')} />
+              <Input label="Quartier" value={form.quartier} onChange={(e) => champ('quartier', e.target.value)} error={err('quartier')} />
+              <Input label="Téléphone" value={form.telephone} onChange={(e) => champ('telephone', e.target.value)} error={err('telephone')} />
+              <Input label="Email" value={form.email} onChange={(e) => champ('email', e.target.value)} error={err('email')} />
+            </GrilleFormulaire>
+          </div>
+
+          <div className={visible(2) ? '' : 'hidden'}>
+            {/* L'année ne se saisit plus. On la rappelle quand même : savoir dans
+                quelle année on inscrit ne doit pas obliger à regarder l'en-tête. */}
+            <p className="mb-3 text-sm font-medium text-muted">
+              {form.id
+                ? <>Dossier de l’année <strong className="text-heading">{form._anneeInitiale || '—'}</strong>.</>
+                : <>Inscription dans l’année <strong className="text-heading">{anneeEffective || '—'}</strong>, celle choisie dans l’en-tête.</>}
+            </p>
+            <GrilleFormulaire>
+              <Select label="Type de mouvement *" value={form.mouvement}
+                      onChange={(e) => champ('mouvement', e.target.value)} error={err('mouvement')}>
+                {MOUVEMENTS.map((m) => <option key={m.cle} value={m.cle}>{m.label}</option>)}
+              </Select>
+              <Select label="Niveau" value={form.niveau_code} onChange={(e) => { champ('niveau_code', e.target.value); champ('classe_code', '') }} error={err('niveau_code')}>
+                <option value="">—</option>
+                {niveauxFiltres.map((n) => <option key={n.id ?? n.code} value={n.code}>{n.libelle ?? n.code}</option>)}
+              </Select>
+              <Select label="Classe" value={form.classe_code} onChange={(e) => champ('classe_code', e.target.value)} error={err('classe_code')}>
+                <option value="">—</option>
+                {classesFiltrees.map((c) => <option key={c.id ?? c.code} value={c.code}>{c.libelle ?? c.code}</option>)}
+              </Select>
+              <Select label="Redoublant" value={form.redoublant} onChange={(e) => champ('redoublant', e.target.value)} error={err('redoublant')}>
+                <option value="">—</option>
+                <option value="OUI">Oui</option>
+                <option value="NON">Non</option>
+              </Select>
+              <Input label="Date d’inscription" type="date" value={form.date_inscription} onChange={(e) => champ('date_inscription', e.target.value)} error={err('date_inscription')} />
+            </GrilleFormulaire>
+            {(form.mouvement === 'transfert_entrant' || form.mouvement === 'transfert_sortant') && (
+              <div className="mt-4"><GrilleFormulaire colonnes={2}>
+                <Input label="Établissement d’origine / d’accueil" value={form.etab_origine} onChange={(e) => champ('etab_origine', e.target.value)} error={err('etab_origine')} />
+                <Input label="Niveau d’origine" value={form.niveau_origine} onChange={(e) => champ('niveau_origine', e.target.value)} error={err('niveau_origine')} />
+              </GrilleFormulaire></div>
+            )}
+          </div>
+
+          <div className={visible(3) ? '' : 'hidden'}>
+            <GrilleFormulaire>
+              <Input label="Nom" value={form.pere_nom} onChange={(e) => champ('pere_nom', e.target.value)} error={err('pere_nom')} />
+              <Input label="Prénom(s)" value={form.pere_prenom} onChange={(e) => champ('pere_prenom', e.target.value)} error={err('pere_prenom')} />
+              <Input label="Profession" value={form.pere_profession} onChange={(e) => champ('pere_profession', e.target.value)} error={err('pere_profession')} />
+              <Input label="Téléphone" value={form.pere_telephone} onChange={(e) => champ('pere_telephone', e.target.value)} error={err('pere_telephone')} />
+              <Input label="Email" value={form.pere_email} onChange={(e) => champ('pere_email', e.target.value)} error={err('pere_email')} />
+            </GrilleFormulaire>
+          </div>
+
+          <div className={visible(4) ? '' : 'hidden'}>
+            <GrilleFormulaire>
+              <Input label="Nom" value={form.mere_nom} onChange={(e) => champ('mere_nom', e.target.value)} error={err('mere_nom')} />
+              <Input label="Prénom(s)" value={form.mere_prenom} onChange={(e) => champ('mere_prenom', e.target.value)} error={err('mere_prenom')} />
+              <Input label="Profession" value={form.mere_profession} onChange={(e) => champ('mere_profession', e.target.value)} error={err('mere_profession')} />
+              <Input label="Téléphone" value={form.mere_telephone} onChange={(e) => champ('mere_telephone', e.target.value)} error={err('mere_telephone')} />
+              <Input label="Email" value={form.mere_email} onChange={(e) => champ('mere_email', e.target.value)} error={err('mere_email')} />
+            </GrilleFormulaire>
+          </div>
+
+          <div className={visible(5) ? '' : 'hidden'}>
+            <div className="flex flex-wrap items-start gap-6">
+              {/* Aperçu : le fichier choisi, sinon la photo déjà en base */}
+              <div className="flex h-36 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {apercu ? (
+                  <img src={apercu} alt="Aperçu de la photo" className="h-full w-full object-cover" />
+                ) : photoExistante ? (
+                  <img src={photoExistante} alt={`Photo de ${form.nom}`} className="h-full w-full object-cover" />
+                ) : (
+                  <User size={32} className="text-slate-300" />
+                )}
+              </div>
+
+              <div className="min-w-[240px] flex-1">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                  <ImagePlus size={16} />
+                  {photo ? 'Changer la photo' : 'Choisir une photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => choisirPhoto(e.target.files?.[0])}
+                  />
+                </label>
+
+                {photo && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                    <span className="truncate">{photo.name}</span>
+                    <button type="button" onClick={reinitPhoto} className="font-medium text-red-600 hover:underline">
+                      Retirer
+                    </button>
+                  </div>
+                )}
+
+                {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
+
+                <p className="mt-3 text-xs text-muted">
+                  JPG, PNG ou WebP, {photoMaxMo} Mo maximum. La photo est enregistrée dans le dossier
+                  partagé lu par ECONOMAT et nommée d’après le matricule de l’élève ; elle
+                  remplace la précédente s’il en existait une.
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Elle part avec le dossier : c’est le bouton
+                  <strong> {form.id ? 'Enregistrer les modifications' : 'Enregistrer l’inscription'} </strong>
+                  ci-dessous qui enregistre tout, informations et photo comprises.
+                </p>
+              </div>
+            </div>
+          </div>
+        </ModaleFormulaire>
       )}
 
       <ModaleAcces acces={accesParent} onFermer={() => setAccesParent(null)} />

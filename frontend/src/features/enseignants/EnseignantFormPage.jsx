@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
-import Button from '../../components/ui/Button'
+import { GraduationCap } from 'lucide-react'
+import CarteFormulaire, { BoutonsFormulaire, GrilleFormulaire, OngletsFormulaire } from '../../components/ui/CarteFormulaire'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
-import StepIndicator from '../../components/ui/StepIndicator'
 import ModaleAcces from '../../components/ui/ModaleAcces'
 import SelecteurMultiple from '../../components/ui/SelecteurMultiple'
 import { fetchMatieres } from '../reference/referenceApi'
@@ -29,9 +28,17 @@ const SITUATIONS = [
   ['DIVORCE', 'Divorcé(e)'], ['VEUF', 'Veuf / Veuve'],
 ]
 
-// Étapes de l'assistant. « Départ » n'apparaît qu'en modification : on ne renseigne
-// pas le départ d'un enseignant qu'on est en train de recruter.
-const ETAPES_BASE = ['État civil', 'Coordonnées', 'Carrière', 'Administration']
+// Onglets du formulaire, librement accessibles. « Départ » n'apparaît qu'en modification :
+// on ne renseigne pas le départ d'un enseignant qu'on est en train de recruter.
+// Chaque onglet liste ses champs : une erreur (locale ou du serveur) sur l'un d'eux
+// marque l'onglet, et l'enregistrement y ramène l'utilisateur.
+const ONGLETS_BASE = [
+  { libelle: 'État civil', champs: ['matricule', 'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance', 'situation_matrimoniale'] },
+  { libelle: 'Coordonnées', champs: ['adresse', 'ville', 'telephone', 'cellulaire', 'email'] },
+  { libelle: 'Carrière', champs: ['statut', 'corps', 'grade', 'echelon', 'diplome', 'formation', 'matieres', 'volume_horaire', 'date_embauche', 'annee_code'] },
+  { libelle: 'Administration', champs: ['fonction', 'emploi', 'service', 'dren', 'dden', 'date_premiere_prise_service', 'ecole_prise_service', 'annees_service', 'date_arrivee_poste'] },
+]
+const ONGLET_DEPART = { libelle: 'Départ', champs: ['date_depart', 'etab_accueil', 'motif_depart'] }
 
 export default function EnseignantFormPage() {
   const { id } = useParams()
@@ -42,15 +49,24 @@ export default function EnseignantFormPage() {
   // Le formulaire est DÉRIVÉ de la fiche chargée + les modifications en cours : pas de
   // recopie par effet, donc pas de course entre le chargement et la saisie.
   const [modifs, setModifs] = useState({})
-  const [etape, setEtape] = useState(0)
+  const [onglet, setOnglet] = useState(0)
   const [erreurs, setErreurs] = useState({})
   // Identifiants de l'enseignant, affichés une seule fois après l'enregistrement.
   const [accesEnseignant, setAccesEnseignant] = useState(null)
 
-  const etapes = enEdition ? [...ETAPES_BASE, 'Départ'] : ETAPES_BASE
+  const onglets = enEdition ? [...ONGLETS_BASE, ONGLET_DEPART] : ONGLETS_BASE
   // Le matricule n'est exigé qu'à la création : le rendre obligatoire en modification
   // bloquerait toute fiche déjà existante sans matricule (comptes antérieurs à cette règle).
-  const REQUIS = [enEdition ? ['nom', 'prenom'] : ['matricule', 'nom', 'prenom'], [], [], [], []]
+  const REQUIS = enEdition ? ['nom', 'prenom'] : ['matricule', 'nom', 'prenom']
+
+  /** Index de l'onglet portant le champ `cle` (« matieres.0 » relève de « matieres »). */
+  const ongletDe = (cle) => onglets.findIndex((o) => o.champs.includes(String(cle).split('.')[0]))
+  const ongletEnErreur = (i) => Object.keys(erreurs).some((cle) => ongletDe(cle) === i)
+  /** Ramène sur le premier onglet en erreur, s'il y en a un. */
+  const allerALErreur = (err) => {
+    const indices = Object.keys(err).map(ongletDe).filter((i) => i >= 0)
+    if (indices.length) setOnglet(Math.min(...indices))
+  }
 
   const { data: enseignant } = useQuery({
     queryKey: ['enseignants', id],
@@ -80,41 +96,30 @@ export default function EnseignantFormPage() {
     onError: (e) => {
       const err = e?.response?.data?.errors ?? { _: [e?.response?.data?.message ?? 'Erreur'] }
       setErreurs(err)
-      // Un champ refusé sur une étape précédente : on y ramène l'utilisateur.
-      const fautive = REQUIS.findIndex((champs) => champs.some((c) => err[c]))
-      if (fautive >= 0 && fautive !== etape) setEtape(fautive)
+      // Un champ refusé sur un autre onglet : on y ramène l'utilisateur.
+      allerALErreur(err)
     },
   })
 
   const champ = (k, v) => setModifs((m) => ({ ...m, [k]: v }))
   const err = (k) => erreurs[k]?.[0]
-  const visible = (i) => etape === i
-  const derniere = etape === etapes.length - 1
-
-  const suivant = () => {
-    const manquants = (REQUIS[etape] ?? []).filter((c) => !String(form[c] ?? '').trim())
-    if (manquants.length) {
-      setErreurs(Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']])))
-      return
-    }
-    setErreurs({})
-    setEtape((e) => e + 1)
-  }
+  const visible = (i) => onglet === i
 
   /**
-   * Enregistrement : un clic explicite, et rien d'autre.
+   * Enregistrement : un clic explicite sur « Enregistrer », et rien d'autre.
    *
-   * Le bouton du pied passait de « Suivant » (type button) à « Enregistrer » (type submit)
-   * DANS le même nœud du DOM. Or le navigateur exécute l'action par défaut d'un clic APRÈS
-   * le gestionnaire : le clic qui amenait à la dernière étape retrouvait un bouton devenu
-   * « submit » et envoyait le formulaire. Les deux boutons sont désormais de type
-   * « button » : plus aucune soumission implicite n'est possible.
+   * Tout le formulaire est contrôlé d'un coup, quel que soit l'onglet affiché : un champ
+   * requis vide sur un autre onglet y ramène l'utilisateur, l'onglet étant marqué.
+   * Le bouton est de type « button » et le formulaire n'a aucun bouton « submit » :
+   * la touche Entrée ne peut donc rien envoyer.
    */
   const soumettre = () => {
     if (enregistrer.isPending) return
-    if (!derniere) {
-      suivant()
-
+    const manquants = REQUIS.filter((c) => !String(form[c] ?? '').trim())
+    if (manquants.length) {
+      const errLocales = Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']]))
+      setErreurs(errLocales)
+      allerALErreur(errLocales)
       return
     }
     setErreurs({})
@@ -122,39 +127,27 @@ export default function EnseignantFormPage() {
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link to="/enseignants" className="rounded p-1.5 text-slate-500 hover:bg-slate-100">
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            {enEdition ? `${form.nom} ${form.prenom}` : 'Nouvel enseignant'}
-          </h1>
-        </div>
-      </div>
+    <>
+      <CarteFormulaire
+        icon={GraduationCap}
+        titre={enEdition ? `${form.nom} ${form.prenom}` : 'Nouvel enseignant'}
+        retour="/enseignants"
+        iconeCarte={GraduationCap}
+        titreCarte={enEdition ? 'Modifier un enseignant' : 'Enregistrer un enseignant'}
+        erreurs={erreurs}
+      >
+        <OngletsFormulaire
+          onglets={onglets.map((o, i) => ({ cle: i, libelle: o.libelle, erreur: ongletEnErreur(i) }))}
+          actif={onglet}
+          onChanger={setOnglet}
+        />
 
-      <div className="rounded-xl border border-slate-200 bg-card p-6">
-        <StepIndicator etapes={etapes} etape={etape} onAller={(i) => { setErreurs({}); setEtape(i) }} />
-
-        <form
-          // Le formulaire ne se soumet plus de lui-même : l'enregistrement passe par
-          // `soumettre`, appelé par le seul bouton « Enregistrer ». Ce garde-fou reste pour
-          // qu'une soumission accidentelle ne fasse rien.
-          onSubmit={(e) => e.preventDefault()}
-          onKeyDown={(e) => {
-            // La touche Entrée ne doit jamais déclencher l'enregistrement : elle avance
-            // seulement dans l'assistant. Seul un clic explicite sur « Enregistrer » sauvegarde.
-            if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA') return
-            e.preventDefault()
-            if (!derniere) suivant()
-          }}
-          className="space-y-5"
-        >
+        {/* Le formulaire ne se soumet jamais de lui-même : l'enregistrement passe par
+            `soumettre`. Ce garde-fou reste pour qu'une soumission accidentelle ne fasse rien. */}
+        <form onSubmit={(e) => e.preventDefault()} noValidate>
           {/* 1 — État civil */}
           <div className={visible(0) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">État civil</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <GrilleFormulaire>
               <Input label="Matricule *" value={form.matricule} onChange={(e) => champ('matricule', e.target.value)} error={err('matricule')} />
               <Input label="Nom *" value={form.nom} onChange={(e) => champ('nom', e.target.value)} error={err('nom')} />
               <Input label="Prénom(s) *" value={form.prenom} onChange={(e) => champ('prenom', e.target.value)} error={err('prenom')} />
@@ -171,25 +164,23 @@ export default function EnseignantFormPage() {
                 <option value="">—</option>
                 {SITUATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </Select>
-            </div>
+            </GrilleFormulaire>
           </div>
 
           {/* 2 — Coordonnées */}
           <div className={visible(1) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Coordonnées</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <GrilleFormulaire>
               <Input label="Adresse" value={form.adresse} onChange={(e) => champ('adresse', e.target.value)} error={err('adresse')} />
               <Input label="Ville" value={form.ville} onChange={(e) => champ('ville', e.target.value)} error={err('ville')} />
               <Input label="Téléphone" value={form.telephone} onChange={(e) => champ('telephone', e.target.value)} error={err('telephone')} />
               <Input label="Cellulaire" value={form.cellulaire} onChange={(e) => champ('cellulaire', e.target.value)} error={err('cellulaire')} />
               <Input label="Email" value={form.email} onChange={(e) => champ('email', e.target.value)} error={err('email')} />
-            </div>
+            </GrilleFormulaire>
           </div>
 
           {/* 3 — Carrière */}
           <div className={visible(2) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Carrière</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <GrilleFormulaire>
               <Select label="Statut" value={form.statut} onChange={(e) => champ('statut', e.target.value)} error={err('statut')}>
                 <option value="">—</option>
                 {STATUTS.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
@@ -215,16 +206,15 @@ export default function EnseignantFormPage() {
               <Input label="Date d’embauche" value={form.date_embauche} onChange={(e) => champ('date_embauche', e.target.value)}
                      error={err('date_embauche')} placeholder="jj/mm/aaaa" />
               <Input label="Année scolaire" value={form.annee_code} onChange={(e) => champ('annee_code', e.target.value)} error={err('annee_code')} />
-            </div>
+            </GrilleFormulaire>
             <p className="mt-3 text-xs text-muted">
               Le salaire reste géré dans ECONOMAT et n’est jamais modifié depuis NEXORA.
             </p>
           </div>
 
-          {/* 4 — Administration */}
+          {/* 4 — Administration (rattachement administratif) */}
           <div className={visible(3) ? '' : 'hidden'}>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Rattachement administratif</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <GrilleFormulaire>
               <Input label="Fonction" value={form.fonction} onChange={(e) => champ('fonction', e.target.value)} error={err('fonction')} />
               <Input label="Emploi" value={form.emploi} onChange={(e) => champ('emploi', e.target.value)} error={err('emploi')} />
               <Input label="Service" value={form.service} onChange={(e) => champ('service', e.target.value)} error={err('service')} />
@@ -238,55 +228,39 @@ export default function EnseignantFormPage() {
                      onChange={(e) => champ('annees_service', e.target.value)} error={err('annees_service')} />
               <Input label="Arrivée au poste" type="date" value={form.date_arrivee_poste}
                      onChange={(e) => champ('date_arrivee_poste', e.target.value)} error={err('date_arrivee_poste')} />
-            </div>
+            </GrilleFormulaire>
           </div>
 
           {/* 5 — Départ (modification seulement) */}
           {enEdition && (
             <div className={visible(4) ? '' : 'hidden'}>
-              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Départ</p>
               <p className="mb-3 text-xs text-muted">
                 Un enseignant n’est jamais supprimé : son départ se renseigne ici.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <GrilleFormulaire colonnes={2}>
                 <Input label="Date de départ" value={form.date_depart} onChange={(e) => champ('date_depart', e.target.value)}
                        error={err('date_depart')} placeholder="jj/mm/aaaa" />
                 <Input label="Établissement d’accueil" value={form.etab_accueil}
                        onChange={(e) => champ('etab_accueil', e.target.value)} error={err('etab_accueil')} />
-              </div>
-              <div className="mt-3">
+              </GrilleFormulaire>
+              <div className="mt-4">
                 <Textarea label="Motif" rows={2} value={form.motif_depart}
                           onChange={(e) => champ('motif_depart', e.target.value)} error={err('motif_depart')} />
               </div>
             </div>
           )}
 
-          {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-          <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
-            {etape > 0 ? (
-              <Button type="button" variant="outline" onClick={() => { setErreurs({}); setEtape((e) => e - 1) }}>
-                Précédent
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" onClick={() => navigate('/enseignants')}>Annuler</Button>
-            )}
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted">Étape {etape + 1} sur {etapes.length}</span>
-              {!derniere ? (
-                <Button type="button" onClick={suivant}>Suivant</Button>
-              ) : (
-                <Button type="button" onClick={soumettre} disabled={enregistrer.isPending}>
-                  {enregistrer.isPending ? 'Enregistrement…' : enEdition ? 'Mettre à jour' : 'Enregistrer'}
-                </Button>
-              )}
-            </div>
-          </div>
+          <BoutonsFormulaire
+            annulerVers="/enseignants"
+            type="button"
+            onValider={soumettre}
+            enCours={enregistrer.isPending}
+            libelle={enEdition ? 'Mettre à jour' : 'Enregistrer'}
+          />
         </form>
-      </div>
+      </CarteFormulaire>
 
       <ModaleAcces acces={accesEnseignant} onFermer={() => navigate('/enseignants')} />
-    </div>
+    </>
   )
 }

@@ -142,6 +142,7 @@ export default function AnneeScolaireListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Années scolaires"
           titre={form.id ? `Modifier ${form.libelle}` : 'Nouvelle année scolaire'}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}

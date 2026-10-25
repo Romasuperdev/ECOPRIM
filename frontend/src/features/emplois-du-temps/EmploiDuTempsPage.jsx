@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Lock, Plus, Printer, Trash2 } from 'lucide-react'
+import { CalendarClock, Lock, Plus, Printer, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
+import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import {
   createCreneau,
   deleteCreneau,
@@ -12,7 +14,6 @@ import {
   updateCreneau,
 } from './emploiApi'
 import { imprimerEmploiDuTemps, imprimerListeClasse } from '../impressions/impressionApi'
-import useEchap from '../../hooks/useEchap'
 
 export default function EmploiDuTempsPage() {
   const qc = useQueryClient()
@@ -31,7 +32,6 @@ export default function EmploiDuTempsPage() {
 
   const rafraichir = () => qc.invalidateQueries({ queryKey: ['emploi'] })
   const fermer = () => { setCellule(null); setErreur(null); setSaisie({ matiere: '', salle: '' }) }
-  useEchap(cellule ? fermer : undefined)
 
   const enregistrer = useMutation({
     mutationFn: () => {
@@ -180,64 +180,53 @@ export default function EmploiDuTempsPage() {
       )}
 
       {cellule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={fermer}>
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 text-lg font-bold text-slate-800">
-              {cellule.creneau ? 'Modifier le créneau' : 'Nouveau créneau'}
-            </h2>
-            <p className="mb-4 text-xs text-muted">
-              {jours.find((j) => j.code === cellule.jour)?.libelle}
-              {' · '}
-              {heures.find((h) => h.code === cellule.heure)?.libelle}
-            </p>
+        <ModaleFormulaire
+          titrePage="Emplois du temps"
+          titre={cellule.creneau ? 'Modifier le créneau' : 'Nouveau créneau'}
+          sousTitre={`${jours.find((j) => j.code === cellule.jour)?.libelle ?? ''} · ${heures.find((h) => h.code === cellule.heure)?.libelle ?? ''}`}
+          icon={CalendarClock}
+          onFermer={fermer}
+          onValider={() => enregistrer.mutate()}
+          enCours={enregistrer.isPending}
+          valideDesactive={!saisie.matiere}
+          // « Vider la case » reste à gauche, à l'écart des deux boutons du formulaire.
+          avant={cellule.creneau && (
+            <>
+              <Button type="button" variant="outline" className="!px-3"
+                      disabled={supprimer.isPending}
+                      onClick={() => supprimer.mutate(cellule.creneau.id)}>
+                <Trash2 size={15} /> Vider la case
+              </Button>
+              <span className="flex-1" />
+            </>
+          )}
+        >
+          <RecapErreurs erreurs={[erreur]} />
 
-            <form
-              onSubmit={(e) => { e.preventDefault(); enregistrer.mutate() }}
-              className="space-y-3"
-            >
-              <Select label="Matière *" value={saisie.matiere}
-                      onChange={(e) => setSaisie((s) => ({ ...s, matiere: e.target.value }))}>
-                <option value="">— Choisir —</option>
-                {listes?.matieres?.map((m) => (
-                  <option key={m.code} value={m.code}>{m.libelle ?? m.nom ?? m.code}</option>
-                ))}
-              </Select>
+          <GrilleFormulaire colonnes={2}>
+            <Select label="Matière *" value={saisie.matiere}
+                    onChange={(e) => setSaisie((s) => ({ ...s, matiere: e.target.value }))}>
+              <option value="">— Choisir —</option>
+              {listes?.matieres?.map((m) => (
+                <option key={m.code} value={m.code}>{m.libelle ?? m.nom ?? m.code}</option>
+              ))}
+            </Select>
 
-              <Select label="Salle" value={saisie.salle}
-                      onChange={(e) => setSaisie((s) => ({ ...s, salle: e.target.value }))}>
-                <option value="">— Aucune —</option>
-                {ref?.salles?.map((s) => (
-                  <option key={s.code} value={s.code}>
-                    {s.libelle}{s.places ? ` (${s.places} places)` : ''}
-                  </option>
-                ))}
-              </Select>
+            <Select label="Salle" value={saisie.salle}
+                    onChange={(e) => setSaisie((s) => ({ ...s, salle: e.target.value }))}>
+              <option value="">— Aucune —</option>
+              {ref?.salles?.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.libelle}{s.places ? ` (${s.places} places)` : ''}
+                </option>
+              ))}
+            </Select>
+          </GrilleFormulaire>
 
-              {erreur && <p className="text-sm text-red-600">{erreur}</p>}
-
-              <p className="text-xs text-muted">
-                Un conflit de classe, de salle ou d’enseignant est refusé, avec le motif précis.
-              </p>
-
-              <div className="flex items-center justify-between pt-2">
-                {cellule.creneau ? (
-                  <Button type="button" variant="outline" className="!px-3"
-                          disabled={supprimer.isPending}
-                          onClick={() => supprimer.mutate(cellule.creneau.id)}>
-                    <Trash2 size={15} /> Vider la case
-                  </Button>
-                ) : <span />}
-
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={fermer}>Annuler</Button>
-                  <Button type="submit" disabled={enregistrer.isPending || !saisie.matiere}>
-                    {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
+          <p className="text-xs text-muted">
+            Un conflit de classe, de salle ou d’enseignant est refusé, avec le motif précis.
+          </p>
+        </ModaleFormulaire>
       )}
     </div>
   )

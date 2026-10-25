@@ -152,6 +152,7 @@ function SectionPlanification() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Évaluations"
           titre={form.id ? 'Modifier l’évaluation' : 'Planifier une évaluation'}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}

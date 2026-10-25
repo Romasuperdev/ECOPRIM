@@ -4307,3 +4307,32 @@ rien.
   l'établissement de travail visible dans l'en-tête. La création est refusée si cet
   établissement n'est pas déterminé (plusieurs possibles, ou aucun). Les pages de
   l'application travaillent sur ECONOMAT : NEXORA y écrit ce rattachement.
+
+## Formulaires : même constitution que parcauto
+
+Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blade.php`…).
+
+- **Champs** (`.field`, `Libelle.jsx`) :
+  - contour de 2 px, coins de 8 px, contour bleu et halo au focus ;
+  - libellés bleus semi-gras ;
+  - astérisque rouge reconnu automatiquement sur « Libellé * ».
+- **`CarteFormulaire`** (nouveau, partagé) :
+  - titre de page et pastille grise « Retour » ;
+  - carte à coins arrondis et en-tête bleu dégradé ;
+  - récapitulatif des erreurs en rouge ;
+  - onglets soulignés ;
+  - grille de champs sur 3 colonnes ;
+  - boutons en pastilles Annuler (gris) et Enregistrer (bleu).
+- **« Nouveau » et « Modifier » ouvrent une page**, plus une fenêtre : `ModaleFormulaire`
+  s'affiche dans la zone de contenu (portail `#hote-formulaire`).
+  - Retour, Annuler, Échap et le bouton Retour du navigateur le ferment.
+  - La liste est conservée dessous : filtres, page et défilement sont retrouvés.
+  - 15 écrans en bénéficient.
+- **Assistants → onglets** : Enseignant, Matière et Inscription. Les onglets se cliquent
+  librement, et il n'y a plus qu'un bouton Enregistrer. Une erreur bascule sur l'onglet
+  concerné, qui porte une pastille rouge.
+  - `StepIndicator` et `FormSection` sont supprimés.
+- Messagerie et passerelle SMS, et écrans d'affectation de la console : alignés sur le même
+  gabarit.
+- Noms de tables (RH_USER) retirés de trois textes affichés.
+- Non vérifié dans un navigateur : il faut un compte connecté.

@@ -127,6 +127,7 @@ export default function NiveauListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Niveaux"
           titre={form.id ? `Modifier ${form.libelle}` : 'Nouveau niveau'}
           sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
           onFermer={fermer}

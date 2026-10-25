@@ -146,6 +146,7 @@ export default function DevoirListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Devoirs"
           titre={form.id ? 'Modifier le devoir' : 'Donner un devoir'}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}

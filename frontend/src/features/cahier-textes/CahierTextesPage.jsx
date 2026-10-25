@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Lock, Plus, Trash2 } from 'lucide-react'
+import { CalendarDays, Lock, Plus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import Input from '../../components/ui/Input'
+import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import {
   creerCahier,
   enregistrerLigneCahier,
@@ -14,7 +15,6 @@ import {
   supprimerCahier,
   supprimerLigneCahier,
 } from './cahierTextesApi'
-import useEchap from '../../hooks/useEchap'
 import { useAuthStore } from '../../store/authStore'
 
 const JOURS = [
@@ -91,37 +91,31 @@ function LigneCahier({ entete, ligne, verrouille, onSaved, onRemoved }) {
 function FormEntete({ initial, referentiels, erreurs, onSubmit, onClose, enCours }) {
   const [form, setForm] = useState(initial)
   const champ = (k, v) => setForm((f) => ({ ...f, [k]: v }))
-  useEchap(onClose)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-4 text-lg font-bold text-slate-800">
-          {initial.id ? 'Modifier la semaine' : 'Nouvelle semaine'}
-        </h2>
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="space-y-3">
-          <Select label="Mois *" value={form.mois} error={erreurs?.mois?.[0]}
-                  onChange={(e) => champ('mois', e.target.value)}>
-            <option value="">— Choisir —</option>
-            {referentiels?.mois?.map((m) => <option key={m} value={m}>{m}</option>)}
-          </Select>
-          <Input label="Semaine *" value={form.semaine} error={erreurs?.semaine?.[0]}
-                 placeholder="Ex. : 1, ou n° de semaine"
-                 onChange={(e) => champ('semaine', e.target.value)} />
-          <Select label="Enseignant" value={form.prof} error={erreurs?.prof?.[0]}
-                  onChange={(e) => champ('prof', e.target.value)}>
-            <option value="">— Non renseigné —</option>
-            {referentiels?.enseignants?.map((p) => <option key={p.code} value={p.code}>{p.nom}</option>)}
-          </Select>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-            <Button type="submit" disabled={enCours || !form.mois || !form.semaine}>
-              {enCours ? 'Enregistrement…' : 'Enregistrer'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <ModaleFormulaire
+      titrePage="Cahier journal"
+      titre={initial.id ? 'Modifier la semaine' : 'Nouvelle semaine'}
+      icon={CalendarDays}
+      onFermer={onClose}
+      onValider={() => onSubmit(form)}
+      enCours={enCours}
+      valideDesactive={!form.mois || !form.semaine}
+    >
+      <Select label="Mois *" value={form.mois} error={erreurs?.mois?.[0]}
+              onChange={(e) => champ('mois', e.target.value)}>
+        <option value="">— Choisir —</option>
+        {referentiels?.mois?.map((m) => <option key={m} value={m}>{m}</option>)}
+      </Select>
+      <Input label="Semaine *" value={form.semaine} error={erreurs?.semaine?.[0]}
+             placeholder="Ex. : 1, ou n° de semaine"
+             onChange={(e) => champ('semaine', e.target.value)} />
+      <Select label="Enseignant" value={form.prof} error={erreurs?.prof?.[0]}
+              onChange={(e) => champ('prof', e.target.value)}>
+        <option value="">— Non renseigné —</option>
+        {referentiels?.enseignants?.map((p) => <option key={p.code} value={p.code}>{p.nom}</option>)}
+      </Select>
+    </ModaleFormulaire>
   )
 }
 

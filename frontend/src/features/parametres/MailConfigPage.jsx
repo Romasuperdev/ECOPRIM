@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import Button from '../../components/ui/Button'
+import { Mail } from 'lucide-react'
+import CarteFormulaire, { BoutonsFormulaire, GrilleFormulaire } from '../../components/ui/CarteFormulaire'
 import Input from '../../components/ui/Input'
 import { fetchConfigMail, saveConfigMail } from './parametresApi'
 
@@ -28,14 +29,20 @@ export default function MailConfigPage() {
 
   if (isLoading || !form) return <p className="text-muted">Chargement…</p>
 
+  // « Annuler » abandonne les modifications non enregistrées : la page reste ouverte.
+  const annuler = () => { setModifs({}); setErreurs({}) }
+
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Messagerie sortante (SMTP)</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Compte utilisé pour envoyer les mails depuis Communication.
-        </p>
-      </div>
+    <CarteFormulaire
+      icon={Mail} iconeCarte={Mail}
+      titre="Messagerie sortante (SMTP)"
+      titreCarte="Configurer la messagerie sortante"
+      erreurs={erreurs._}
+      largeur="max-w-4xl"
+    >
+      <p className="mb-4 text-sm text-muted">
+        Compte utilisé pour envoyer les mails depuis Communication.
+      </p>
 
       {ok && (
         <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -43,32 +50,27 @@ export default function MailConfigPage() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }}
-            className="space-y-4 rounded-xl border border-slate-200 bg-card p-6">
-        <Input label="Adresse d’envoi *" type="email" value={form.adresse ?? ''}
-               onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]}
-               placeholder="direction@monecole.ci" />
-        <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); enregistrer.mutate(form) }} noValidate className="space-y-4">
+        <GrilleFormulaire>
+          <Input label="Adresse d’envoi *" type="email" value={form.adresse ?? ''}
+                 onChange={(e) => champ('adresse', e.target.value)} error={erreurs.adresse?.[0]}
+                 placeholder="direction@monecole.ci" />
           <Input label="Serveur SMTP *" value={form.serveur_smtp ?? ''} onChange={(e) => champ('serveur_smtp', e.target.value)}
                  error={erreurs.serveur_smtp?.[0]} placeholder="smtp.gmail.com" />
           <Input label="Port SMTP *" type="number" value={form.port_smtp ?? 587}
                  onChange={(e) => champ('port_smtp', e.target.value)} error={erreurs.port_smtp?.[0]} />
-        </div>
-        <Input label={form.mot_de_passe_defini ? 'Mot de passe (déjà défini — laisser vide pour conserver)' : 'Mot de passe'}
-               type="password" value={form.mot_de_passe ?? ''} onChange={(e) => champ('mot_de_passe', e.target.value)}
-               error={erreurs.mot_de_passe?.[0]} />
+        </GrilleFormulaire>
+        <GrilleFormulaire colonnes={2}>
+          <Input label={form.mot_de_passe_defini ? 'Mot de passe (déjà défini — laisser vide pour conserver)' : 'Mot de passe'}
+                 type="password" value={form.mot_de_passe ?? ''} onChange={(e) => champ('mot_de_passe', e.target.value)}
+                 error={erreurs.mot_de_passe?.[0]} />
+        </GrilleFormulaire>
         <p className="text-xs text-muted">
           Le mot de passe n’est jamais réaffiché après enregistrement. Les envois utilisent TLS.
         </p>
 
-        {erreurs._ && <p className="text-sm text-red-600">{erreurs._[0]}</p>}
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={enregistrer.isPending}>
-            {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer la configuration'}
-          </Button>
-        </div>
+        <BoutonsFormulaire onAnnuler={annuler} enCours={enregistrer.isPending} libelle="Enregistrer la configuration" />
       </form>
-    </div>
+    </CarteFormulaire>
   )
 }

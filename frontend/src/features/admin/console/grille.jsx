@@ -1,3 +1,5 @@
+import { RotateCcw } from 'lucide-react'
+import { BoutonsFormulaire as BoutonsCommuns } from '../../../components/ui/CarteFormulaire'
 import { MessageFlash } from './kit'
 
 /*
@@ -36,24 +38,16 @@ export function CarteGrille({ icon: Icone, titre, children }) {
   )
 }
 
-/** Boutons bas de formulaire : Réinitialiser à gauche, Enregistrer à droite. */
+/**
+ * Boutons bas de formulaire des écrans d'affectation : les pastilles communes
+ * (components/ui/CarteFormulaire), le bouton gris s'appelant « Réinitialiser » comme
+ * dans parcauto — il vide le formulaire, il ne quitte pas l'écran.
+ */
 export function BoutonsFormulaire({ onReinitialiser, enCours, desactive, libelle = 'Enregistrer l’affectation' }) {
   return (
-    <div className="flex justify-between gap-2 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-      <button
-        type="button" onClick={onReinitialiser}
-        className="rounded-[var(--radius)] border px-4 py-2 text-sm font-bold"
-        style={{ borderColor: 'var(--border)', color: 'var(--text)', background: 'var(--surface)' }}
-      >
-        Réinitialiser
-      </button>
-      <button
-        type="submit" disabled={enCours || desactive}
-        className="rounded-[var(--radius)] px-4 py-2 text-sm font-bold disabled:opacity-60"
-        style={{ background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }}
-      >
-        {enCours ? 'Enregistrement…' : libelle}
-      </button>
-    </div>
+    <BoutonsCommuns
+      onAnnuler={onReinitialiser} libelleAnnuler="Réinitialiser" iconeAnnuler={RotateCcw}
+      enCours={enCours} desactive={desactive} libelle={libelle}
+    />
   )
 }

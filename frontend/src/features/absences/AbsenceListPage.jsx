@@ -197,6 +197,7 @@ export default function AbsenceListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Absences"
           titre={form.id ? 'Corriger l’absence' : 'Saisir une absence'}
           sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
           onFermer={fermer}

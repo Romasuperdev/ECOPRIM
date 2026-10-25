@@ -141,6 +141,7 @@ export default function ClasseListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Classes"
           titre={form.code_initial ? `Modifier ${form.nom}` : 'Nouvelle classe'}
           sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
           onFermer={fermer}

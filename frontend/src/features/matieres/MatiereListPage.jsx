@@ -121,6 +121,7 @@ export default function MatiereListPage() {
 
       {form && (
         <ModaleFormulaire
+          titrePage="Matières"
           titre={form.id ? `Modifier ${form.libelle}` : 'Nouvelle matière'}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}

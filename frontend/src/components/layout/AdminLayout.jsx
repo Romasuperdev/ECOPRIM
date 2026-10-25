@@ -6,6 +6,7 @@ import BasculeTheme from '../ui/BasculeTheme'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import ErrorBoundary from '../ErrorBoundary'
+import { ID_HOTE_FORMULAIRE } from '../ui/ModaleFormulaire'
 import SocieteBarre from '../../features/admin/SocieteBarre'
 
 const CLE_REPLIE = 'nexora-console-repliee'
@@ -144,12 +145,17 @@ export default function AdminLayout() {
         </header>
 
         <div className="flex-1 p-4 sm:p-6">
-          <ErrorBoundary resetKey={location.pathname}>
-            {/* Clé = chemin : chaque page entre en fondu glissé au lieu d'apparaître d'un coup. */}
-            <div key={location.pathname} className="animate-fade-up">
-              <Outlet />
-            </div>
-          </ErrorBoundary>
+          {/* Formulaires « Nouveau / Modifier » : ils s'affichent ici, en page, à la place
+              du contenu (voir ModaleFormulaire). */}
+          <div id={ID_HOTE_FORMULAIRE} className="hote-formulaire" />
+          <div className="zone-contenu">
+            <ErrorBoundary resetKey={location.pathname}>
+              {/* Clé = chemin : chaque page entre en fondu glissé au lieu d'apparaître d'un coup. */}
+              <div key={location.pathname} className="animate-fade-up">
+                <Outlet />
+              </div>
+            </ErrorBoundary>
+          </div>
         </div>
       </main>
     </div>
