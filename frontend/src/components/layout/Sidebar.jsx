@@ -94,6 +94,109 @@ function GroupSection({ group, hasActiveItem, onNaviguer }) {
   )
 }
 
+/**
+ * Menu replié : une icône par rubrique, et non plus le seul tableau de bord — replié,
+ * le menu cachait toutes les rubriques et l'on ne trouvait plus aucun bouton.
+ *
+ * Un clic sur une icône ouvre, à droite, la liste des pages de la rubrique (comme le
+ * panneau qui se déroule dans parcauto) ; un clic ailleurs, Échap ou le choix d'une
+ * page la referme. Le panneau est en position fixe : le menu défile (`overflow-y-auto`),
+ * et un panneau absolu y serait rogné.
+ */
+function MenuReplie({ groupes, pathname, onDeplier }) {
+  const [ouvert, setOuvert] = useState(null) // { label, top }
+
+  useEffect(() => {
+    if (!ouvert) return undefined
+    const fermer = (e) => {
+      if (e.type === 'keydown' && e.key !== 'Escape') return
+      if (e.type === 'mousedown' && e.target.closest?.('[data-menu-replie]')) return
+      setOuvert(null)
+    }
+    document.addEventListener('mousedown', fermer)
+    document.addEventListener('keydown', fermer)
+    return () => {
+      document.removeEventListener('mousedown', fermer)
+      document.removeEventListener('keydown', fermer)
+    }
+  }, [ouvert])
+
+  const groupeOuvert = ouvert && groupes.find((g) => g.label === ouvert.label)
+  const estActif = (g) => g.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(`${i.to}/`)))
+  const styleIcone = (actif) => (actif
+    ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' }
+    : { color: 'var(--nav-text)' })
+
+  return (
+    <aside
+      data-menu-replie
+      className="flex h-full w-14 shrink-0 flex-col items-center gap-1.5 overflow-y-auto py-4"
+      style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
+    >
+      <button type="button" onClick={onDeplier} title="Déplier le menu" className="mb-2 rounded-lg p-2.5 nav-survol">
+        <PanelLeftOpen size={18} />
+      </button>
+      <NavLink
+        to="/" end title="Tableau de bord" className="rounded-lg p-2.5 nav-survol"
+        style={({ isActive }) => styleIcone(isActive)}
+      >
+        <LayoutDashboard size={18} />
+      </NavLink>
+
+      {groupes.map((g) => {
+        const Icone = g.Icone ?? LayoutDashboard
+        const actif = estActif(g) || ouvert?.label === g.label
+        return (
+          <button
+            key={g.label}
+            type="button"
+            title={g.label}
+            aria-label={g.label}
+            aria-expanded={ouvert?.label === g.label}
+            onClick={(e) => {
+              const zone = e.currentTarget.getBoundingClientRect()
+              setOuvert((o) => (o?.label === g.label ? null : { label: g.label, top: zone.top }))
+            }}
+            className="rounded-lg p-2.5 nav-survol"
+            style={styleIcone(actif)}
+          >
+            <Icone size={18} />
+          </button>
+        )
+      })}
+
+      {groupeOuvert && (
+        <div
+          className="console-sous-menu fixed z-50 w-64 overflow-hidden rounded-xl border py-2 text-sm shadow-lg"
+          style={{
+            left: '3.75rem',
+            top: Math.min(ouvert.top, window.innerHeight - 40 - groupeOuvert.items.length * 36),
+            background: 'var(--surface)',
+            borderColor: 'var(--border)',
+          }}
+        >
+          <p className="px-4 pb-1.5 pt-1 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--muted-text)' }}>
+            {groupeOuvert.label}
+          </p>
+          {groupeOuvert.items.map((item, i) => (item.to ? (
+            <NavLink
+              key={`${item.label}-${i}`}
+              to={item.to}
+              onClick={() => setOuvert(null)}
+              className="block px-4 py-2 font-medium nav-survol"
+              style={({ isActive }) => styleIcone(isActive)}
+            >
+              {item.label}
+            </NavLink>
+          ) : (
+            <span key={`${item.label}-${i}`} className="block px-4 py-2 opacity-50">{item.label} · Bientôt</span>
+          )))}
+        </div>
+      )}
+    </aside>
+  )
+}
+
 /** Lue une seule fois au montage : évite un aller-retour visible replié → déplié. */
 function lireRepliee() {
   try {
@@ -136,30 +239,11 @@ export default function Sidebar({ dansTiroir = false, onFermer }) {
   // En tiroir, l'état replié n'a pas cours : on affiche toujours le menu entier.
   if (repliee && ! dansTiroir) {
     return (
-      <aside
-        className="flex h-full w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto py-4"
-        style={{ background: 'var(--nav-bg)', borderRight: '1px solid var(--border)', color: 'var(--nav-text)' }}
-      >
-        <button
-          type="button"
-          onClick={() => setRepliee(false)}
-          title="Déplier le menu"
-          className="rounded-lg p-2.5 nav-survol"
-        >
-          <PanelLeftOpen size={18} />
-        </button>
-        <NavLink
-          to="/"
-          end
-          title="Tableau de bord"
-          className="rounded-lg p-2.5 nav-survol"
-          style={({ isActive }) =>
-            isActive ? { background: 'var(--nav-active-bg)', color: 'var(--nav-active-ink)' } : { color: 'var(--nav-text)' }
-          }
-        >
-          <LayoutDashboard size={18} />
-        </NavLink>
-      </aside>
+      <MenuReplie
+        groupes={visibleGroups}
+        pathname={location.pathname}
+        onDeplier={() => setRepliee(false)}
+      />
     )
   }
 
