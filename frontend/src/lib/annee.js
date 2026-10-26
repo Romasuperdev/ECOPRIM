@@ -11,3 +11,14 @@ export function libelleAnnee(annee) {
 
   return /^ann[ée]e\b/i.test(texte) ? texte : `Année ${texte}`
 }
+
+/**
+ * L'année sans son préfixe (« Année Scolaire 2026-2027 » → « 2026-2027 »), pour les
+ * phrases qui disent déjà « l'année » : « Classes de l'année 2026-2027 ».
+ */
+export function anneeSeule(annee) {
+  const texte = String(annee ?? '').trim()
+  if (!texte) return 'en cours'
+
+  return texte.replace(/^ann[ée]e(\s+scolaire)?\s*/i, '') || texte
+}

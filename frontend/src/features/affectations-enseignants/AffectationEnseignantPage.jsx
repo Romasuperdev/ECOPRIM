@@ -12,6 +12,7 @@ import {
   fetchReferentiels,
   updateAffectation,
 } from './affectationEnseignantApi'
+import { anneeSeule } from '../../lib/annee'
 
 /**
  * Qui enseigne quoi, dans quelle classe.
@@ -79,7 +80,7 @@ export default function AffectationEnseignantPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Affectation enseignant – classe</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Qui enseigne quelle matière, dans quelle classe, pour l’année {data?.annee ?? ref?.annee ?? 'en cours'}.
+            Qui enseigne quelle matière, dans quelle classe, pour l’année {anneeSeule(data?.annee ?? ref?.annee)}.
             L’emploi du temps en déduit l’enseignant de chaque créneau.
           </p>
         </div>

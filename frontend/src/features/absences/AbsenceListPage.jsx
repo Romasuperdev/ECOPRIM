@@ -15,6 +15,7 @@ import {
   fetchEffectifClasse,
   updateAbsence,
 } from './absencesApi'
+import { libelleAnnee } from '../../lib/annee'
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10)
 
@@ -78,7 +79,7 @@ export default function AbsenceListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Absences</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Année {contexte?.annee ?? 'en cours'}.
+            {libelleAnnee(contexte?.annee)}.
           </p>
         </div>
         <Button
@@ -199,7 +200,7 @@ export default function AbsenceListPage() {
         <ModaleFormulaire
           titrePage="Absences"
           titre={form.id ? 'Corriger l’absence' : 'Saisir une absence'}
-          sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
+          sousTitre={libelleAnnee(contexte?.annee)}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}
           enCours={enregistrer.isPending}

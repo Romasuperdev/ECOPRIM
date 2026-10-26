@@ -14,6 +14,7 @@ import {
   updateCreneau,
 } from './emploiApi'
 import { imprimerEmploiDuTemps, imprimerListeClasse } from '../impressions/impressionApi'
+import { anneeSeule } from '../../lib/annee'
 
 export default function EmploiDuTempsPage() {
   const qc = useQueryClient()
@@ -74,7 +75,7 @@ export default function EmploiDuTempsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Emplois du temps</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Grille par classe pour l’année {emploi?.annee ?? 'en cours'}.
+          Grille par classe pour l’année {anneeSeule(emploi?.annee)}.
           L’enseignant est déduit de son affectation à la matière.
         </p>
       </div>

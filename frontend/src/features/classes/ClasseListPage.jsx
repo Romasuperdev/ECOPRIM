@@ -9,6 +9,7 @@ import MessageRefus from '../../components/ui/MessageRefus'
 import { fetchContexte } from '../contexte/contexteApi'
 import { fetchNiveaux } from '../reference/referenceApi'
 import { createClasse, deleteClasse, fetchClasses, updateClasse } from './classesApi'
+import { anneeSeule, libelleAnnee } from '../../lib/annee'
 
 const VIDE = { code: '', nom: '', niveau_code: '' }
 
@@ -60,7 +61,7 @@ export default function ClasseListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Classes</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Classes de l’année {contexte?.annee ?? 'en cours'}.
+            Classes de l’année {anneeSeule(contexte?.annee)}.
           </p>
         </div>
         <Button
@@ -143,7 +144,7 @@ export default function ClasseListPage() {
         <ModaleFormulaire
           titrePage="Classes"
           titre={form.code_initial ? `Modifier ${form.nom}` : 'Nouvelle classe'}
-          sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
+          sousTitre={libelleAnnee(contexte?.annee)}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}
           enCours={enregistrer.isPending}

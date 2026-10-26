@@ -8,6 +8,7 @@ import MessageRefus from '../../components/ui/MessageRefus'
 import { fetchContexte } from '../contexte/contexteApi'
 import { fetchNiveaux } from '../reference/referenceApi'
 import { createNiveau, deleteNiveau, updateNiveau } from './niveauxApi'
+import { anneeSeule, libelleAnnee } from '../../lib/annee'
 
 const VIDE = { code: '', libelle: '' }
 
@@ -56,7 +57,7 @@ export default function NiveauListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Niveaux</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Niveaux de l’année {contexte?.annee ?? 'en cours'}.
+            Niveaux de l’année {anneeSeule(contexte?.annee)}.
           </p>
         </div>
         <Button
@@ -129,7 +130,7 @@ export default function NiveauListPage() {
         <ModaleFormulaire
           titrePage="Niveaux"
           titre={form.id ? `Modifier ${form.libelle}` : 'Nouveau niveau'}
-          sousTitre={`Année ${contexte?.annee ?? 'en cours'}`}
+          sousTitre={libelleAnnee(contexte?.annee)}
           onFermer={fermer}
           onValider={() => enregistrer.mutate(form)}
           enCours={enregistrer.isPending}

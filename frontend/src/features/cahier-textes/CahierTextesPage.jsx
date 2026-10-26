@@ -16,6 +16,7 @@ import {
   supprimerLigneCahier,
 } from './cahierTextesApi'
 import { useAuthStore } from '../../store/authStore'
+import { anneeSeule } from '../../lib/annee'
 
 const JOURS = [
   { cle: 'lundi', libelle: 'Lundi' },
@@ -171,7 +172,7 @@ export default function CahierTextesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Cahier journal</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Ce qui a été vu, jour par jour et matière par matière, pour l’année {data?.annee ?? 'en cours'}.
+          Ce qui a été vu, jour par jour et matière par matière, pour l’année {anneeSeule(data?.annee)}.
         </p>
       </div>
 
