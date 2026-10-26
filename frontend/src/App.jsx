@@ -32,6 +32,8 @@ const AdminDashboardPage = lazy(() => import('./features/admin/AdminDashboardPag
 // Console plateforme : écrans en consultation, dans un même module (voir PlateformePages).
 const AbonnementsPage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.AbonnementsPage })))
 const ParametresSystemePage = lazy(() => import('./features/admin/PlateformePages').then((m) => ({ default: m.ParametresSystemePage })))
+const AideGestionPage = lazy(() => import('./features/admin/AideGestionPage'))
+const NouveautesGestionPage = lazy(() => import('./features/admin/NouveautesGestionPage'))
 const ChoisirEtablissementPage = lazy(() => import('./features/contexte/ChoisirEtablissementPage'))
 const EmploiDuTempsPage = lazy(() => import('./features/emplois-du-temps/EmploiDuTempsPage'))
 const AffectationEnseignantPage = lazy(() => import('./features/affectations-enseignants/AffectationEnseignantPage'))
@@ -217,6 +219,16 @@ export default function App() {
               <Route
                 path="/admin/parametres-systeme"
                 element={<ProtectedRoute exigeSuperAdmin><ParametresSystemePage /></ProtectedRoute>}
+              />
+              {/* Gestion de l'aide et des notes de version (Super Admin) : ce qu'on y publie
+                  apparaît dans l'application (« ? » et cloche de l'en-tête). */}
+              <Route
+                path="/admin/aide"
+                element={<ProtectedRoute exigeSuperAdmin><AideGestionPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin/nouveautes"
+                element={<ProtectedRoute exigeSuperAdmin><NouveautesGestionPage /></ProtectedRoute>}
               />
               </Route>
 

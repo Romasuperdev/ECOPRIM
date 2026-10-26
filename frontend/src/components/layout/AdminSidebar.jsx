@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  ArrowLeft, Building, Building2, ChevronDown, LayoutGrid, Link2, Settings, Users, X,
+  ArrowLeft, Bell, Building, Building2, ChevronDown, CircleHelp, LayoutGrid, Link2, Settings, Users, X,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
@@ -10,10 +10,11 @@ import { useAuthStore } from '../../store/authStore'
  *
  *   Sociétés · Établissements · Applications · Utilisateurs
  *   Affectations ▾  (Société - Applications · Société - Utilisateurs · Utilisateur - Établissements)
- *   AUTRES : Retour à l'application
+ *   AUTRES : Aide & Documentation · Nouveautés · Retour à l'application
  *
- * La gestion de l'aide et des nouveautés a été retirée de la console à la demande de
- * l'utilisateur.
+ * Aide & Documentation et Nouveautés sont la GESTION de ce que les utilisateurs lisent
+ * dans l'application (Super Admin) ; les autres administrateurs consultent l'aide comme
+ * tout le monde.
  *
  * Les rubriques propres à ECOPRIM qui n'existent pas dans parcauto (tableau de bord,
  * traçabilité, abonnements, paramètres système) ont quitté le menu à la demande de
@@ -138,6 +139,8 @@ export default function AdminSidebar({ replie = false, dansTiroir = false, onFer
               Autres
             </p>
           )}
+          <Lien to={superAdmin ? '/admin/aide' : '/aide'} icon={CircleHelp} label="Aide & Documentation" replie={reduit} onNaviguer={fermer} />
+          {superAdmin && <Lien to="/admin/nouveautes" icon={Bell} label="Nouveautés" replie={reduit} onNaviguer={fermer} />}
           <Lien to="/" end icon={ArrowLeft} label="Retour à l’application" replie={reduit} onNaviguer={fermer} />
         </div>
       </nav>

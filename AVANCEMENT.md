@@ -4355,3 +4355,14 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
   - échec d'un téléchargement de PDF (bulletin, certificats) désormais affiché.
 - Tests : 6 nouveaux. Suite complète : 549 réussis, 2 échecs, ceux déjà connus sur les
   photos d'élèves.
+
+## Portail enseignant sans coordonnées des parents ; gestion Aide et Nouveautés rétablie
+
+- **Décision de l'utilisateur** : l'enseignant ne voit que l'identité et la scolarité de
+  ses élèves. Noms, professions, téléphones et emails des parents sont retirés de la
+  réponse du serveur elle-même (élèves, absences), pas seulement de l'écran.
+- **Gestion de l'Aide et des Nouveautés** : rétablie dans la console (rubrique « Autres »,
+  Super Admin), au gabarit parcauto. Ce qui y est publié apparaît dans l'application
+  (« ? » et cloche de l'en-tête).
+- **Libellé d'année** : plus de « Année Année Scolaire… » sur les écrans du personnel
+  (`lib/annee.js` : `libelleAnnee`, `anneeSeule`).
