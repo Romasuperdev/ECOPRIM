@@ -183,4 +183,24 @@ class NouveautesTest extends TestCase
         $this->assertSame(0, $db->table('nouveautes_elements')->count());
         $this->assertSame(0, $db->table('nouveautes_lues')->count());
     }
+
+    /**
+     * Migration pas encore lancée sur l'installation : les pages Nouveautés et Aide restent
+     * utilisables — vides — au lieu de renvoyer une erreur SQL.
+     */
+    public function test_sans_les_tables_les_pages_restent_utilisables(): void
+    {
+        $s = \Illuminate\Support\Facades\Schema::connection('ecoprim');
+        foreach (['nouveautes_lues', 'nouveautes_elements', 'nouveautes_versions', 'aide_articles', 'aide_categories'] as $t) {
+            $s->dropIfExists($t);
+        }
+        $this->enUtilisateur();
+
+        $this->getJson('/api/v1/nouveautes')->assertOk()->assertExactJson([]);
+        $this->getJson('/api/v1/nouveautes/non-lues')->assertOk()->assertExactJson([]);
+        $this->postJson('/api/v1/nouveautes/1/lue')->assertNotFound();
+        $this->getJson('/api/v1/aide')->assertOk()->assertExactJson([]);
+        $this->getJson('/api/v1/aide/recherche?q=note')->assertOk()->assertExactJson([]);
+        $this->getJson('/api/v1/aide/articles/1')->assertNotFound();
+    }
 }

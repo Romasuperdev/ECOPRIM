@@ -8,7 +8,10 @@ use App\Models\Console\NouveauteLue;
 use App\Models\Console\NouveauteVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 /**
  * Nouveautés — notes de version (base propre `ecoprim`).
@@ -24,15 +27,47 @@ class NouveauteController extends Controller
 {
     // --- Lecture --------------------------------------------------------------------
 
+    /**
+     * Les tables de cette rubrique existent-elles ? Sur une installation où la migration
+     * de la base `ecoprim` n'a pas encore été lancée, la page doit rester utilisable —
+     * vide — au lieu d'afficher une erreur SQL. Le manque est consigné dans le journal, et
+     * `php artisan nexora:verifier-deploiement` le signale à l'administrateur.
+     */
+    private function tablesPresentes(string ...$tables): bool
+    {
+        try {
+            foreach ($tables as $table) {
+                if (! Schema::connection('ecoprim')->hasTable($table)) {
+                    Log::warning("Table ecoprim.{$table} absente : lancez php artisan migrate --database=ecoprim --path=database/migrations/console");
+
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Base ecoprim injoignable : '.$e->getMessage());
+
+            return false;
+        }
+    }
+
     /** Versions actives, la plus récente d'abord, avec leurs éléments. */
     public function index()
     {
+        if (! $this->tablesPresentes('nouveautes_versions', 'nouveautes_elements')) {
+            return [];
+        }
+
         return $this->actives()->get()->map(fn ($v) => $this->version($v))->values();
     }
 
     /** Versions actives que ce compte n'a pas encore marquées lues, la plus récente d'abord. */
     public function nonLues(Request $request)
     {
+        if (! $this->tablesPresentes('nouveautes_versions', 'nouveautes_elements', 'nouveautes_lues')) {
+            return [];
+        }
         $userId = (int) $request->user()->Id;
 
         return $this->actives()
@@ -50,6 +85,7 @@ class NouveauteController extends Controller
      */
     public function marquerLue(Request $request, int $version)
     {
+        abort_unless($this->tablesPresentes('nouveautes_versions', 'nouveautes_lues'), 404, 'Cette version est introuvable.');
         $existe = NouveauteVersion::query()->where('active', true)->whereKey($version)->exists();
         abort_unless($existe, 404, 'Cette version est introuvable.');
 

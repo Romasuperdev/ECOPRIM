@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Console\AideArticle;
 use App\Models\Console\AideCategorie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Aide — documentation interne (base propre `ecoprim`).
@@ -25,9 +28,38 @@ class AideController extends Controller
 {
     // --- Lecture --------------------------------------------------------------------
 
+    /**
+     * Les tables de cette rubrique existent-elles ? Sur une installation où la migration
+     * de la base `ecoprim` n'a pas encore été lancée, la page doit rester utilisable —
+     * vide — au lieu d'afficher une erreur SQL. Le manque est consigné dans le journal, et
+     * `php artisan nexora:verifier-deploiement` le signale à l'administrateur.
+     */
+    private function tablesPresentes(string ...$tables): bool
+    {
+        try {
+            foreach ($tables as $table) {
+                if (! Schema::connection('ecoprim')->hasTable($table)) {
+                    Log::warning("Table ecoprim.{$table} absente : lancez php artisan migrate --database=ecoprim --path=database/migrations/console");
+
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Base ecoprim injoignable : '.$e->getMessage());
+
+            return false;
+        }
+    }
+
     /** Sommaire : catégories actives et leurs articles actifs, dans l'ordre choisi. */
     public function index()
     {
+        if (! $this->tablesPresentes('aide_categories', 'aide_articles')) {
+            return [];
+        }
+
         $categories = AideCategorie::query()
             ->where('active', true)
             ->with(['articles' => fn ($q) => $q->where('active', true)])
@@ -45,6 +77,9 @@ class AideController extends Controller
     {
         $d = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
         $terme = '%'.trim($d['q']).'%';
+        if (! $this->tablesPresentes('aide_categories', 'aide_articles')) {
+            return [];
+        }
 
         return AideArticle::query()
             ->visible()
@@ -68,6 +103,7 @@ class AideController extends Controller
      */
     public function article(int $id)
     {
+        abort_unless($this->tablesPresentes('aide_categories', 'aide_articles'), 404, 'Cet article d’aide est introuvable.');
         $article = AideArticle::query()->visible()->with('categorie')->find($id);
         abort_unless($article, 404, 'Cet article d’aide est introuvable.');
 
