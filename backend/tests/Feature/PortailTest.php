@@ -505,6 +505,29 @@ class PortailTest extends TestCase
         return $this->getJson($uri.($query ? '?'.http_build_query($query) : ''))->assertOk();
     }
 
+    /** Les coordonnées des parents restent à l'administration : rien n'en part vers l'enseignant. */
+    public function test_l_enseignant_ne_recoit_pas_les_coordonnees_des_parents(): void
+    {
+        DB::connection('economat')->table('T_ETUDIANT')->update([
+            'NomPereTuteur' => 'KOFFI', 'TelephonePereTuteur' => '0102030405',
+            'TelephoneMere' => '0706050403', 'EmailMere' => 'maman@exemple.ci',
+        ]);
+        $this->enseignant();
+        $base = '/api/v1/mon-espace/enseignant';
+
+        foreach ([
+            $this->get200("$base/classes/CP1A/eleves"),
+            $this->get200("$base/absences", ['classe_code' => 'CP1A']),
+        ] as $reponse) {
+            $contenu = $reponse->getContent();
+            foreach (['0102030405', '0706050403', 'maman@exemple.ci', 'KOFFI', 'pere_telephone', 'mere_telephone'] as $interdit) {
+                $this->assertStringNotContainsString($interdit, $contenu);
+            }
+        }
+        // L'identité de l'élève, elle, reste là.
+        $this->assertNotNull($this->get200("$base/classes/CP1A/eleves")->json('data.0.matricule'));
+    }
+
     public function test_un_etablissement_en_session_ne_vide_pas_le_portail_enseignant(): void
     {
         $this->enseignant();

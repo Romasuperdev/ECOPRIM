@@ -8,6 +8,7 @@ use App\Models\Eleve;
 use App\Models\Evaluation;
 use App\Models\Evenement;
 use App\Support\ContexteScolaire;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -149,7 +150,36 @@ class PortailEnseignantController extends Controller
         $this->assertClasseAutorisee($classe);
         $request->query->set('classe_code', $classe);
 
-        return $this->eleves->index($request);
+        return $this->sansParents($this->eleves->index($request));
+    }
+
+    /** Coordonnées des parents, jamais transmises au portail enseignant. */
+    private const CHAMPS_PARENTS = [
+        'pere_nom', 'pere_prenom', 'pere_profession', 'pere_telephone', 'pere_email',
+        'mere_nom', 'mere_prenom', 'mere_profession', 'mere_telephone', 'mere_email',
+    ];
+
+    /**
+     * L'enseignant voit l'identité et la scolarité de ses élèves, pas les coordonnées de
+     * leurs parents : elles restent à l'administration (décision de l'école). On les retire
+     * de la réponse elle-même, où qu'elles s'y trouvent (fiche élève, élève joint à une
+     * absence…) — masquées seulement à l'écran, elles resteraient lisibles par le navigateur.
+     */
+    private function sansParents($resultat): JsonResponse
+    {
+        $reponse = $resultat instanceof JsonResponse ? $resultat : response()->json($resultat);
+        $retirer = function ($valeur) use (&$retirer) {
+            if (! is_array($valeur)) {
+                return $valeur;
+            }
+            foreach (self::CHAMPS_PARENTS as $champ) {
+                unset($valeur[$champ]);
+            }
+
+            return array_map($retirer, $valeur);
+        };
+
+        return $reponse->setData($retirer($reponse->getData(true)));
     }
 
     // --- Cahier de textes : mes classes seulement ---
@@ -237,14 +267,14 @@ class PortailEnseignantController extends Controller
         $data = $request->validate(['classe_code' => ['required', 'string', 'max:50']]);
         $this->assertClasseAutorisee($data['classe_code']);
 
-        return $this->absences->index($request);
+        return $this->sansParents($this->absences->index($request));
     }
 
     public function absencesStore(Request $request)
     {
         $this->assertClasseAutorisee($this->classeDeLEleve($request->input('matricule')));
 
-        return $this->absences->store($request);
+        return $this->sansParents($this->absences->store($request));
     }
 
     public function absencesUpdate(Request $request, int $absence)
@@ -257,7 +287,7 @@ class PortailEnseignantController extends Controller
             $this->assertClasseAutorisee($this->classeDeLEleve($request->input('matricule')));
         }
 
-        return $this->absences->update($request, $absence);
+        return $this->sansParents($this->absences->update($request, $absence));
     }
 
     public function absencesDestroy(int $absence)
