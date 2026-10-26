@@ -5,6 +5,7 @@ import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
 import { ArrowLeft, Download, FileText } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import MessageRefus from '../../components/ui/MessageRefus'
 import {
   fetchAbsencesEnfant,
   fetchCahierTextesEnfant,
@@ -324,17 +325,31 @@ function OngletCalendrier({ matricule }) {
   )
 }
 
+/** Lance un téléchargement et garde le motif d'un échec, pour l'afficher. */
+function useTelechargement(matricule) {
+  const [refus, setRefus] = useState(null)
+  const telecharger = (fn) => {
+    setRefus(null)
+    fn(matricule).catch((e) => setRefus(e?.message ?? 'Document indisponible pour le moment.'))
+  }
+
+  return { refus, effacer: () => setRefus(null), telecharger }
+}
+
 function OngletDocuments({ matricule }) {
+  const { refus, effacer, telecharger } = useTelechargement(matricule)
+
   return (
     <div className="card flex flex-col items-start gap-3 p-5">
       <p className="text-sm text-muted">Documents administratifs téléchargeables à tout moment.</p>
-      <Button variant="outline" onClick={() => telechargerCertificatScolarite(matricule)}>
+      <MessageRefus message={refus} onFermer={effacer} />
+      <Button variant="outline" onClick={() => telecharger(telechargerCertificatScolarite)}>
         <FileText size={15} className="mr-1.5 inline" /> Certificat de scolarité
       </Button>
-      <Button variant="outline" onClick={() => telechargerAttestationFrequentation(matricule)}>
+      <Button variant="outline" onClick={() => telecharger(telechargerAttestationFrequentation)}>
         <FileText size={15} className="mr-1.5 inline" /> Attestation de fréquentation
       </Button>
-      <Button variant="outline" onClick={() => telechargerBulletinEnfant(matricule)}>
+      <Button variant="outline" onClick={() => telecharger(telechargerBulletinEnfant)}>
         <Download size={15} className="mr-1.5 inline" /> Bulletin PDF
       </Button>
     </div>
@@ -343,9 +358,11 @@ function OngletDocuments({ matricule }) {
 
 function OngletResultats({ matricule }) {
   const { data } = useQuery({ queryKey: ['portail-moyennes-enfant', matricule], queryFn: () => fetchMoyennesEnfant(matricule) })
+  const { refus, effacer, telecharger } = useTelechargement(matricule)
 
   return (
     <div className="space-y-4">
+      <MessageRefus message={refus} onFermer={effacer} />
       <div className="card grid grid-cols-3 gap-4 p-5 text-center">
         <div>
           <div className="text-2xl font-bold text-heading">{data?.moyenne_generale ?? '—'}</div>
@@ -356,7 +373,7 @@ function OngletResultats({ matricule }) {
           <div className="text-xs text-muted">Rang / {data?.effectif ?? '—'}</div>
         </div>
         <div className="flex items-center justify-center">
-          <Button variant="outline" onClick={() => telechargerBulletinEnfant(matricule)}>
+          <Button variant="outline" onClick={() => telecharger(telechargerBulletinEnfant)}>
             <Download size={15} className="mr-1.5 inline" /> Bulletin PDF
           </Button>
         </div>

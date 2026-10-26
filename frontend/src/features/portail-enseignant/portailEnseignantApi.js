@@ -2,13 +2,17 @@ import apiClient from '../../api/client'
 
 const BASE = '/mon-espace/enseignant'
 
+// Un code de classe peut porter une espace ou un caractère accentué (« CE1 A ») : il est
+// encodé quand il entre dans le chemin, jamais quand il part en paramètre.
+const c = (classe) => encodeURIComponent(classe)
+
 export async function fetchMesClasses() {
   const { data } = await apiClient.get(`${BASE}/classes`)
   return data
 }
 
 export async function fetchMesEleves(classe) {
-  const { data } = await apiClient.get(`${BASE}/classes/${classe}/eleves`, { params: { per_page: 200 } })
+  const { data } = await apiClient.get(`${BASE}/classes/${c(classe)}/eleves`, { params: { per_page: 200 } })
   return data?.data ?? data ?? []
 }
 
@@ -99,7 +103,7 @@ export async function fetchMesEvenements() {
 // classe : le serveur le vérifie sur T_CORPROFCLASSE à chaque appel.
 
 export async function fetchMesMatieres(classe) {
-  const { data } = await apiClient.get(`${BASE}/classes/${classe}/matieres`)
+  const { data } = await apiClient.get(`${BASE}/classes/${c(classe)}/matieres`)
   return data
 }
 

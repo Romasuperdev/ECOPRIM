@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { CalendarX, ChevronRight, ClipboardList, TrendingUp } from 'lucide-react'
 import BandeauPortail from '../../components/ui/BandeauPortail'
+import { libelleAnnee } from '../../lib/annee'
 import { fetchMesEnfants } from './portailParentApi'
 
 /** Initiales, à défaut d'une photo : mieux qu'une silhouette grise identique pour tous. */
@@ -53,7 +54,7 @@ function CarteEnfant({ enfant }) {
 
   return (
     <Link
-      to={`/mon-espace/enfants/${enfant.matricule}`}
+      to={`/mon-espace/enfants/${encodeURIComponent(enfant.matricule)}`}
       className="card flex flex-col gap-3.5 rounded-2xl p-4 transition hover:shadow-md"
     >
       <div className="flex items-center gap-3.5">
@@ -108,7 +109,7 @@ export default function ParentAccueilPage() {
     <div className="space-y-5">
       <BandeauPortail
         titre={enfants.length > 1 ? 'Mes enfants' : 'Mon enfant'}
-        sousTitre={`Année ${data?.annee ?? 'en cours'} — résultats, absences, devoirs et documents.`}
+        sousTitre={`${libelleAnnee(data?.annee)} — résultats, absences, devoirs et documents.`}
         droite={
           enfants.length > 1 && (
             <>

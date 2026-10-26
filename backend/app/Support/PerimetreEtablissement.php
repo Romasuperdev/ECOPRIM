@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\RhUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Throwable;
+use WeakMap;
 
 /**
  * Établissement de travail, choisi dans l'en-tête et conservé en session par
@@ -23,6 +25,9 @@ use Throwable;
  *
  * Sans établissement choisi, rien n'est restreint : on garde la vue société
  * plutôt que de vider l'écran (même principe que ContexteScolaire).
+ *
+ * Les comptes des portails Enseignant et Parent n'ont pas d'établissement de travail :
+ * leur périmètre est le leur (voir comptePortail()).
  */
 class PerimetreEtablissement
 {
@@ -31,9 +36,16 @@ class PerimetreEtablissement
     /** Enseignants du périmètre, mémorisés comme les classes ; `false` = pas encore lus. */
     private static array|null|false $enseignants = false;
 
+    /** Verdict « compte de portail » par compte, lu une fois par requête. */
+    private static ?WeakMap $portails = null;
+
     /** Code de l'établissement de travail, ou null en vue société. */
     public static function code(): ?string
     {
+        if (self::comptePortail()) {
+            return null;
+        }
+
         try {
             $code = Session::get('etablissement_code');
         } catch (Throwable $e) {
@@ -45,6 +57,10 @@ class PerimetreEtablissement
 
     public static function nom(): ?string
     {
+        if (self::comptePortail()) {
+            return null;
+        }
+
         try {
             return Session::get('etablissement_nom');
         } catch (Throwable $e) {
@@ -181,6 +197,42 @@ class PerimetreEtablissement
     {
         self::$cache = null;
         self::$enseignants = false;
+        self::$portails = null;
+    }
+
+    /**
+     * Le compte connecté est-il celui d'un portail restreint (Enseignant, Parent) ?
+     *
+     * Son périmètre n'est pas un établissement de travail mais le sien — les classes qu'il
+     * enseigne, les enfants qui lui sont rattachés — et le contrôleur du portail l'impose
+     * avant de déléguer aux contrôleurs du personnel. Leur appliquer EN PLUS le filtre
+     * d'établissement viderait ses listes, ou refuserait ses documents en 404, dès qu'un
+     * établissement ou une société traîne en session (connexion sur un poste où un autre
+     * compte avait choisi le sien, par exemple) : il n'en a pas, il n'en choisit pas.
+     *
+     * Un compte qui cumule un rôle d'administration n'est pas un compte de portail
+     * (RhUser::typePortail) : il garde le périmètre de l'application complète.
+     */
+    private static function comptePortail(): bool
+    {
+        try {
+            $user = auth()->user();
+        } catch (Throwable $e) {
+            return false;
+        }
+
+        if (! $user instanceof RhUser) {
+            return false;
+        }
+
+        self::$portails ??= new WeakMap;
+
+        try {
+            return self::$portails[$user] ??= $user->typePortail() !== 'staff';
+        } catch (Throwable $e) {
+            // Rôles illisibles : on garde le filtre de l'application complète.
+            return false;
+        }
     }
 
     /**
@@ -230,6 +282,10 @@ class PerimetreEtablissement
      */
     public static function etablissementsVisibles(): ?array
     {
+        if (self::comptePortail()) {
+            return null;
+        }
+
         $choisi = self::code();
         $societe = self::societe();
 

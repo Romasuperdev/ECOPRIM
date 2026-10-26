@@ -479,4 +479,109 @@ class PortailTest extends TestCase
         $r = $this->getJson('/api/v1/mon-espace/enseignant/classes/CP1A/matieres')->assertOk();
         $this->assertSame(['MATH'], collect($r->json())->pluck('code')->all());
     }
+
+    // --- Périmètre établissement : il ne s'applique pas aux portails ---
+
+    /**
+     * Classes rattachées à deux établissements, et un établissement (ou une société)
+     * resté en session : c'est ce qui arrive quand un compte se connecte sur un poste où
+     * un autre avait choisi le sien. Le périmètre d'un portail n'en dépend pas.
+     */
+    private function etablissementsEnSession(): void
+    {
+        DB::connection('economat')->table('T_CLASSE')->where('CodeClasse', 'CP1A')->update(['CODEETABLISSEMENT' => 'E1']);
+        DB::connection('economat')->table('T_CLASSE')->where('CodeClasse', 'CP1B')->update(['CODEETABLISSEMENT' => 'E2']);
+        DB::connection('economat')->table('T_ABSENCEELEVE')->insert([
+            'Code' => 30, 'Matricule' => 'EL1', 'CodeClasse' => 'CP1A', 'Date' => '2025-09-15',
+            'AnneeCour' => self::ANNEE, 'Justifier' => false,
+        ]);
+        $this->withSession(['etablissement_code' => 'E2', 'etablissement_nom' => 'Autre école', 'console_societe' => 'S9']);
+    }
+
+    private function get200(string $uri, array $query = []): \Illuminate\Testing\TestResponse
+    {
+        \App\Support\PerimetreEtablissement::oublier();
+
+        return $this->getJson($uri.($query ? '?'.http_build_query($query) : ''))->assertOk();
+    }
+
+    public function test_un_etablissement_en_session_ne_vide_pas_le_portail_enseignant(): void
+    {
+        $this->enseignant();
+        $this->etablissementsEnSession();
+        $base = '/api/v1/mon-espace/enseignant';
+
+        $this->assertCount(1, $this->get200("$base/classes")->json('classes'));
+        $this->assertCount(1, $this->get200("$base/classes/CP1A/eleves")->json('data'));
+        $this->assertCount(1, $this->get200("$base/absences", ['classe_code' => 'CP1A'])->json('data'));
+        $this->assertCount(1, $this->get200("$base/emplois-du-temps", ['classe' => 'CP1A'])->json('creneaux'));
+        $this->assertNotEmpty($this->get200("$base/cahier-textes/referentiels", ['classe' => 'CP1A'])->json('matieres'));
+        $this->assertCount(1, $this->get200("$base/notes/feuille", [
+            'classe' => 'CP1A', 'matiere' => 'MATH', 'session' => 'S1', 'type' => 'Devoir',
+        ])->json('eleves'));
+    }
+
+    public function test_un_etablissement_en_session_n_empeche_pas_l_enseignant_d_ecrire(): void
+    {
+        $this->enseignant();
+        $this->etablissementsEnSession();
+
+        \App\Support\PerimetreEtablissement::oublier();
+        $this->postJson('/api/v1/mon-espace/enseignant/absences', [
+            'matricule' => 'EL1', 'date' => '2025-09-16',
+        ])->assertCreated();
+
+        \App\Support\PerimetreEtablissement::oublier();
+        $this->postJson('/api/v1/mon-espace/enseignant/notes/feuille', $this->feuille())->assertOk();
+    }
+
+    public function test_un_etablissement_en_session_ne_vide_pas_le_portail_parent(): void
+    {
+        $this->parent(['EL1']);
+        $this->etablissementsEnSession();
+        $base = '/api/v1/mon-espace/parent/enfants';
+
+        $this->assertCount(1, $this->get200($base)->json('enfants'));
+        $this->assertSame('EL1', $this->get200("$base/EL1")->json('matricule'));
+        $this->assertCount(1, $this->get200("$base/EL1/absences")->json('data'));
+        $this->assertCount(1, $this->get200("$base/EL1/emploi-du-temps")->json('creneaux'));
+
+        \App\Support\PerimetreEtablissement::oublier();
+        $this->get('/api/v1/mon-espace/parent/enfants/EL1/certificat-scolarite')->assertOk();
+    }
+
+    /** Le correctif est borné aux portails : le personnel reste filtré par son établissement. */
+    public function test_le_personnel_reste_borne_a_l_etablissement_choisi(): void
+    {
+        $this->staff();
+        $this->etablissementsEnSession();
+
+        // E2 n'a que CP1B : seul EL2 y est inscrit.
+        $eleves = $this->get200('/api/v1/eleves')->json('data');
+        $this->assertSame(['EL2'], collect($eleves)->pluck('matricule')->all());
+    }
+
+    /**
+     * Un enseignant qui administre AUSSI un établissement n'est plus un compte de portail :
+     * il travaille dans l'application complète, bornée à son établissement.
+     */
+    public function test_un_enseignant_admin_d_etablissement_garde_l_application_bornee_a_son_etablissement(): void
+    {
+        DB::connection('economat')->table('T_CLASSE')->where('CodeClasse', 'CP1A')->update(['CODEETABLISSEMENT' => 'E1']);
+        DB::connection('economat')->table('T_CLASSE')->where('CodeClasse', 'CP1B')->update(['CODEETABLISSEMENT' => 'E2']);
+        DB::connection('ecoprim')->table('console_etablissements')->insert(
+            ['id' => 1, 'code' => 'E1', 'intitule' => 'École 1', 'societe_code' => 'S1', 'actif' => true]
+        );
+
+        $rh = $this->compte(12, 'mtraore');
+        $this->affecter(12, $this->roleId(RhUser::ROLE_ENSEIGNANT));
+        $this->affecter(12, $this->roleId(RhUser::ROLE_ADMIN_ETABLISSEMENT));
+        $this->actingAs($rh, 'sanctum');
+
+        $this->assertSame('staff', $rh->typePortail());
+        $this->getJson('/api/v1/mon-espace/enseignant/classes')->assertStatus(403);
+
+        $eleves = $this->get200('/api/v1/eleves')->json('data');
+        $this->assertSame(['EL1'], collect($eleves)->pluck('matricule')->all());
+    }
 }

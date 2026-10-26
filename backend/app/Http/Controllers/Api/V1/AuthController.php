@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\RhUser;
+use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,11 @@ class AuthController extends Controller
 
         Auth::login($rhUser);
         $request->session()->regenerate();
+        // Le contexte de travail appartient au compte, pas au navigateur : un compte qui se
+        // connecte après un autre, sans déconnexion, ne doit pas hériter de l'établissement,
+        // de la société ni de l'année que le précédent avait choisis.
+        $request->session()->forget(['etablissement_code', 'etablissement_nom', 'console_societe', 'annee_travail']);
+        PerimetreEtablissement::oublier();
 
         return response()->json($this->userPayload($rhUser));
     }

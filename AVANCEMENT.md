@@ -4336,3 +4336,22 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
   gabarit.
 - Noms de tables (RH_USER) retirés de trois textes affichés.
 - Non vérifié dans un navigateur : il faut un compte connecté.
+
+## Portails Parent et Enseignant : vérifiés avec les vrais comptes
+
+- **Essai de fumée en lecture seule** (toute écriture SQL bloquée) sur les vrais comptes :
+  parents 24 et 1023, enseignants 25 et 1024, établissement ETAB001. Toutes les routes GET
+  des deux portails répondent 200 avec des données, PDF compris.
+- **Défaut corrigé** : un établissement ou une société restés en session vidaient les
+  portails, ou refusaient leurs documents (404). `PerimetreEtablissement` ne s'applique
+  plus aux comptes de portail, dont le périmètre est déjà le leur (enfants rattachés,
+  classes de l'enseignant).
+- **Connexion** : le contexte de travail (établissement, société, année) est oublié à
+  chaque connexion. Un compte n'hérite plus de celui du compte précédent sur le même
+  navigateur.
+- **Interface** :
+  - libellé « Année Année Scolaire… » en double corrigé (`lib/annee.js`) ;
+  - codes de classe et matricules encodés dans les adresses ;
+  - échec d'un téléchargement de PDF (bulletin, certificats) désormais affiché.
+- Tests : 6 nouveaux. Suite complète : 549 réussis, 2 échecs, ceux déjà connus sur les
+  photos d'élèves.

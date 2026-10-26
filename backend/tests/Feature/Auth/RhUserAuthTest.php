@@ -52,6 +52,23 @@ class RhUserAuthTest extends TestCase
             ->assertJsonPath('roles', []);
     }
 
+    /** Un compte qui se connecte après un autre n'hérite pas de son contexte de travail. */
+    public function test_la_connexion_oublie_le_contexte_du_compte_precedent(): void
+    {
+        $this->creerRh(['Email' => 'admin@ecole.ci']);
+
+        $this->withSession([
+            'etablissement_code' => 'E1', 'etablissement_nom' => 'École Alpha',
+            'console_societe' => 'ABN', 'annee_travail' => '2024-2025',
+        ]);
+        $this->login('admin@ecole.ci')->assertOk();
+
+        $this->assertNull(session('etablissement_code'));
+        $this->assertNull(session('etablissement_nom'));
+        $this->assertNull(session('console_societe'));
+        $this->assertNull(session('annee_travail'));
+    }
+
     public function test_bit_super_admin_donne_le_role(): void
     {
         $this->creerRh(['Email' => 'boss@ecole.ci', 'SuperAdmin' => true]);

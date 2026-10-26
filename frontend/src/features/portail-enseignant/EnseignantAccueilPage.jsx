@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { BookOpen, CalendarDays, ChevronRight, ClipboardList, Star, Users } from 'lucide-react'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import PastilleRelief from '../../components/ui/PastilleRelief'
+import { libelleAnnee } from '../../lib/annee'
 import {
   fetchMesClasses,
   fetchMesDevoirs,
@@ -119,7 +120,7 @@ export default function EnseignantAccueilPage() {
     <div className="space-y-5">
       <BandeauPortail
         titre="Mes classes"
-        sousTitre={`Année ${data?.annee ?? 'en cours'} — cahier journal, notes, absences et emploi du temps.`}
+        sousTitre={`${libelleAnnee(data?.annee)} — cahier journal, notes, absences et emploi du temps.`}
         droite={
           classes.length > 0 && (
             <>
@@ -144,7 +145,7 @@ export default function EnseignantAccueilPage() {
         {classes.map((c) => (
           <Link
             key={`${c.classe}-${c.matiere}`}
-            to={`/mon-espace/classes/${c.classe}`}
+            to={`/mon-espace/classes/${encodeURIComponent(c.classe)}`}
             className="card flex items-center gap-3.5 rounded-2xl p-4 transition hover:shadow-md"
           >
             <PastilleRelief icon={BookOpen} module="traitement" taille="lg" />
