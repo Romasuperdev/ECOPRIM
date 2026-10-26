@@ -2,22 +2,30 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Check, MapPin, Phone } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import MessageErreur from '../../components/ui/MessageErreur'
+import { messageErreurApi } from '../../lib/erreurs'
 import { choisirEtablissement, fetchContexte, quitterEtablissement } from './contexteApi'
 
 export default function ChoisirEtablissementPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte })
+  const { data, isLoading, error } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte })
 
   const invalider = () => qc.invalidateQueries({ queryKey: ['contexte'] })
 
+  // Un refus s'affiche sur la page même (voir plus bas) : pas de message global en plus.
   const choisir = useMutation({
     mutationFn: choisirEtablissement,
     onSuccess: () => { invalider(); navigate('/') },
+    meta: { erreurAffichee: true },
   })
-  const quitter = useMutation({ mutationFn: quitterEtablissement, onSuccess: invalider })
+  const quitter = useMutation({ mutationFn: quitterEtablissement, onSuccess: invalider, meta: { erreurAffichee: true } })
+  // Le dernier échec seulement : chaque bouton remet l'autre action à zéro avant de partir.
+  const echec = choisir.error ?? quitter.error
 
   if (isLoading) return <p className="text-muted">Chargement…</p>
+  // Contexte illisible : le dire, plutôt qu'afficher « Aucun établissement disponible ».
+  if (error) return <MessageErreur erreur={error} />
 
   const actuel = data?.etablissement_code
   const dispos = data?.disponibles ?? []
@@ -31,6 +39,17 @@ export default function ChoisirEtablissementPage() {
         </p>
       </div>
 
+      {echec && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
+          style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger-border)', color: 'var(--danger-text)' }}
+        >
+          {choisir.error ? 'L’établissement n’a pas pu être sélectionné. ' : 'L’établissement n’a pas pu être désélectionné. '}
+          {messageErreurApi(echec)}
+        </div>
+      )}
+
       {actuel && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary-200 bg-primary-50 px-5 py-4">
           <div>
@@ -40,7 +59,7 @@ export default function ChoisirEtablissementPage() {
             <p className="font-semibold text-slate-800">{data.etablissement_nom}</p>
             <p className="font-mono text-xs text-slate-500">{actuel}</p>
           </div>
-          <Button variant="outline" disabled={quitter.isPending} onClick={() => quitter.mutate()}>
+          <Button variant="outline" disabled={quitter.isPending} onClick={() => { choisir.reset(); quitter.mutate() }}>
             Désélectionner
           </Button>
         </div>
@@ -95,7 +114,7 @@ export default function ChoisirEtablissementPage() {
                       variant="outline"
                       className="w-full justify-center"
                       disabled={choisir.isPending}
-                      onClick={() => choisir.mutate(e.code)}
+                      onClick={() => { quitter.reset(); choisir.mutate(e.code) }}
                     >
                       Sélectionner
                     </Button>

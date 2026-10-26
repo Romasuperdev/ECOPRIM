@@ -27,7 +27,7 @@ export default function SocieteUtilisateursPage() {
   const [erreur, setErreur] = useState(null)
 
   const { data: referentiels } = useQuery({ queryKey: ['rattachements-referentiels'], queryFn: fetchReferentielsSocietes })
-  const { data: liaisons, isLoading } = useQuery({ queryKey: ['rattachements-societes'], queryFn: fetchLiaisonsSocietes })
+  const { data: liaisons, isLoading, error } = useQuery({ queryKey: ['rattachements-societes'], queryFn: fetchLiaisonsSocietes })
 
   const societes = useMemo(() => referentiels?.societes ?? [], [referentiels])
 
@@ -214,6 +214,7 @@ export default function SocieteUtilisateursPage() {
             colonnes={colonnes}
             lignes={comptes}
             chargement={isLoading}
+            erreur={error}
             vide="Aucun utilisateur."
           />
         </CarteGrille>

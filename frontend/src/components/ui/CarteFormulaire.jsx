@@ -94,15 +94,20 @@ export function EnteteCarte({ icon: Icone, titre, onFermer }) {
 /**
  * Page de formulaire complète : titre + bouton Retour au-dessus, puis la carte.
  * `titreCarte` est la phrase d'action de l'en-tête (« Enregistrer un enseignant »).
+ * `refTitre` : le titre peut alors recevoir le focus (tabIndex -1), sans entrer dans
+ * l'ordre de tabulation — ModaleFormulaire l'y place à l'ouverture.
  */
 export default function CarteFormulaire({
-  icon, titre, retour, onRetour, titreCarte, iconeCarte, erreurs, children, largeur = 'max-w-5xl',
+  icon, titre, retour, onRetour, titreCarte, iconeCarte, erreurs, children, largeur = 'max-w-5xl', refTitre,
 }) {
   const gris = { background: 'var(--muted-text)', color: '#ffffff' }
   return (
     <div className={`mx-auto ${largeur}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-heading">
+        <h1
+          ref={refTitre} tabIndex={refTitre ? -1 : undefined}
+          className="flex items-center gap-2 text-2xl font-bold text-heading focus:outline-none"
+        >
           {icon && (() => { const I = icon; return <I size={24} style={{ color: 'var(--brand-accent)' }} /> })()}
           {titre}
         </h1>
@@ -153,7 +158,14 @@ export function OngletsFormulaire({ onglets, actif, onChanger }) {
               : { borderColor: 'transparent', color: 'var(--muted-text)' }}
           >
             {Icone && <Icone size={15} />} {o.libelle}
-            {o.erreur && <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--danger)' }} aria-label="contient une erreur" />}
+            {/* La pastille rouge ne parle qu'aux yeux qui distinguent la couleur : le texte
+                masqué le dit aussi aux lecteurs d'écran. */}
+            {o.erreur && (
+              <>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--danger)' }} aria-hidden="true" />
+                <span className="sr-only">(contient une erreur)</span>
+              </>
+            )}
           </button>
         )
       })}

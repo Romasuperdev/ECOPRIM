@@ -13,7 +13,9 @@ import useEchap from '../../hooks/useEchap'
  */
 export default function ModaleAcces({ acces, onFermer }) {
   const [copie, setCopie] = useState(false)
-  useEchap(onFermer)
+  // Rien n'est affiché tant qu'il n'y a pas d'accès : Échap ne doit alors rien fermer (la
+  // page porteuse, un formulaire en cours de saisie, partirait avec).
+  useEchap(acces ? onFermer : undefined)
 
   if (!acces) return null
 

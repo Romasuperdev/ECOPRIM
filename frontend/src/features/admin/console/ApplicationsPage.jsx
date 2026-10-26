@@ -15,7 +15,7 @@ import {
  */
 export default function ApplicationsPage() {
   const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['plateforme-applications'], queryFn: fetchApplications })
+  const { data, isLoading, error } = useQuery({ queryKey: ['plateforme-applications'], queryFn: fetchApplications })
 
   const supprimer = useMutation({
     mutationFn: (a) => supprimerApplication(a.code),
@@ -64,6 +64,7 @@ export default function ApplicationsPage() {
             lignes={data?.applications}
             cleLigne={(a) => a.code}
             chargement={isLoading}
+            erreur={error}
             vide="Aucune application enregistrée."
           />
           {data?.codes_hors_catalogue?.length > 0 && (

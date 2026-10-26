@@ -18,7 +18,38 @@ export const ID_HOTE_FORMULAIRE = 'hote-formulaire'
  *
  * Le report de ce retrait (setTimeout) laisse au mode strict de React le temps de
  * remonter le composant : démonté puis remonté aussitôt, il garde son entrée.
+ *
+ * Entrées « mortes » : quitter la page par le menu, formulaire ouvert, empile la nouvelle
+ * adresse PAR-DESSUS l'entrée du formulaire, qu'on ne peut plus retirer. Revenir en
+ * arrière y ferait halte — même adresse que la liste, rien ne change à l'écran, il
+ * faudrait presser Retour deux fois. Une écoute unique la saute donc : une entrée de
+ * formulaire qui n'a plus de formulaire monté est franchie dans le sens du déplacement,
+ * déduit de l'index que le routeur range dans l'état (`idx`).
  */
+const formulairesOuverts = new Set()
+let indexConnu = null
+let sautInstalle = false
+
+function installerSautEntreesMortes() {
+  if (sautInstalle) return
+  sautInstalle = true
+  indexConnu = window.history.state?.idx ?? null
+  window.addEventListener('popstate', () => {
+    const etat = window.history.state
+    const marque = etat?.formulaireNexora
+    if (marque && !formulairesOuverts.has(marque)) {
+      // L'entrée morte porte l'index de la page qu'elle doublait : venir d'un index plus
+      // grand, c'est reculer.
+      const enRecul = indexConnu == null || etat.idx == null || etat.idx < indexConnu
+      indexConnu = etat.idx ?? indexConnu
+      if (enRecul) window.history.back()
+      else window.history.forward()
+      return
+    }
+    indexConnu = etat?.idx ?? indexConnu
+  })
+}
+
 function useEntreeHistorique(onFermer) {
   const fermer = useRef(onFermer)
   const marque = useRef(null)
@@ -27,11 +58,13 @@ function useEntreeHistorique(onFermer) {
   useEffect(() => { fermer.current = onFermer }, [onFermer])
 
   useEffect(() => {
+    installerSautEntreesMortes()
     monte.current = true
     if (!marque.current) {
       marque.current = `formulaire-${Date.now()}-${Math.random().toString(36).slice(2)}`
       window.history.pushState({ ...window.history.state, formulaireNexora: marque.current }, '')
     }
+    formulairesOuverts.add(marque.current)
     const surRetour = () => {
       if (window.history.state?.formulaireNexora !== marque.current) fermer.current?.()
     }
@@ -41,7 +74,12 @@ function useEntreeHistorique(onFermer) {
       monte.current = false
       window.removeEventListener('popstate', surRetour)
       setTimeout(() => {
-        if (!monte.current && window.history.state?.formulaireNexora === marque.current) window.history.back()
+        if (monte.current) return
+        formulairesOuverts.delete(marque.current)
+        if (window.history.state?.formulaireNexora === marque.current) window.history.back()
+        // Parti ailleurs (menu) : on note où l'on est, pour savoir plus tard dans quel sens
+        // franchir l'entrée laissée derrière.
+        else indexConnu = window.history.state?.idx ?? indexConnu
       }, 0)
     }
   }, [])
@@ -81,19 +119,39 @@ export default function ModaleFormulaire({
 }) {
   useEchap(onFermer)
   useEntreeHistorique(onFermer)
-  // Lu une fois, à l'ouverture : la coquille est alors forcément en place.
-  const [hote] = useState(() => document.getElementById(ID_HOTE_FORMULAIRE))
+  const refTitre = useRef(null)
 
-  // La page s'ouvre en haut ; en la fermant, la liste retrouve sa position.
-  useEffect(() => {
-    if (!hote) return undefined
+  // Lu une fois, à l'ouverture, PENDANT le premier rendu : la coquille est alors forcément
+  // en place, et la liste encore visible. Dès que le formulaire occupe l'hôte, la liste
+  // est masquée (display: none) : la hauteur à faire défiler s'effondre, la position est
+  // ramenée à zéro, et l'élément qui avait le focus (le bouton « Modifier ») le perd. Les
+  // lire dans un effet, c'est-à-dire après coup, ne rendait plus que des valeurs écrasées.
+  const [ouverture] = useState(() => {
+    const hote = document.getElementById(ID_HOTE_FORMULAIRE)
     // Le contenu défile dans <main> (Layout, AdminLayout), ou avec la fenêtre (portails).
-    const defilant = hote.closest('main') ?? document.scrollingElement
-    if (!defilant) return undefined
-    const position = defilant.scrollTop
-    defilant.scrollTo({ top: 0 })
-    return () => { defilant.scrollTo({ top: position }) }
-  }, [hote])
+    const defilant = hote ? (hote.closest('main') ?? document.scrollingElement) : null
+    return {
+      hote,
+      defilant,
+      position: defilant?.scrollTop ?? 0,
+      focusPrecedent: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+    }
+  })
+  const { hote } = ouverture
+
+  // La page s'ouvre en haut, le focus sur son titre (un lecteur d'écran annonce ainsi le
+  // formulaire) ; en la fermant, la liste retrouve sa position, et le focus l'élément qui
+  // l'avait — s'il existe encore.
+  useEffect(() => {
+    const { defilant, position, focusPrecedent } = ouverture
+    if (!ouverture.hote) return undefined
+    defilant?.scrollTo({ top: 0 })
+    refTitre.current?.focus({ preventScroll: true })
+    return () => {
+      defilant?.scrollTo({ top: position })
+      if (focusPrecedent?.isConnected) focusPrecedent.focus({ preventScroll: true })
+    }
+  }, [ouverture])
 
   const formulaire = (
     <form
@@ -119,7 +177,7 @@ export default function ModaleFormulaire({
       <div className="animate-fade-up" onClick={(e) => e.stopPropagation()}>
         <CarteFormulaire
           icon={icon} titre={titrePage ?? titre} titreCarte={titre} iconeCarte={icon}
-          onRetour={onFermer} largeur={large ? 'max-w-5xl' : 'max-w-3xl'}
+          onRetour={onFermer} largeur={large ? 'max-w-5xl' : 'max-w-3xl'} refTitre={refTitre}
         >
           {formulaire}
         </CarteFormulaire>

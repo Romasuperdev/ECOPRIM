@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Lock } from 'lucide-react'
+import { toast } from 'sonner'
+import { messageErreurApi } from '../../lib/erreurs'
 import { definirSocieteConsole, fetchConsoleContexte } from './consoleContexteApi'
 
 /**
@@ -20,6 +22,7 @@ export default function SocieteBarre() {
       // on invalide tout le cache de la console plutôt que d'énumérer les écrans.
       qc.invalidateQueries()
     },
+    onError: (e) => toast.error(`La société administrée n’a pas été changée. ${messageErreurApi(e)}`),
   })
 
   if (!data) return null

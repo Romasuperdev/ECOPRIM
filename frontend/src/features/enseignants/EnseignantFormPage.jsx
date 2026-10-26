@@ -8,6 +8,7 @@ import Select from '../../components/ui/Select'
 import Textarea from '../../components/ui/Textarea'
 import ModaleAcces from '../../components/ui/ModaleAcces'
 import SelecteurMultiple from '../../components/ui/SelecteurMultiple'
+import { messageErreurApi } from '../../lib/erreurs'
 import { fetchMatieres } from '../reference/referenceApi'
 import { fetchEnseignant, createEnseignant, updateEnseignant } from './enseignantsApi'
 
@@ -68,11 +69,16 @@ export default function EnseignantFormPage() {
     if (indices.length) setOnglet(Math.min(...indices))
   }
 
-  const { data: enseignant } = useQuery({
+  const {
+    data: enseignant, error: erreurFiche, refetch: rechargerFiche, isFetching: ficheEnChargement,
+  } = useQuery({
     queryKey: ['enseignants', id],
     queryFn: () => fetchEnseignant(id),
     enabled: enEdition,
   })
+  // En modification, tant que la fiche n'est pas là (lente ou en échec), le formulaire
+  // est VIDE : l'enregistrer écraserait la fiche réelle par des champs blancs.
+  const ficheManquante = enEdition && !enseignant
 
   const { data: matieres } = useQuery({ queryKey: ['matieres', 'all'], queryFn: fetchMatieres })
 
@@ -114,7 +120,7 @@ export default function EnseignantFormPage() {
    * la touche Entrée ne peut donc rien envoyer.
    */
   const soumettre = () => {
-    if (enregistrer.isPending) return
+    if (enregistrer.isPending || ficheManquante) return
     const manquants = REQUIS.filter((c) => !String(form[c] ?? '').trim())
     if (manquants.length) {
       const errLocales = Object.fromEntries(manquants.map((c) => [c, ['Ce champ est requis.']]))
@@ -130,12 +136,35 @@ export default function EnseignantFormPage() {
     <>
       <CarteFormulaire
         icon={GraduationCap}
-        titre={enEdition ? `${form.nom} ${form.prenom}` : 'Nouvel enseignant'}
+        titre={enEdition ? (enseignant ? `${form.nom} ${form.prenom}` : 'Enseignant') : 'Nouvel enseignant'}
         retour="/enseignants"
         iconeCarte={GraduationCap}
         titreCarte={enEdition ? 'Modifier un enseignant' : 'Enregistrer un enseignant'}
         erreurs={erreurs}
       >
+        {ficheManquante && (
+          erreurFiche ? (
+            <div
+              role="alert"
+              className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-2.5 text-sm"
+              style={{ background: 'var(--danger-bg)', color: 'var(--danger-text)' }}
+            >
+              <span>
+                La fiche n’a pas pu être chargée : {messageErreurApi(erreurFiche)} L’enregistrement
+                reste désactivé tant qu’elle n’est pas affichée.
+              </span>
+              <button
+                type="button" onClick={() => rechargerFiche()} disabled={ficheEnChargement}
+                className="font-semibold underline disabled:opacity-60"
+              >
+                {ficheEnChargement ? 'Nouvel essai…' : 'Réessayer'}
+              </button>
+            </div>
+          ) : (
+            <p className="mb-4 text-sm font-medium text-muted" role="status">Chargement de la fiche…</p>
+          )
+        )}
+
         <OngletsFormulaire
           onglets={onglets.map((o, i) => ({ cle: i, libelle: o.libelle, erreur: ongletEnErreur(i) }))}
           actif={onglet}
@@ -255,6 +284,8 @@ export default function EnseignantFormPage() {
             type="button"
             onValider={soumettre}
             enCours={enregistrer.isPending}
+            desactive={ficheManquante}
+            titre={ficheManquante ? 'La fiche n’est pas encore chargée.' : undefined}
             libelle={enEdition ? 'Mettre à jour' : 'Enregistrer'}
           />
         </form>

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ShieldCheck } from 'lucide-react'
+import { CheckCircle2, ShieldCheck, TriangleAlert } from 'lucide-react'
 import Select from '../../components/ui/Select'
 import Button from '../../components/ui/Button'
+import MessageErreur from '../../components/ui/MessageErreur'
+import { messageErreurApi } from '../../lib/erreurs'
 import { enregistrerPermissionsRole, fetchPermissionsRole, fetchRoles } from './adminApi'
 
 /**
@@ -13,13 +15,25 @@ import { enregistrerPermissionsRole, fetchPermissionsRole, fetchRoles } from './
  */
 function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
   const [coches, setCoches] = useState(() => new Set(permissions.accordees))
+  // Issue du dernier enregistrement : sans elle, un échec passait pour un succès (le
+  // bouton revenait simplement à « Enregistrer »).
+  const [retour, setRetour] = useState(null)
 
   const enregistrer = useMutation({
     mutationFn: () => enregistrerPermissionsRole(roleId, Array.from(coches)),
-    onSuccess: onEnregistre,
+    onSuccess: (data) => {
+      onEnregistre(data)
+      setRetour({ succes: true, texte: 'Permissions enregistrées.' })
+    },
+    onError: (e) => setRetour({
+      succes: false,
+      texte: `Les permissions n’ont pas été enregistrées. ${messageErreurApi(e)}`,
+    }),
   })
 
   const basculer = (code) => {
+    // Une case modifiée : le message précédent ne décrit plus l'état affiché.
+    setRetour(null)
     setCoches((prev) => {
       const suivant = new Set(prev)
       if (suivant.has(code)) {
@@ -59,6 +73,19 @@ function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
         </div>
       ))}
 
+      {retour && (
+        <div
+          role={retour.succes ? 'status' : 'alert'}
+          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium"
+          style={retour.succes
+            ? { background: 'var(--success-bg)', borderColor: 'var(--success-border)', color: 'var(--success-text)' }
+            : { background: 'var(--danger-bg)', borderColor: 'var(--danger-border)', color: 'var(--danger-text)' }}
+        >
+          {retour.succes ? <CheckCircle2 size={18} /> : <TriangleAlert size={18} />}
+          <span>{retour.texte}</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">
           <ShieldCheck size={13} className="mr-1 inline" />
@@ -86,7 +113,7 @@ export default function PermissionsPage() {
   const qc = useQueryClient()
 
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
-  const { data: permissions, isLoading } = useQuery({
+  const { data: permissions, isLoading, error } = useQuery({
     queryKey: ['role-permissions', roleId],
     queryFn: () => fetchPermissionsRole(roleId),
     enabled: Boolean(roleId),
@@ -124,6 +151,7 @@ export default function PermissionsPage() {
       )}
 
       {roleId && isLoading && <p className="text-sm text-muted">Chargement…</p>}
+      {roleId && error && <MessageErreur erreur={error} />}
 
       {roleId && permissions && (
         <EditeurPermissions

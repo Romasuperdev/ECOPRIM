@@ -1,21 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CircleHelp, Search } from 'lucide-react'
 import Input from '../../components/ui/Input'
 import MessageErreur from '../../components/ui/MessageErreur'
+import useDiffere from '../../hooks/useDiffere'
 import { fetchAide, rechercherAide } from './aideApi'
 import { iconeAide } from './icones'
-
-/** Laisse la frappe se poser avant d'interroger le serveur. */
-function useDiffere(valeur, delai = 300) {
-  const [differee, setDifferee] = useState(valeur)
-  useEffect(() => {
-    const t = setTimeout(() => setDifferee(valeur), delai)
-    return () => clearTimeout(t)
-  }, [valeur, delai])
-  return differee
-}
 
 /**
  * Aide — le sommaire : une recherche, puis les catégories et leurs articles.

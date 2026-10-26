@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Info, Lock, ShieldAlert } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import useDiffere from '../../hooks/useDiffere'
+import { messageErreurApi } from '../../lib/erreurs'
 import { fetchTracabilite, fetchTracabiliteUtilisateur } from './tracabiliteApi'
 
 const VIDE = { utilisateur: '', action: '', du: '', au: '', q: '' }
@@ -25,12 +27,16 @@ export default function TracabilitePage() {
   const [page, setPage] = useState(1)
   const [detailColonnes, setDetailColonnes] = useState(false)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['tracabilite', id ?? 'tous', filtres, page],
+  // Filtres envoyés une fois la frappe posée ; les traces affichées restent en place
+  // pendant le chargement des suivantes (pas de clignotement à chaque touche).
+  const filtresEnvoyes = useDiffere(filtres)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['tracabilite', id ?? 'tous', filtresEnvoyes, page],
     queryFn: () => (id
-      ? fetchTracabiliteUtilisateur(id, { ...filtres, page })
-      : fetchTracabilite({ ...filtres, page })),
+      ? fetchTracabiliteUtilisateur(id, { ...filtresEnvoyes, page })
+      : fetchTracabilite({ ...filtresEnvoyes, page })),
     retry: false,
+    placeholderData: keepPreviousData,
   })
 
   const colonnes = data?.colonnes ?? {}
@@ -145,7 +151,14 @@ export default function TracabilitePage() {
             {isLoading && (
               <tr><td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
-            {!isLoading && lignes.length === 0 && (
+            {error && (
+              <tr>
+                <td colSpan={Math.max(ROLES.length, 1)} role="alert" className="px-4 py-6 text-center font-medium text-red-600">
+                  {messageErreurApi(error, 'Le journal n’a pas pu être chargé.')}
+                </td>
+              </tr>
+            )}
+            {!isLoading && !error && lignes.length === 0 && (
               <tr>
                 <td colSpan={Math.max(ROLES.length, 1)} className="px-4 py-6 text-center text-muted">
                   Aucune trace pour ces critères.

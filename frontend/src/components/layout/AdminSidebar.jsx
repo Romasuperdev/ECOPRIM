@@ -70,8 +70,12 @@ export default function AdminSidebar({ replie = false, dansTiroir = false, onFer
   const items = ITEMS.filter(autorise)
   const affectations = AFFECTATIONS.filter(autorise)
   const dansAffectations = affectations.some((a) => location.pathname.startsWith(a.to))
-  const [affectationsOuvert, setAffectationsOuvert] = useState(dansAffectations)
-  const ouvert = affectationsOuvert || dansAffectations
+  // Le sous-menu s'ouvre de lui-même sur une page d'affectation, mais reste repliable :
+  // le choix de l'utilisateur prime, tant qu'il ne change pas de « côté » (entrer dans
+  // les affectations ou en sortir rend la main à l'ouverture automatique). L'ancien
+  // `choix || dansAffectations` l'y tenait ouvert de force.
+  const [choix, setChoix] = useState(null) // { ouvert, dans } — null : pas de choix
+  const ouvert = choix && choix.dans === dansAffectations ? choix.ouvert : dansAffectations
   const reduit = replie && !dansTiroir
   const fermer = dansTiroir ? onFermer : undefined
 
@@ -103,7 +107,7 @@ export default function AdminSidebar({ replie = false, dansTiroir = false, onFer
           <div className="pt-3">
             <button
               type="button"
-              onClick={() => setAffectationsOuvert(!ouvert)}
+              onClick={() => setChoix({ ouvert: !ouvert, dans: dansAffectations })}
               title={reduit ? 'Affectations' : undefined}
               className={`${CLASSE_LIEN} nav-survol w-full ${reduit ? 'justify-center px-0' : ''}`}
               style={{ color: dansAffectations ? 'var(--nav-active-ink)' : 'var(--nav-text)' }}

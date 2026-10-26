@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Building2, CalendarDays, Lock } from 'lucide-react'
+import { toast } from 'sonner'
+import { messageErreurApi } from '../../lib/erreurs'
 import { choisirEtablissement, definirAnnee, fetchContexte } from './contexteApi'
 
 /**
@@ -21,12 +23,16 @@ export default function ContexteBarre() {
       // risque d'en oublier un à chaque nouvelle page.
       qc.invalidateQueries()
     },
+    // Refusé : la liste revient d'elle-même sur l'année en vigueur (elle suit le serveur),
+    // mais il faut le dire — sinon on croirait consulter l'année choisie.
+    onError: (e) => toast.error(`L’année n’a pas été changée. ${messageErreurApi(e)}`),
   })
 
   // L'établissement borne lui aussi toutes les données : même invalidation que l'année.
   const changerEtablissement = useMutation({
     mutationFn: choisirEtablissement,
     onSuccess: () => qc.invalidateQueries(),
+    onError: (e) => toast.error(`L’établissement n’a pas été changé. ${messageErreurApi(e)}`),
   })
 
   if (!data) return null

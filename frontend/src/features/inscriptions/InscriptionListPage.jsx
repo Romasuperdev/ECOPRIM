@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import useDiffere from '../../hooks/useDiffere'
+import { messageErreurApi } from '../../lib/erreurs'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
@@ -93,13 +95,19 @@ export default function InscriptionListPage() {
   // ContexteScolaire, qui filtre sur le libellé ET sur le code — ECONOMAT stockant
   // tantôt l'un tantôt l'autre. Le filtre explicite, lui, faisait une égalité stricte
   // sur le seul libellé et pouvait donc masquer des élèves bien inscrits.
-  const { data, isLoading } = useQuery({
-    queryKey: ['inscriptions', page, filtres, anneeEffective],
+  //
+  // La recherche part 300 ms après la dernière frappe (une requête par mot, non par
+  // lettre), et la page précédente reste affichée pendant le chargement de la suivante :
+  // plus de clignotement « Chargement… » à chaque touche.
+  const q = useDiffere(filtres.q.trim())
+  const { data, isLoading, error: erreurListe } = useQuery({
+    queryKey: ['inscriptions', page, { q, classe: filtres.classe }, anneeEffective],
     queryFn: () => fetchInscriptions({
       page,
-      q: filtres.q || undefined,
+      q: q || undefined,
       classe: filtres.classe || undefined,
     }),
+    placeholderData: keepPreviousData,
   })
   const { data: ref } = useQuery({ queryKey: ['referentiels'], queryFn: fetchReferentiels })
 
@@ -155,24 +163,33 @@ export default function InscriptionListPage() {
   useEffect(() => {
     if (!form?.id || !form?.photo) return undefined
 
+    const id = form.id
     let url = null
     let annule = false
-    fetchPhotoBlob(form.id)
+    fetchPhotoBlob(id)
       .then((blob) => {
         if (annule) return
         url = URL.createObjectURL(blob)
-        setPhotoBlob({ id: form.id, url })
+        setPhotoBlob({ id, url })
       })
-      .catch(() => {})
+      // L'échec se dit : sans cela, le cadre restait sur la silhouette vide, comme si
+      // l'élève n'avait pas de photo — et une nouvelle la remplacerait sans qu'on le sache.
+      .catch(() => { if (!annule) setPhotoBlob({ id, echec: true }) })
 
     return () => {
       annule = true
       if (url) URL.revokeObjectURL(url)
+      // L'adresse révoquée (ou l'échec) ne doit plus servir : rouvrir le même dossier
+      // l'aurait réaffichée — image cassée — le temps du nouveau chargement, ou pour de
+      // bon s'il échouait.
+      setPhotoBlob((p) => (p?.id === id ? null : p))
     }
   }, [form?.id, form?.photo])
 
   // Dérivé : on n'affiche le blob que s'il correspond bien au dossier ouvert.
-  const photoExistante = form?.id && photoBlob?.id === form.id ? photoBlob.url : null
+  const blobDuDossier = form?.id && photoBlob?.id === form.id ? photoBlob : null
+  const photoExistante = blobDuDossier?.url ?? null
+  const echecPhotoExistante = Boolean(blobDuDossier?.echec)
 
   const reinitPhoto = () => {
     if (apercu) URL.revokeObjectURL(apercu)
@@ -247,7 +264,9 @@ export default function InscriptionListPage() {
           <p className="mt-1 text-sm font-medium text-muted">
             {isLoading
               ? 'Chargement…'
-              : `${data?.total ?? 0} élève${(data?.total ?? 0) > 1 ? 's' : ''} inscrit${
+              : erreurListe && !data
+                ? 'Effectif indisponible : la liste n’a pas pu être chargée.'
+                : `${data?.total ?? 0} élève${(data?.total ?? 0) > 1 ? 's' : ''} inscrit${
                   (data?.total ?? 0) > 1 ? 's' : ''
                 }${anneeEffective ? ` en ${anneeEffective}` : ''}`}
           </p>
@@ -318,7 +337,14 @@ export default function InscriptionListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-            {!isLoading && data?.data?.length === 0 && (
+            {erreurListe && (
+              <tr>
+                <td colSpan={5} role="alert" className="px-4 py-6 text-center font-medium text-red-600">
+                  {messageErreurApi(erreurListe, 'La liste des élèves n’a pas pu être chargée.')}
+                </td>
+              </tr>
+            )}
+            {!isLoading && !erreurListe && data?.data?.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Aucune inscription.</td></tr>
             )}
             {data?.data?.map((e) => (
@@ -526,7 +552,12 @@ export default function InscriptionListPage() {
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={(e) => choisirPhoto(e.target.files?.[0])}
+                    onChange={(e) => {
+                      choisirPhoto(e.target.files?.[0])
+                      // Vidé une fois lu : choisir de nouveau le MÊME fichier (après
+                      // « Retirer », ou une fois l'image corrigée) redéclenche le choix.
+                      e.target.value = ''
+                    }}
                   />
                 </label>
 
@@ -540,6 +571,12 @@ export default function InscriptionListPage() {
                 )}
 
                 {erreurPhoto && <p className="mt-2 text-sm text-red-600">{erreurPhoto}</p>}
+                {!apercu && echecPhotoExistante && (
+                  <p className="mt-2 text-sm text-amber-700">
+                    La photo déjà enregistrée n’a pas pu être chargée. Une nouvelle photo, si
+                    vous en choisissez une, la remplacera.
+                  </p>
+                )}
 
                 <p className="mt-3 text-xs text-muted">
                   JPG, PNG ou WebP, {photoMaxMo} Mo maximum. La photo est enregistrée dans le dossier

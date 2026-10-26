@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { UserCog, UserPlus } from 'lucide-react'
+import useDiffere from '../../hooks/useDiffere'
+import { messageErreurApi } from '../../lib/erreurs'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
@@ -43,9 +45,13 @@ export default function UtilisateurListPage() {
   const qc = useQueryClient()
 
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['utilisateurs', page, q],
-    queryFn: () => fetchUtilisateurs(page, q),
+  // Recherche envoyée une fois la frappe posée ; la page affichée reste en place pendant
+  // le chargement de la suivante (pas de clignotement à chaque touche).
+  const recherche = useDiffere(q.trim())
+  const { data, isLoading, error: erreurListe } = useQuery({
+    queryKey: ['utilisateurs', page, recherche],
+    queryFn: () => fetchUtilisateurs(page, recherche),
+    placeholderData: keepPreviousData,
   })
 
   const { data: etablissements } = useQuery({
@@ -108,7 +114,14 @@ export default function UtilisateurListPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-            {!isLoading && data?.data?.length === 0 && (
+            {erreurListe && (
+              <tr>
+                <td colSpan={6} role="alert" className="px-4 py-6 text-center font-medium text-red-600">
+                  {messageErreurApi(erreurListe, 'La liste des utilisateurs n’a pas pu être chargée.')}
+                </td>
+              </tr>
+            )}
+            {!isLoading && !erreurListe && data?.data?.length === 0 && (
               <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun utilisateur.</td></tr>
             )}
             {data?.data?.map((u) => (

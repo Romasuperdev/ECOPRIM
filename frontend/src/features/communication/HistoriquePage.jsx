@@ -1,13 +1,18 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import Input from '../../components/ui/Input'
+import useDiffere from '../../hooks/useDiffere'
+import { messageErreurApi } from '../../lib/erreurs'
 import { fetchHistorique } from './communicationApi'
 
 export default function HistoriquePage() {
   const [q, setQ] = useState('')
-  const { data: lignes, isLoading } = useQuery({
-    queryKey: ['historique-sms', q],
-    queryFn: () => fetchHistorique(q),
+  // Recherche envoyée une fois la frappe posée, liste précédente gardée en attendant.
+  const recherche = useDiffere(q.trim())
+  const { data: lignes, isLoading, error } = useQuery({
+    queryKey: ['historique-sms', recherche],
+    queryFn: () => fetchHistorique(recherche),
+    placeholderData: keepPreviousData,
   })
 
   return (
@@ -38,7 +43,14 @@ export default function HistoriquePage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-            {!isLoading && lignes?.length === 0 && (
+            {error && (
+              <tr>
+                <td colSpan={6} role="alert" className="px-4 py-6 text-center font-medium text-red-600">
+                  {messageErreurApi(error, 'L’historique n’a pas pu être chargé.')}
+                </td>
+              </tr>
+            )}
+            {!isLoading && !error && lignes?.length === 0 && (
               <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">Aucun envoi enregistré.</td></tr>
             )}
             {lignes?.map((l) => (

@@ -53,10 +53,13 @@ export default function MatiereFormPage() {
       return isEdit ? updateMatiere(id, payload) : createMatiere(payload)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matieres-page'] })
-      queryClient.invalidateQueries({ queryKey: ['matieres', 'all'] })
+      // Toutes les requêtes « matieres » : la liste paginée (['matieres', page]), le
+      // référentiel complet (['matieres', 'all']) et la fiche elle-même.
+      queryClient.invalidateQueries({ queryKey: ['matieres'] })
       navigate('/matieres')
     },
+    // Le refus du serveur s'affiche dans le récapitulatif ci-dessous : pas de message global.
+    meta: { erreurAffichee: true },
   })
 
   // Récapitulatif : les erreurs de saisie, puis le refus du serveur (ses messages

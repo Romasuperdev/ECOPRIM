@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import CarteFormulaire, { BoutonsFormulaire } from '../../../components/ui/CarteFormulaire'
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Pencil, Trash2, TriangleAlert, X } from 'lucide-react'
@@ -20,14 +20,32 @@ import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Pencil, Trash2, Triangle
 
 // ── Message de réussite / d'erreur (le « flash » de parcauto) ──────────────────
 
+// Le message vit 4 secondes à compter de son ÉMISSION, qu'un écran l'affiche ou non :
+// émis juste avant de quitter la console (ou sur une page sans bandeau), il ne doit pas
+// ressurgir, périmé, sur l'écran suivant qui en porte un.
+const DUREE_FLASH_MS = 4000
 let messageCourant = null
+let minuteurFlash = null
 const abonnes = new Set()
 const emettre = () => abonnes.forEach((f) => f())
 
+function effacerFlash() {
+  clearTimeout(minuteurFlash)
+  messageCourant = null
+  emettre()
+}
+
+function publier(type, texte) {
+  clearTimeout(minuteurFlash)
+  messageCourant = { type, texte, id: Date.now() }
+  emettre()
+  minuteurFlash = setTimeout(effacerFlash, DUREE_FLASH_MS)
+}
+
 /** À appeler après une action réussie, juste avant de naviguer : le message suit. */
 export const flash = {
-  succes: (texte) => { messageCourant = { type: 'succes', texte, id: Date.now() }; emettre() },
-  erreur: (texte) => { messageCourant = { type: 'erreur', texte, id: Date.now() }; emettre() },
+  succes: (texte) => publier('succes', texte),
+  erreur: (texte) => publier('erreur', texte),
 }
 
 export function MessageFlash() {
@@ -35,12 +53,6 @@ export function MessageFlash() {
     (f) => { abonnes.add(f); return () => abonnes.delete(f) },
     () => messageCourant,
   )
-
-  useEffect(() => {
-    if (!message) return undefined
-    const minuteur = setTimeout(() => { messageCourant = null; emettre() }, 4000)
-    return () => clearTimeout(minuteur)
-  }, [message])
 
   if (!message) return null
   const succes = message.type === 'succes'
@@ -56,7 +68,7 @@ export function MessageFlash() {
     >
       {succes ? <CheckCircle2 size={18} /> : <TriangleAlert size={18} />}
       <span className="flex-1">{message.texte}</span>
-      <button type="button" onClick={() => { messageCourant = null; emettre() }} className="opacity-60 hover:opacity-100" aria-label="Fermer">
+      <button type="button" onClick={effacerFlash} className="opacity-60 hover:opacity-100" aria-label="Fermer">
         <X size={16} />
       </button>
     </div>
@@ -148,6 +160,10 @@ export function Pastille({ actif, oui = 'Actif', non = 'Inactif' }) {
 
 const TAILLES = [10, 25, 50, 100]
 
+// Un seul comparateur pour tous les tris : localeCompare avec options en recrée un à
+// chaque comparaison, ce qui coûte cher dès que la liste grossit.
+const COMPARATEUR = new Intl.Collator('fr', { numeric: true, sensitivity: 'base' })
+
 function texteDe(colonne, ligne) {
   const v = colonne.valeur ? colonne.valeur(ligne) : ligne[colonne.cle]
   return v == null ? '' : String(v)
@@ -158,8 +174,12 @@ function texteDe(colonne, ligne) {
  *          triable?: boolean, className?: string}[]} colonnes
  *   `valeur` sert au tri et à la recherche ; `rendu`, à l'affichage (sinon `valeur`).
  *   Une colonne d'actions se déclare avec `triable: false` et un `rendu`.
+ * @param {unknown} erreur  Erreur de chargement (celle de useQuery) : affichée à la place
+ *   des lignes — une liste qui n'a pas pu être lue ne doit pas passer pour une liste vide.
  */
-export function TableConsole({ colonnes, lignes, cleLigne = (l) => l.id, vide = 'Aucun élément à afficher.', chargement = false, triInitial }) {
+export function TableConsole({
+  colonnes, lignes, cleLigne = (l) => l.id, vide = 'Aucun élément à afficher.', chargement = false, triInitial, erreur,
+}) {
   const [parPage, setParPage] = useState(10)
   const [page, setPage] = useState(1)
   const [recherche, setRecherche] = useState('')
@@ -174,7 +194,7 @@ export function TableConsole({ colonnes, lignes, cleLigne = (l) => l.id, vide = 
     const colonne = colonnes.find((c) => c.cle === tri.cle)
     if (colonne) {
       resultat = [...resultat].sort((a, b) => {
-        const r = texteDe(colonne, a).localeCompare(texteDe(colonne, b), 'fr', { numeric: true, sensitivity: 'base' })
+        const r = COMPARATEUR.compare(texteDe(colonne, a), texteDe(colonne, b))
         return tri.sens === 'asc' ? r : -r
       })
     }
@@ -241,14 +261,21 @@ export function TableConsole({ colonnes, lignes, cleLigne = (l) => l.id, vide = 
             {chargement && (
               <tr><td colSpan={colonnes.length} className="px-3 py-8 text-muted">Chargement…</td></tr>
             )}
-            {!chargement && visibles.length === 0 && (
+            {!chargement && erreur && (
+              <tr>
+                <td colSpan={colonnes.length} role="alert" className="px-3 py-8 font-medium" style={{ color: 'var(--danger-text)' }}>
+                  {messageApi(erreur, 'La liste n’a pas pu être chargée. Réessayez dans un instant.')}
+                </td>
+              </tr>
+            )}
+            {!chargement && !erreur && visibles.length === 0 && (
               <tr>
                 <td colSpan={colonnes.length} className="px-3 py-8 text-muted">
                   {recherche ? 'Aucun élément ne correspond à la recherche.' : vide}
                 </td>
               </tr>
             )}
-            {!chargement && visibles.map((l) => (
+            {!chargement && !erreur && visibles.map((l) => (
               <tr key={cleLigne(l)} className="border-b" style={{ borderColor: 'var(--border)' }}>
                 {colonnes.map((c) => (
                   <td key={c.cle} className={`px-3 py-2 ${c.className ?? ''}`}>

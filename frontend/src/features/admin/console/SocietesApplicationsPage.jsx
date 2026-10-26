@@ -25,7 +25,7 @@ export default function SocietesApplicationsPage() {
   const [form, setForm] = useState(VIDE)
   const [erreur, setErreur] = useState(null)
 
-  const { data, isLoading } = useQuery({ queryKey: ['societes-applications'], queryFn: fetchSocietesApplications })
+  const { data, isLoading, error } = useQuery({ queryKey: ['societes-applications'], queryFn: fetchSocietesApplications })
   const societes = data?.societes ?? []
   const applications = data?.applications ?? []
 
@@ -170,6 +170,7 @@ export default function SocietesApplicationsPage() {
             lignes={societes}
             cleLigne={(s) => s.code}
             chargement={isLoading}
+            erreur={error}
             vide="Aucune société."
           />
         </CarteGrille>

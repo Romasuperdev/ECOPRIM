@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { Printer } from 'lucide-react'
+import useDiffere from '../../hooks/useDiffere'
+import { messageErreurApi } from '../../lib/erreurs'
 import { fetchEnseignantsPage } from './enseignantsApi'
 import { imprimerFicheEnseignant } from '../impressions/impressionApi'
 
@@ -11,9 +13,13 @@ import { imprimerFicheEnseignant } from '../impressions/impressionApi'
 export default function EnseignantListPage() {
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const { data, isLoading } = useQuery({
-    queryKey: ['enseignants', page, q],
-    queryFn: () => fetchEnseignantsPage(page, q),
+  // Recherche envoyée une fois la frappe posée ; la page affichée reste en place pendant
+  // le chargement de la suivante (pas de clignotement à chaque touche).
+  const recherche = useDiffere(q.trim())
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['enseignants', page, recherche],
+    queryFn: () => fetchEnseignantsPage(page, recherche),
+    placeholderData: keepPreviousData,
   })
 
   return (
@@ -53,7 +59,14 @@ export default function EnseignantListPage() {
             {isLoading && (
               <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>
             )}
-            {!isLoading && data?.data?.length === 0 && (
+            {error && (
+              <tr>
+                <td colSpan={8} role="alert" className="px-4 py-6 text-center font-medium text-red-600">
+                  {messageErreurApi(error, 'La liste des enseignants n’a pas pu être chargée.')}
+                </td>
+              </tr>
+            )}
+            {!isLoading && !error && data?.data?.length === 0 && (
               <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">Aucun enseignant.</td></tr>
             )}
             {data?.data?.map((e) => (

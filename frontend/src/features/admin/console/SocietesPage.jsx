@@ -15,7 +15,7 @@ import {
  */
 export default function SocietesPage() {
   const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['societes', 'toutes'], queryFn: fetchToutesSocietes })
+  const { data, isLoading, error } = useQuery({ queryKey: ['societes', 'toutes'], queryFn: fetchToutesSocietes })
 
   const basculer = useMutation({
     mutationFn: ({ s, activer }) => (activer ? activerSocietePlateforme(s.code) : desactiverSocietePlateforme(s.code)),
@@ -72,6 +72,7 @@ export default function SocietesPage() {
         lignes={data}
         cleLigne={(s) => s.code}
         chargement={isLoading}
+        erreur={error}
         vide="Aucune société enregistrée."
       />
     </CarteConsole>

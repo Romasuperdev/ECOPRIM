@@ -16,7 +16,7 @@ import {
  */
 export default function EtablissementsPage() {
   const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['etablissements', 'tous'], queryFn: () => fetchTousEtablissements() })
+  const { data, isLoading, error } = useQuery({ queryKey: ['etablissements', 'tous'], queryFn: () => fetchTousEtablissements() })
 
   const basculer = useMutation({
     mutationFn: ({ e, activer }) => (activer ? activerEtablissement(e.id) : desactiverEtablissement(e.id)),
@@ -84,6 +84,7 @@ export default function EtablissementsPage() {
         lignes={data}
         cleLigne={(e) => e.code}
         chargement={isLoading}
+        erreur={error}
         vide="Aucun établissement enregistré."
       />
     </CarteConsole>

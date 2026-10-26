@@ -27,17 +27,26 @@ export default function SelecteurMultiple({
 
   // Fermeture au clic extérieur et à Échap : même comportement que les formulaires
   // en fenêtre, pour ne pas surprendre.
+  //
+  // Échap ne referme QUE la liste : il est marqué consommé (preventDefault), et useEchap
+  // ignore alors l'événement — sans quoi le formulaire qui porte ce sélecteur se fermerait
+  // aussi. L'écoute se fait en phase de CAPTURE : posée sur document comme celle de
+  // useEchap, mais plus tard (à l'ouverture de la liste), elle passerait sinon après elle.
   useEffect(() => {
     if (!ouvert) return undefined
 
     const auClic = (e) => { if (boite.current && !boite.current.contains(e.target)) setOuvert(false) }
-    const auClavier = (e) => { if (e.key === 'Escape') setOuvert(false) }
+    const auClavier = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      e.preventDefault()
+      setOuvert(false)
+    }
     document.addEventListener('mousedown', auClic)
-    document.addEventListener('keydown', auClavier)
+    document.addEventListener('keydown', auClavier, true)
 
     return () => {
       document.removeEventListener('mousedown', auClic)
-      document.removeEventListener('keydown', auClavier)
+      document.removeEventListener('keydown', auClavier, true)
     }
   }, [ouvert])
 

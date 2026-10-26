@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   CalendarClock,
@@ -9,8 +9,28 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import Compteur from '../../components/ui/Compteur'
+import MessageErreur from '../../components/ui/MessageErreur'
 import { fetchDashboardStats } from './dashboardApi'
-import { Anneau, CarteGraphique, HistogrammeMensuel, Jauge } from './graphiques'
+import { CarteGraphique } from './CarteGraphique'
+
+// Les graphiques (recharts, ~400 ko) arrivent à part : le bandeau et les tuiles
+// s'affichent d'abord, chaque carte montre une place réservée le temps qu'ils chargent.
+// Les trois imports pointent le même module : il n'est téléchargé qu'une fois.
+const chargerGraphiques = () => import('./graphiques')
+const Anneau = lazy(() => chargerGraphiques().then((m) => ({ default: m.Anneau })))
+const Jauge = lazy(() => chargerGraphiques().then((m) => ({ default: m.Jauge })))
+const HistogrammeMensuel = lazy(() => chargerGraphiques().then((m) => ({ default: m.HistogrammeMensuel })))
+
+/** Place réservée d'un graphique en cours de chargement (même hauteur : rien ne saute). */
+function GraphiqueEnAttente({ hauteur }) {
+  return (
+    <div
+      className="h-full animate-pulse rounded-xl"
+      style={{ minHeight: hauteur, background: 'var(--surface-2)' }}
+      role="status" aria-label="Chargement du graphique"
+    />
+  )
+}
 
 const NATURES = {
   evaluation: { libelle: 'Évaluation', classes: 'bg-primary-100 text-primary-800' },
@@ -113,10 +133,13 @@ function Agenda({ lignes }) {
 export default function DashboardPage() {
   const { user } = useAuthStore()
   const [vue, setVue] = useState('mouvements')
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: fetchDashboardStats,
   })
+  // Statistiques illisibles : on le dit, au lieu d'une page de zéros et de « aucune donnée »
+  // qu'on prendrait pour la réalité de l'établissement.
+  const indisponible = Boolean(error) && !stats
 
   const effectifs = stats?.effectifs ?? {}
   const vueCourante = VUES_MENSUELLES[vue]
@@ -145,7 +168,7 @@ export default function DashboardPage() {
           </div>
           <div className="text-right">
             <p className="text-4xl font-extrabold leading-none text-white">
-              {isLoading ? '…' : (effectifs.total_eleves ?? 0)}
+              {isLoading ? '…' : indisponible ? '—' : (effectifs.total_eleves ?? 0)}
             </p>
             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--sidebar-text)' }}>
               élèves inscrits
@@ -154,136 +177,147 @@ export default function DashboardPage() {
         </div>
       </div>
 
-
-      <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Tuile icon={Users} valeur={effectifs.total_eleves} libelle="Élèves" />
-        <Tuile icon={School} valeur={effectifs.total_classes} libelle="Classes" />
-        <Tuile icon={GraduationCap} valeur={effectifs.total_enseignants} libelle="Enseignants" />
-        <Tuile
-          icon={TrendingUp}
-          valeur={stats?.moyenne_generale != null ? `${stats.moyenne_generale}/20` : null}
-          libelle="Moyenne générale"
-          precision={
-            stats?.absences_ce_mois != null
-              ? `${stats.absences_ce_mois} absence${stats.absences_ce_mois > 1 ? 's' : ''} ce mois`
-              : null
-          }
-        />
-      </div>
-
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <CarteGraphique
-          titre="Répartition par niveau"
-          hauteur={180}
-          vide={(stats?.repartition_niveaux?.length ?? 0) === 0}
-          messageVide="Aucun élève rattaché à un niveau pour cette année."
-        >
-          <Anneau donnees={stats?.repartition_niveaux ?? []} cleValeur="effectif" cleNom="niveau" />
-        </CarteGraphique>
-
-        <CarteGraphique titre="Indicateurs clés" hauteur={180} vide={false}>
-          <div className="flex h-full flex-wrap items-center justify-around gap-x-2 gap-y-4">
-            <Jauge
-              valeur={stats?.assiduite?.taux ?? null}
-              couleur="var(--chart-2)"
-              libelle="Assiduité"
-              detail={
-                stats?.assiduite
-                  ? `${stats.assiduite.absences} absence${stats.assiduite.absences > 1 ? 's' : ''} / ${stats.assiduite.jours_ouvres} j. ouvrés`
-                  : 'Dates de l’année manquantes'
-              }
-            />
-            <Jauge
-              valeur={stats?.taux_reussite?.taux ?? null}
-              couleur="var(--chart-1)"
-              libelle="Réussite"
-              detail={
-                stats?.taux_reussite
-                  ? `${stats.taux_reussite.admis} / ${stats.taux_reussite.evalues} ≥ 10`
-                  : 'Aucune moyenne calculée'
-              }
-            />
-            <Jauge
-              valeur={stats?.taux_encadrement?.taux ?? null}
-              couleur="var(--chart-3)"
-              libelle="Encadrement"
-              detail={
-                stats?.taux_encadrement
-                  ? `${stats.taux_encadrement.couvertes} / ${stats.taux_encadrement.classes} classes`
-                  : 'Aucune classe'
+      {indisponible ? (
+        <div className="mt-5"><MessageErreur erreur={error} /></div>
+      ) : (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Tuile icon={Users} valeur={effectifs.total_eleves} libelle="Élèves" />
+            <Tuile icon={School} valeur={effectifs.total_classes} libelle="Classes" />
+            <Tuile icon={GraduationCap} valeur={effectifs.total_enseignants} libelle="Enseignants" />
+            <Tuile
+              icon={TrendingUp}
+              valeur={stats?.moyenne_generale != null ? `${stats.moyenne_generale}/20` : null}
+              libelle="Moyenne générale"
+              precision={
+                stats?.absences_ce_mois != null
+                  ? `${stats.absences_ce_mois} absence${stats.absences_ce_mois > 1 ? 's' : ''} ce mois`
+                  : null
               }
             />
           </div>
-        </CarteGraphique>
-      </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <CarteGraphique
-          titre="Moyenne par classe"
-          hauteur={240}
-          vide={classes.length === 0}
-          messageVide="Aucune moyenne calculée pour cette année."
-        >
-          <ul className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
-            {classes.map((c) => (
-              <li key={c.classe} className="rounded-xl surface-2 px-3 py-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="min-w-0 truncate font-bold text-heading">{c.classe}</span>
-                  <span
-                    className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                      c.moyenne >= 10 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {c.moyenne}/20
-                  </span>
-                </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(100, (c.moyenne / 20) * 100)}%`,
-                      background: c.moyenne >= 10 ? 'var(--success)' : 'var(--danger)',
-                    }}
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <CarteGraphique
+              titre="Répartition par niveau"
+              hauteur={180}
+              vide={(stats?.repartition_niveaux?.length ?? 0) === 0}
+              messageVide="Aucun élève rattaché à un niveau pour cette année."
+            >
+              <Suspense fallback={<GraphiqueEnAttente hauteur={180} />}>
+                <Anneau donnees={stats?.repartition_niveaux ?? []} cleValeur="effectif" cleNom="niveau" />
+              </Suspense>
+            </CarteGraphique>
+
+            <CarteGraphique titre="Indicateurs clés" hauteur={180} vide={false}>
+              <Suspense fallback={<GraphiqueEnAttente hauteur={180} />}>
+                <div className="flex h-full flex-wrap items-center justify-around gap-x-2 gap-y-4">
+                  <Jauge
+                    valeur={stats?.assiduite?.taux ?? null}
+                    couleur="var(--chart-2)"
+                    libelle="Assiduité"
+                    detail={
+                      stats?.assiduite
+                        ? `${stats.assiduite.absences} absence${stats.assiduite.absences > 1 ? 's' : ''} / ${stats.assiduite.jours_ouvres} j. ouvrés`
+                        : 'Dates de l’année manquantes'
+                    }
+                  />
+                  <Jauge
+                    valeur={stats?.taux_reussite?.taux ?? null}
+                    couleur="var(--chart-1)"
+                    libelle="Réussite"
+                    detail={
+                      stats?.taux_reussite
+                        ? `${stats.taux_reussite.admis} / ${stats.taux_reussite.evalues} ≥ 10`
+                        : 'Aucune moyenne calculée'
+                    }
+                  />
+                  <Jauge
+                    valeur={stats?.taux_encadrement?.taux ?? null}
+                    couleur="var(--chart-3)"
+                    libelle="Encadrement"
+                    detail={
+                      stats?.taux_encadrement
+                        ? `${stats.taux_encadrement.couvertes} / ${stats.taux_encadrement.classes} classes`
+                        : 'Aucune classe'
+                    }
                   />
                 </div>
-              </li>
-            ))}
-          </ul>
-        </CarteGraphique>
+              </Suspense>
+            </CarteGraphique>
+          </div>
 
-        <div className="lg:col-span-2">
-          <CarteGraphique
-            titre="Évolution mensuelle"
-            hauteur={280}
-            hauteurFixe
-            vide={donneesMensuelles.length === 0}
-            messageVide={vueCourante.vide}
-            actions={
-              <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--surface-2)' }}>
-                {Object.entries(VUES_MENSUELLES).map(([cle, v]) => (
-                  <button
-                    key={cle}
-                    type="button"
-                    onClick={() => setVue(cle)}
-                    className="rounded-md px-2.5 py-1 text-xs font-semibold transition"
-                    style={
-                      vue === cle
-                        ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }
-                        : { color: 'var(--text)' }
-                    }
-                  >
-                    {v.libelle}
-                  </button>
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            <CarteGraphique
+              titre="Moyenne par classe"
+              hauteur={240}
+              vide={classes.length === 0}
+              messageVide="Aucune moyenne calculée pour cette année."
+            >
+              <ul className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
+                {classes.map((c) => (
+                  <li key={c.classe} className="rounded-xl surface-2 px-3 py-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="min-w-0 truncate font-bold text-heading">{c.classe}</span>
+                      <span
+                        className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
+                          c.moyenne >= 10 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {c.moyenne}/20
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(100, (c.moyenne / 20) * 100)}%`,
+                          background: c.moyenne >= 10 ? 'var(--success)' : 'var(--danger)',
+                        }}
+                      />
+                    </div>
+                  </li>
                 ))}
-              </div>
-            }
-          >
-            <HistogrammeMensuel donnees={donneesMensuelles} series={vueCourante.series} />
-          </CarteGraphique>
-        </div>
-      </div>
+              </ul>
+            </CarteGraphique>
 
-      <Agenda lignes={stats?.agenda ?? []} />
+            <div className="lg:col-span-2">
+              <CarteGraphique
+                titre="Évolution mensuelle"
+                hauteur={280}
+                hauteurFixe
+                vide={donneesMensuelles.length === 0}
+                messageVide={vueCourante.vide}
+                actions={
+                  <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--surface-2)' }}>
+                    {Object.entries(VUES_MENSUELLES).map(([cle, v]) => (
+                      <button
+                        key={cle}
+                        type="button"
+                        onClick={() => setVue(cle)}
+                        className="rounded-md px-2.5 py-1 text-xs font-semibold transition"
+                        style={
+                          vue === cle
+                            ? { background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }
+                            : { color: 'var(--text)' }
+                        }
+                      >
+                        {v.libelle}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                <Suspense fallback={<GraphiqueEnAttente hauteur={280} />}>
+                  <HistogrammeMensuel donnees={donneesMensuelles} series={vueCourante.series} />
+                </Suspense>
+              </CarteGraphique>
+            </div>
+          </div>
+
+          <Agenda lignes={stats?.agenda ?? []} />
+        </>
+      )}
     </div>
   )
 }

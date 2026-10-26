@@ -1,12 +1,15 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Toaster } from './components/ui/sonner'
 import ProtectedRoute from './routes/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/layout/AdminLayout'
 import PortailLayout from './components/layout/PortailLayout'
 import { useAuthStore } from './store/authStore'
 import { fetchMe } from './features/auth/authApi'
+import { messageErreurApi } from './lib/erreurs'
 
 // Pages chargées à la demande (code-splitting par route) pour alléger le premier chargement.
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
@@ -73,7 +76,18 @@ const AidePage = lazy(() => import('./features/aide/AidePage'))
 const AideArticlePage = lazy(() => import('./features/aide/AideArticlePage'))
 const NouveautesPage = lazy(() => import('./features/nouveautes/NouveautesPage'))
 
-const queryClient = new QueryClient()
+// Filet commun des enregistrements : une action qui échoue sans que son écran le dise
+// passerait pour réussie. Les écrans qui gèrent déjà l'échec — `onError` sur leur
+// useMutation, ou `meta: { erreurAffichee: true }` quand ils l'affichent depuis
+// `mutation.error` — gardent leur propre message : pas de doublon.
+const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (erreur, _variables, _contexte, mutation) => {
+      if (mutation.options.onError || mutation.meta?.erreurAffichee) return
+      toast.error(messageErreurApi(erreur))
+    },
+  }),
+})
 
 function PageLoader() {
   return <div className="flex min-h-[40vh] items-center justify-center text-muted">Chargement…</div>
@@ -346,6 +360,8 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      {/* Messages passagers (échecs d'enregistrement non gérés par l'écran, voir queryClient). */}
+      <Toaster position="top-right" richColors closeButton />
     </QueryClientProvider>
   )
 }

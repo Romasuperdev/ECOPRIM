@@ -23,14 +23,19 @@ function retirerApresAnimation(el, classe) {
   // La classe est retirée une fois jouée : une animation restée « collée » garde
   // un `transform`, qui fausserait la position des éléments fixes contenus
   // (fenêtres modales, menus) — et rejouerait si l'élément était déplacé.
-  el.addEventListener(
-    'animationend',
-    () => {
-      el.classList.remove(classe)
-      el.style.removeProperty('--delai')
-    },
-    { once: true }
-  )
+  // Retirée aussi si l'animation est interrompue (élément masqué en cours de route :
+  // liste cachée par un formulaire), sans quoi elle rejouerait à son retour. Seule SA
+  // propre animation compte : celles des descendants (onde d'un bouton) remontent
+  // jusqu'ici et ne doivent pas la clore avant l'heure.
+  const finir = (e) => {
+    if (e.target !== el) return
+    el.removeEventListener('animationend', finir)
+    el.removeEventListener('animationcancel', finir)
+    el.classList.remove(classe)
+    el.style.removeProperty('--delai')
+  }
+  el.addEventListener('animationend', finir)
+  el.addEventListener('animationcancel', finir)
 }
 
 function animer(elements, classe) {
@@ -104,6 +109,11 @@ function observerEntrees() {
   requestAnimationFrame(traiter)
 }
 
+// Boutons portant au moins une onde : ce qu'il faudra leur rendre quand la DERNIÈRE se
+// termine. Deux clics rapprochés font deux ondes ; la première, en finissant, ne doit pas
+// retirer le `position` / `overflow` dont la seconde a encore besoin.
+const ondesEnCours = new WeakMap()
+
 function brancherOnde() {
   document.addEventListener(
     'pointerdown',
@@ -116,11 +126,19 @@ function brancherOnde() {
       // Trop petit (icône seule) : l'onde y ferait une tache plutôt qu'un effet.
       if (zone.width < 44 || zone.height < 24) return
 
-      const style = getComputedStyle(bouton)
-      const restaurerPosition = style.position === 'static'
-      const restaurerOverflow = style.overflow !== 'hidden'
-      if (restaurerPosition) bouton.style.position = 'relative'
-      if (restaurerOverflow) bouton.style.overflow = 'hidden'
+      let suivi = ondesEnCours.get(bouton)
+      if (!suivi) {
+        const style = getComputedStyle(bouton)
+        suivi = {
+          nombre: 0,
+          restaurerPosition: style.position === 'static',
+          restaurerOverflow: style.overflow !== 'hidden',
+        }
+        if (suivi.restaurerPosition) bouton.style.position = 'relative'
+        if (suivi.restaurerOverflow) bouton.style.overflow = 'hidden'
+        ondesEnCours.set(bouton, suivi)
+      }
+      suivi.nombre += 1
 
       const taille = Math.max(zone.width, zone.height) * 2.2
       const onde = document.createElement('span')
@@ -130,15 +148,27 @@ function brancherOnde() {
       onde.style.top = `${e.clientY - zone.top - taille / 2}px`
       bouton.appendChild(onde)
 
-      onde.addEventListener(
-        'animationend',
-        () => {
-          onde.remove()
-          if (restaurerPosition) bouton.style.removeProperty('position')
-          if (restaurerOverflow) bouton.style.removeProperty('overflow')
-        },
-        { once: true }
-      )
+      // Fin normale OU interruption (bouton masqué pendant l'onde : le clic a ouvert un
+      // formulaire qui cache la liste). Sans cela, l'onde resterait dans le bouton et
+      // rejouerait quand il réapparaît. `animationcancel` n'étant pas émis par tous les
+      // navigateurs, un minuteur un peu plus long que l'animation (0,55 s) fait filet.
+      let fini = false
+      const finir = () => {
+        if (fini) return
+        fini = true
+        clearTimeout(filet)
+        onde.removeEventListener('animationend', finir)
+        onde.removeEventListener('animationcancel', finir)
+        onde.remove()
+        suivi.nombre -= 1
+        if (suivi.nombre > 0) return
+        ondesEnCours.delete(bouton)
+        if (suivi.restaurerPosition) bouton.style.removeProperty('position')
+        if (suivi.restaurerOverflow) bouton.style.removeProperty('overflow')
+      }
+      const filet = setTimeout(finir, 800)
+      onde.addEventListener('animationend', finir)
+      onde.addEventListener('animationcancel', finir)
     },
     { passive: true }
   )

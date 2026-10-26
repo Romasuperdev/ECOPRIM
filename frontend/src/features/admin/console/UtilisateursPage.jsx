@@ -20,7 +20,7 @@ export default function UtilisateursPage() {
   const superAdmin = useAuthStore((s) => s.superAdmin)
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({ queryKey: ['utilisateurs', 'tous'], queryFn: fetchTousUtilisateurs })
+  const { data, isLoading, error } = useQuery({ queryKey: ['utilisateurs', 'tous'], queryFn: fetchTousUtilisateurs })
 
   const basculer = useMutation({
     mutationFn: ({ u, activer }) => (activer ? activerUtilisateur(u.id) : desactiverUtilisateur(u.id)),
@@ -106,6 +106,7 @@ export default function UtilisateursPage() {
         colonnes={colonnes}
         lignes={data}
         chargement={isLoading}
+        erreur={error}
         vide="Aucun utilisateur enregistré."
       />
     </CarteConsole>
