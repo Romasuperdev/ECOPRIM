@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Lock, Plus, Printer, Trash2 } from 'lucide-react'
+import { CalendarClock, Clock, Lock, Plus, Printer, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
@@ -15,6 +15,7 @@ import {
 } from './emploiApi'
 import { imprimerEmploiDuTemps, imprimerListeClasse } from '../impressions/impressionApi'
 import { anneeSeule } from '../../lib/annee'
+import TrameHoraireModale from './TrameHoraireModale'
 
 export default function EmploiDuTempsPage() {
   const qc = useQueryClient()
@@ -22,6 +23,7 @@ export default function EmploiDuTempsPage() {
   const [cellule, setCellule] = useState(null)   // { jour, heure, creneau? }
   const [saisie, setSaisie] = useState({ matiere: '', salle: '' })
   const [erreur, setErreur] = useState(null)
+  const [trameOuverte, setTrameOuverte] = useState(false)
 
   const { data: ref } = useQuery({ queryKey: ['emploi-referentiels'], queryFn: fetchReferentielsEmploi })
   const { data: listes } = useQuery({ queryKey: ['classes-matieres'], queryFn: fetchClassesEtMatieres })
@@ -101,6 +103,11 @@ export default function EmploiDuTempsPage() {
           <Printer size={16} className="mr-1.5 inline" />
           Liste de la classe
         </Button>
+        <Button variant="outline" title="Jours de cours et plages horaires de la grille"
+                onClick={() => setTrameOuverte(true)}>
+          <Clock size={16} className="mr-1.5 inline" />
+          Trame horaire
+        </Button>
       </div>
 
       {verrouille && (
@@ -121,9 +128,15 @@ export default function EmploiDuTempsPage() {
       {classe && isLoading && <p className="text-muted">Chargement…</p>}
 
       {classe && !isLoading && (heures.length === 0 || jours.length === 0) && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">
-          La trame horaire est vide : renseignez les jours et les plages horaires dans ECONOMAT
-          pour pouvoir bâtir une grille.
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+          <span>
+            La trame horaire est vide : créez les jours de cours et les plages horaires pour
+            pouvoir bâtir une grille.
+          </span>
+          <Button onClick={() => setTrameOuverte(true)}>
+            <Clock size={16} className="mr-1.5 inline" />
+            Créer la trame horaire
+          </Button>
         </div>
       )}
 
@@ -178,6 +191,10 @@ export default function EmploiDuTempsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {trameOuverte && (
+        <TrameHoraireModale jours={jours} heures={heures} onFermer={() => setTrameOuverte(false)} />
       )}
 
       {cellule && (

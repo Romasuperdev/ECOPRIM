@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -14,8 +15,9 @@ use Throwable;
  * Deux principes tenus dans tout ce fichier :
  *
  * 1. Chaque indicateur est calculé isolément (`sansErreur`). Une vue absente ou
- *    une table injoignable renvoie null pour ce seul chiffre, au lieu de faire
- *    tomber la page entière.
+ *    une table injoignable renvoie null pour ce seul chiffre (« indisponible », que
+ *    l'écran affiche « — »), au lieu de faire tomber la page entière — et jamais 0,
+ *    qui se lirait comme un vrai chiffre.
  * 2. Tout est borné à l'année de travail ET à l'établissement de travail. Le
  *    filtre établissement passe par les classes, faute de colonne dédiée sur
  *    T_ETUDIANT — voir PerimetreEtablissement.
@@ -38,20 +40,24 @@ class DashboardController extends Controller
                 'code' => PerimetreEtablissement::code(),
                 'nom' => PerimetreEtablissement::nom(),
             ],
-            // Le front affiche un avertissement dès que `applique` est faux alors qu'un
-            // établissement est choisi : les chiffres sont alors ceux de la société, et
-            // il faut que cela se voie. `classes_sans_etablissement` dit quoi corriger.
+            // État du périmètre, pour que l'écran puisse expliquer des chiffres vides.
+            // `raison` vaut 'referentiel_injoignable' quand le périmètre n'a pas pu être lu :
+            // il est alors FERMÉ (aucune donnée), jamais élargi à toute la société — c'est
+            // à l'écran d'en faire un message, rien ne l'affiche côté serveur.
+            // `classes_sans_etablissement` dit quoi corriger dans le référentiel.
             'perimetre' => [
                 'applique' => $this->sansErreur(fn () => PerimetreEtablissement::applique()) ?? false,
                 'raison' => $this->sansErreur(fn () => PerimetreEtablissement::raison()),
                 'classes_sans_etablissement' => $this->sansErreur(
                     fn () => PerimetreEtablissement::classesOrphelines()
-                ) ?? 0,
+                ),
             ],
             'effectifs' => $effectifs,
             'moyenne_generale' => $this->sansErreur(fn () => $this->moyenneGenerale()),
             'absences_ce_mois' => $absencesCeMois,
-            'assiduite' => $this->sansErreur(fn () => $this->assiduite($effectifs['total_eleves'])),
+            'assiduite' => $effectifs['total_eleves'] === null
+                ? null
+                : $this->sansErreur(fn () => $this->assiduite($effectifs['total_eleves'])),
             'taux_reussite' => $this->sansErreur(fn () => $this->tauxReussite()),
             'taux_encadrement' => $this->sansErreur(fn () => $this->tauxEncadrement($codesClasses)),
             'repartition_niveaux' => $this->sansErreur(fn () => $this->repartitionNiveaux()) ?? [],
@@ -66,16 +72,16 @@ class DashboardController extends Controller
     private function effectifs(): array
     {
         return [
-            'total_eleves' => $this->sansErreur(fn () => $this->eleves()->count()) ?? 0,
+            'total_eleves' => $this->sansErreur(fn () => $this->eleves()->count()),
             'total_classes' => $this->sansErreur(fn () => count(
                 PerimetreEtablissement::codesClasses()
                     ?? ContexteScolaire::appliquer(
                         DB::connection('economat')->table('T_CLASSE'), 'ANNEE'
                     )->pluck('CodeClasse')->all()
-            )) ?? 0,
+            )),
             // Les enseignants ne portent ni classe ni établissement : on les compte
             // via leurs affectations dès qu'un établissement est choisi.
-            'total_enseignants' => $this->sansErreur(fn () => $this->enseignants()) ?? 0,
+            'total_enseignants' => $this->sansErreur(fn () => $this->enseignants()),
         ];
     }
 
@@ -343,6 +349,10 @@ class DashboardController extends Controller
      * Les dix prochaines échéances, toutes natures confondues : évaluations
      * planifiées, devoirs à rendre, événements du calendrier. Ces trois tables
      * sont propres à NEXORA (ecoprim), donc fiables et datées.
+     *
+     * Bornées au périmètre comme leurs écrans : évaluations et devoirs suivent leur
+     * classe ; un événement aussi, et celui sans classe (tout l'établissement) reste
+     * visible — sauf quand il n'y a rien à montrer (même règle qu'EvenementController).
      */
     private function agenda(): array
     {
@@ -351,13 +361,23 @@ class DashboardController extends Controller
         $classes = $this->libellesClasses();
         $nomClasse = fn ($code) => $code ? ($classes[$code] ?? $code) : null;
 
-        $lire = function (string $table, string $colonneDate, string $type) use ($annees, $aujourdhui) {
+        if (PerimetreEtablissement::rienAMontrer()) {
+            return [];
+        }
+        $codes = PerimetreEtablissement::codesClasses();
+
+        $lire = function (string $table, string $colonneDate, string $type, bool $sansClasseVisible = false) use ($annees, $aujourdhui, $codes) {
             $requete = DB::connection('ecoprim')->table($table)
                 ->whereDate($colonneDate, '>=', $aujourdhui)
                 ->orderBy($colonneDate)
                 ->limit(10);
             if ($annees !== []) {
                 $requete->whereIn('annee', $annees);
+            }
+            if ($codes !== null) {
+                $requete->where(fn ($w) => $sansClasseVisible
+                    ? $w->whereNull('classe_code')->orWhereIn('classe_code', $codes)
+                    : $w->whereIn('classe_code', $codes));
             }
 
             return $requete->get()->map(fn ($l) => [
@@ -372,7 +392,7 @@ class DashboardController extends Controller
         return collect()
             ->concat($this->sansErreur(fn () => $lire('evaluations', 'date', 'evaluation')) ?? [])
             ->concat($this->sansErreur(fn () => $lire('devoirs', 'date_remise', 'devoir')) ?? [])
-            ->concat($this->sansErreur(fn () => $lire('evenements', 'date_debut', 'evenement')) ?? [])
+            ->concat($this->sansErreur(fn () => $lire('evenements', 'date_debut', 'evenement', true)) ?? [])
             ->sortBy('date')
             ->take(10)
             ->map(fn ($l) => [
@@ -421,12 +441,18 @@ class DashboardController extends Controller
         'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc',
     ];
 
-    /** Isole chaque indicateur : une source manquante ne fait pas tomber la page. */
+    /**
+     * Isole chaque indicateur : une source manquante ne fait pas tomber la page. Le chiffre
+     * devient null (« indisponible »), et la cause est consignée — sans quoi une panne
+     * passerait pour un tableau de bord vide.
+     */
     private function sansErreur(callable $calcul)
     {
         try {
             return $calcul();
         } catch (Throwable $e) {
+            Log::warning('Indicateur du tableau de bord indisponible.', ['erreur' => $e->getMessage()]);
+
             return null;
         }
     }

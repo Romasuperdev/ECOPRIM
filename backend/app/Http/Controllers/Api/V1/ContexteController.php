@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Console\Affectation;
+use App\Models\RhUser;
 use App\Models\AnneeScolaire;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
@@ -11,6 +11,7 @@ use App\Models\Console\Etablissement;
 use App\Services\BEtablissementEcrivain;
 use App\Services\PhotoEleveStockage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -68,11 +69,12 @@ class ContexteController extends Controller
         }
 
         $rattachement = trim((string) ($request->user()->Etab ?? ''));
-        if ($rattachement !== '' && $disponibles->contains('code', $rattachement)) {
-            $connu = $disponibles->firstWhere('code', $rattachement);
-
+        $connu = $rattachement !== ''
+            ? $disponibles->first(fn ($d) => PerimetreEtablissement::memeCode($d['code'], $rattachement))
+            : null;
+        if ($connu) {
             return [
-                'code' => $rattachement,
+                'code' => $connu['code'],
                 'nom' => $connu['intitule'] ?? $rattachement,
                 'par_defaut' => true,
             ];
@@ -144,7 +146,7 @@ class ContexteController extends Controller
     {
         $data = $request->validate(['code' => ['required', 'string', 'max:20']]);
 
-        $choix = $this->disponibles($request)->firstWhere('code', $data['code']);
+        $choix = $this->disponibles($request)->first(fn ($d) => PerimetreEtablissement::memeCode($d['code'], $data['code']));
 
         if (! $choix) {
             throw ValidationException::withMessages([
@@ -172,18 +174,24 @@ class ContexteController extends Controller
     }
 
     /**
-     * Un Super Admin voit tous les établissements ; les autres uniquement ceux
-     * auxquels ils sont affectés. Les établissements désactivés dans ECOPRIM sont exclus.
+     * Un Super Admin voit tous les établissements ; les autres uniquement ceux de leur
+     * périmètre — la même règle que les données (PerimetreEtablissement::etablissementsAutorises) :
+     * affectations actives et non échues, et pour un Admin Société tous les établissements
+     * de sa société. Les établissements désactivés dans ECOPRIM sont exclus.
      */
     private function disponibles(Request $request)
     {
         $user = $request->user();
         $surcouche = $this->surcouche();
 
-        $codesAutorises = null;
-        if (! (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin())) {
-            $codesAutorises = Affectation::where('rh_user_id', $user->Id ?? 0)
-                ->pluck('etablissement_code')->unique()->all();
+        try {
+            $codesAutorises = $user instanceof RhUser
+                ? PerimetreEtablissement::etablissementsAutorises($user)
+                : [];
+        } catch (Throwable $e) {
+            // Affectations illisibles : rien à proposer, plutôt que tout.
+            Log::error('Établissements disponibles illisibles.', ['erreur' => $e->getMessage()]);
+            $codesAutorises = [];
         }
 
         $lignes = collect();
@@ -210,9 +218,22 @@ class ContexteController extends Controller
 
         return $lignes
             ->filter(fn ($r) => $r['actif'])
-            ->filter(fn ($r) => $codesAutorises === null || in_array($r['code'], $codesAutorises, true))
-            ->filter(fn ($r) => $deLaSociete === null || in_array($r['code'], $deLaSociete, true))
+            // Comparaison sans casse : SQL Server ne distingue pas « auriak » de « AURIAK »,
+            // et un code saisi différemment ici et là ne doit pas faire disparaître l'école.
+            ->filter(fn ($r) => $codesAutorises === null || $this->contient($codesAutorises, $r['code']))
+            ->filter(fn ($r) => $deLaSociete === null || $this->contient($deLaSociete, $r['code']))
             ->sortBy('intitule');
+    }
+
+    private function contient(array $codes, string $code): bool
+    {
+        foreach ($codes as $c) {
+            if (PerimetreEtablissement::memeCode($c, $code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function ligne(string $code, ?object $src, ?Etablissement $eco): array

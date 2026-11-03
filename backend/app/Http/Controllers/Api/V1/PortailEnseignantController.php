@@ -191,7 +191,52 @@ class PortailEnseignantController extends Controller
             $this->assertClasseAutorisee($classe);
         }
 
-        return $this->cahier->referentiels($request);
+        $ref = $this->cahier->referentiels($request);
+        if (! $classe) {
+            return $ref;
+        }
+        $donnees = $ref instanceof \Illuminate\Http\JsonResponse ? $ref->getData(true) : (array) $ref;
+
+        // Lignes du cahier que CET enseignant peut écrire : null = toutes (titulaire).
+        return $donnees + ['matieres_modifiables' => $this->matieresModifiables($classe)];
+    }
+
+    /**
+     * Matières du cahier qu'un enseignant peut écrire dans cette classe : les siennes ;
+     * toutes s'il en est le titulaire (au primaire, le maître de la classe tient le cahier
+     * entier). null = toutes. Une matière assurée par un collègue (anglais, EPS…) reste
+     * à ce collègue.
+     */
+    private function matieresModifiables(string $classe): ?array
+    {
+        $prof = $this->professeur();
+        if (! $prof) {
+            return [];
+        }
+
+        try {
+            $lignes = DB::connection('economat')->table('T_CORPROFCLASSE')
+                ->where('CodeProfesseur', $prof->Code)
+                ->where('CodeClasse', $classe)
+                ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'ANNEE'))
+                ->get();
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if ($lignes->contains(fn ($l) => (bool) ($l->Principale ?? false))) {
+            return null;
+        }
+
+        return $lignes->map(fn ($l) => trim((string) $l->CodeMatiere))->filter()->unique()->values()->all();
+    }
+
+    private function assertMatiereModifiable(?string $classe, ?string $matiere): void
+    {
+        $autorisees = $this->matieresModifiables((string) $classe);
+        if ($autorisees !== null && ! in_array(trim((string) $matiere), $autorisees, true)) {
+            throw new HttpException(403, "Cette matière est assurée par un collègue dans cette classe : vous ne pouvez pas l'écrire.");
+        }
     }
 
     public function cahierIndex(Request $request)
@@ -224,14 +269,18 @@ class PortailEnseignantController extends Controller
 
     public function cahierLigne(Request $request, int $entete)
     {
-        $this->assertClasseAutorisee($this->classeDuCahier($entete));
+        $classe = $this->classeDuCahier($entete);
+        $this->assertClasseAutorisee($classe);
+        $this->assertMatiereModifiable($classe, $request->input('matiere'));
 
         return $this->cahier->enregistrerLigne($request, $entete);
     }
 
     public function cahierLigneSupprimer(int $entete, string $matiere)
     {
-        $this->assertClasseAutorisee($this->classeDuCahier($entete));
+        $classe = $this->classeDuCahier($entete);
+        $this->assertClasseAutorisee($classe);
+        $this->assertMatiereModifiable($classe, $matiere);
 
         return $this->cahier->supprimerLigne($entete, $matiere);
     }

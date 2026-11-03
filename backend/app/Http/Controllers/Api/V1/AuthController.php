@@ -37,6 +37,19 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => ['Ce compte est désactivé.']]);
         }
 
+        // Rôles illisibles (base console injoignable) : on ne sait pas si ce compte a
+        // droit à l'application complète ou seulement à un portail restreint. Dans le
+        // doute, pas de session — plutôt qu'une session où tout serait refusé.
+        if ($rhUser->typePortail() === RhUser::PORTAIL_INDISPONIBLE) {
+            abort(503, "Vos droits d'accès n'ont pas pu être vérifiés pour l'instant. Réessayez dans quelques minutes.");
+        }
+
+        // Un compte sans établissement n'entre ni dans l'application ni dans la console,
+        // sauf le Super Admin.
+        if (! $rhUser->estAffecteAUnEtablissement()) {
+            abort(403, RhUser::MESSAGE_SANS_ETABLISSEMENT);
+        }
+
         Auth::login($rhUser);
         $request->session()->regenerate();
         // Le contexte de travail appartient au compte, pas au navigateur : un compte qui se
@@ -109,7 +122,11 @@ class AuthController extends Controller
             'super_admin' => $rhUser->isSuperAdmin(),
             'admin_societe' => $rhUser->estAdminSociete(),
             'admin_etablissement' => $rhUser->estAdminEtablissement(),
-            'peut_console' => $rhUser->peutAccederConsole(),
+            // La console (sociétés, établissements, comptes de la plateforme) est réservée
+            // au Super Admin. Les administrateurs (Admin Société / Établissement) ont la
+            // main sur toute l'APPLICATION, y compris Configuration administrative.
+            'peut_console' => $rhUser->isSuperAdmin(),
+            'administrateur' => $rhUser->peutAccederConsole(),
             // Ce que l'écran a le droit de proposer (App\Support\Permissions) : il masque
             // ce qui finirait en refus — la saisie des notes pour un administrateur, par
             // exemple. Affichage seulement, le serveur revérifie à chaque appel.
@@ -138,7 +155,16 @@ class AuthController extends Controller
         $rhUser = $this->trouverParIdentifiant($donnees['identifiant']);
 
         $utilisable = $rhUser && ! $rhUser->estSupprime();
+
+        // Super Admin : il travaille sur tous les établissements.
+        if ($utilisable && $rhUser->isSuperAdmin()) {
+            return response()->json(['etablissement' => '(Tous les établissements)', 'societe' => null]);
+        }
+
         $code = $utilisable ? trim((string) $rhUser->Etab) : '';
+        if ($utilisable && $code === '') {
+            $code = $this->premierEtablissementAffecte($rhUser);
+        }
 
         return response()->json([
             'etablissement' => $code !== '' ? $this->libelleEtablissement($code) : null,
@@ -147,14 +173,17 @@ class AuthController extends Controller
     }
 
     /**
-     * Société de rattachement, lue dans les affectations de la console. Un Super Admin
-     * n'est rattaché à aucune société en particulier : on le dit explicitement plutôt que
-     * de laisser le champ vide, qui se lirait comme un compte mal configuré.
+     * Société de rattachement, lue dans les affectations de la console.
+     *
+     * Un Super Admin n'est rattaché à aucune société en particulier : null, comme un
+     * compte sans rattachement. L'endpoint est public ; y écrire « Super Administrateur »
+     * désignait à quiconque tapait un identifiant LE compte qui ouvre toute la suite —
+     * la cible à privilégier pour un essai de mots de passe.
      */
     private function libelleSociete(RhUser $rhUser): ?string
     {
         if ($rhUser->isSuperAdmin()) {
-            return 'Toutes les sociétés (Super Administrateur)';
+            return null;
         }
 
         try {
@@ -194,6 +223,19 @@ class AuthController extends Controller
         }
 
         return $code;
+    }
+
+    /** Premier établissement des affectations actives (compte sans RH_USER.Etab). */
+    private function premierEtablissementAffecte(RhUser $rhUser): string
+    {
+        try {
+            return trim((string) DB::connection('ecoprim')->table('console_affectations')
+                ->where('rh_user_id', $rhUser->Id)->where('actif', true)
+                ->whereNotNull('etablissement_code')->where('etablissement_code', '<>', '')
+                ->orderBy('id')->value('etablissement_code'));
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /** Intitulé de l'établissement ; à défaut, son code brut. */

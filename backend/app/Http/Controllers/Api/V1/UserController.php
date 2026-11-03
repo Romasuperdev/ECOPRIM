@@ -9,8 +9,10 @@ use App\Models\Console\Role;
 use App\Models\RhUser;
 use App\Models\Console\Etablissement;
 use App\Services\RhUserEcrivain;
+use App\Support\ElevesEtablissement;
 use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -35,8 +37,14 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
+        // « Configuration administrative » de l'application : les comptes affectés à
+        // l'établissement de travail (affectation console active, ou rattachement RH_USER.Etab).
+        // `etablissement` : « courant » (celui de la session) ou un code d'établissement.
+        $filtre = trim((string) $request->query('etablissement', ''));
+        $code = $filtre === 'courant' ? \App\Support\PerimetreEtablissement::code() : ($filtre !== '' ? $filtre : null);
+
         $users = RhUser::query()
-            ->tap(fn ($q) => $this->cloisonner($q))
+            ->tap(fn ($q) => $filtre !== '' ? $this->deLEtablissement($q, $code) : $this->cloisonner($q))
             ->when($request->filled('q'), function ($query) use ($request) {
                 $q = $request->input('q');
                 $query->where(fn ($w) => $w->where('Nom', 'like', "%{$q}%")
@@ -84,22 +92,34 @@ class UserController extends Controller
             'profil' => ['nullable', 'string', 'max:'.$l['profil']],
             'code_app' => ['nullable', 'string', 'max:'.$l['code_app']],
             'super_admin' => ['nullable', 'boolean'],
-            // Affectation posée dans le même geste que la création. Obligatoire pour un
-            // Admin Société : sans elle, le compte qu'il crée sortirait de sa vue.
+            // Affectation posée dans le même geste que la création. OBLIGATOIRE pour tout
+            // compte qui n'est pas Super Admin : un compte sans établissement ne peut pas se
+            // connecter (AuthController::login), le créer ainsi ne servirait à rien.
             'etablissement_code' => [
-                $creation && ! $this->estSuperAdmin() ? 'required' : 'nullable',
+                Rule::requiredIf(fn () => $creation && ! $this->creeUnSuperAdmin()),
+                'nullable',
                 'string',
                 Rule::exists('ecoprim.console_etablissements', 'code'),
             ],
+            // Rôle facultatif : un compte affecté sans rôle fait les traitements, pas le
+            // paramétrage (Permissions::SANS_ROLE).
             'role_id' => [
-                $creation && ! $this->estSuperAdmin() ? 'required' : 'nullable',
+                'nullable',
                 Rule::exists('ecoprim.console_roles', 'id'),
             ],
             // Matricules d'élèves à rattacher — pertinent seulement pour le rôle Parent,
             // ignoré silencieusement pour tout autre rôle (voir AffectationController).
             'eleves' => ['nullable', 'array'],
+            // Existence seulement ici ; l'appartenance à l'établissement de l'affectation
+            // est vérifiée dans store() (ElevesEtablissement).
             'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
         ];
+    }
+
+    /** Le compte créé est-il lui-même Super Admin ? (seul un Super Admin peut le faire) */
+    private function creeUnSuperAdmin(): bool
+    {
+        return $this->estSuperAdmin() && request()->boolean('super_admin');
     }
 
     private function estSuperAdmin(): bool
@@ -138,20 +158,85 @@ class UserController extends Controller
     }
 
     /**
-     * Un compte Super Admin ne se gère qu'entre Super Admins.
+     * Un compte ne se gère que depuis un niveau d'administration STRICTEMENT supérieur
+     * (voir RhUser::peutGererCompte) — le Super Admin gère tout, chacun gère le sien.
      *
      * Sans cela, il suffisait qu'un Super Admin ait une affectation dans la société pour
      * qu'un Admin Société puisse le voir — et donc réinitialiser son mot de passe, puis
      * se connecter à sa place. Le cloisonnement par société ne protège pas de cela : il
-     * décide qui est VISIBLE, pas qui peut être touché.
+     * décide qui est VISIBLE, pas qui peut être touché. Le test portait sur le seul bit
+     * SuperAdmin de RH_USER ; il passe désormais par isSuperAdmin() et couvre aussi les
+     * Admins Société et Établissement.
      */
     private function assertCibleGerable(RhUser $rh): void
     {
-        abort_if(
-            (bool) $rh->SuperAdmin && ! $this->estSuperAdmin(),
-            403,
-            'Seul un Super Administrateur peut agir sur un compte Super Administrateur.'
-        );
+        if ($rh->isSuperAdmin() && ! $this->estSuperAdmin()) {
+            abort(403, 'Seul un Super Administrateur peut agir sur un compte Super Administrateur.');
+        }
+
+        abort_unless(auth()->user()->peutGererCompte($rh), 403,
+            "Ce compte a un niveau d'administration égal ou supérieur au vôtre : vous ne pouvez pas le gérer.");
+    }
+
+    /**
+     * RH_USER est commun à toute la suite : un mot de passe, un login ou une
+     * désactivation posés ici valent dans TOUTES les applications. Un administrateur ne
+     * modifie donc l'identité d'un compte que si ce compte est ENTIÈREMENT dans son
+     * périmètre :
+     *   - toutes ses affectations console dans ses sociétés (Admin Société) ou ses
+     *     établissements (Admin Établissement) ;
+     *   - aucun rattachement de plateforme (societe_utilisateur) à une autre société ;
+     *   - aucun rôle d'une autre application de la suite (role_user), ni code
+     *     applicatif étranger (RH_USER.CodeApp, quand ECOPRIM_CODE_APP est renseigné).
+     * Un compte partagé relève du Super Administrateur. Lecture impossible : 503, jamais
+     * « dans le périmètre ».
+     */
+    private function assertEntierementDansPerimetre(RhUser $rh): void
+    {
+        $user = auth()->user();
+        if ($user->isSuperAdmin() || (int) $rh->Id === (int) $user->Id) {
+            return;
+        }
+
+        $refus = fn (string $raison) => abort(403,
+            "Ce compte est partagé {$raison} : seul un Super Administrateur peut modifier son identité, son mot de passe ou son statut.");
+
+        $societes = $user->societesAdministrees();
+        $etablissements = $user->etablissementsAdministres();
+        // Sociétés que l'appelant couvre : les siennes, ou celles de ses établissements.
+        $societesCouvertes = $societes !== [] ? $societes
+            : Etablissement::whereIn('code', $etablissements)->pluck('societe_code')
+                ->map(fn ($c) => trim((string) $c))->filter()->unique()->values()->all();
+
+        try {
+            $affectations = Affectation::where('rh_user_id', $rh->Id)->get(['societe_code', 'etablissement_code']);
+            $rattachements = DB::connection('master')->table('societe_utilisateur')
+                ->where('user_id', $rh->Id)->pluck('societe_id')
+                ->map(fn ($c) => trim((string) $c))->filter()->unique()->values()->all();
+            $rolesAutresApplications = $rh->user_id
+                && DB::connection('master')->table('role_user')->where('user_id', $rh->user_id)->exists();
+        } catch (\Throwable $e) {
+            abort(503, "Impossible de vérifier les rattachements de ce compte pour l'instant. Réessayez plus tard.");
+        }
+
+        foreach ($affectations as $a) {
+            $dedans = $societes !== []
+                ? in_array(trim((string) $a->societe_code), $societes, true)
+                : in_array(trim((string) $a->etablissement_code), $etablissements, true);
+            if (! $dedans) {
+                $refus($societes !== [] ? 'avec une autre société' : 'avec un autre établissement');
+            }
+        }
+
+        if (array_diff($rattachements, $societesCouvertes) !== []) {
+            $refus('avec une autre société');
+        }
+
+        $codeApp = trim((string) config('ecoprim.code_app'));
+        $codeAppCompte = trim((string) $rh->CodeApp);
+        if ($rolesAutresApplications || ($codeApp !== '' && $codeAppCompte !== '' && $codeAppCompte !== $codeApp)) {
+            $refus('avec une autre application de la suite');
+        }
     }
 
     /** Restreint la liste aux comptes affectés dans la société courante. */
@@ -200,8 +285,54 @@ class UserController extends Controller
     {
         $query = RhUser::query();
         $this->cloisonner($query);
+        $trouve = $query->where('Id', $user)->first();
+        if ($trouve) {
+            return $trouve;
+        }
+
+        // Compte de l'établissement de travail (écran Configuration administrative).
+        $query = RhUser::query();
+        $this->deLEtablissement($query, \App\Support\PerimetreEtablissement::code()
+            ?: (trim((string) request()->query('etablissement', '')) ?: null));
 
         return $query->where('Id', $user)->firstOrFail();
+    }
+
+    /**
+     * Comptes affectés à l'établissement de travail de l'application (session
+     * etablissement_code) : affectation console active, ou RH_USER.Etab. Un établissement
+     * hors du périmètre de l'appelant ne montre rien.
+     */
+    private function deLEtablissement($query, ?string $code): void
+    {
+        $user = auth()->user();
+
+        if ($code === null) {
+            // Pas d'établissement de travail choisi : la liste habituelle du périmètre.
+            $this->cloisonner($query);
+
+            return;
+        }
+
+        $autorises = \App\Support\PerimetreEtablissement::etablissementsAutorises($user);
+        if ($autorises !== null && ! collect($autorises)->contains(fn ($c) => \App\Support\PerimetreEtablissement::memeCode($c, $code))) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        try {
+            $ids = Affectation::query()
+                ->whereRaw('UPPER(etablissement_code) = ?', [mb_strtoupper($code)])
+                ->where('actif', true)
+                ->where(fn ($q) => $q->whereNull('date_fin')->orWhere('date_fin', '>=', now()->toDateString()))
+                ->pluck('rh_user_id')->unique()->values()->all();
+        } catch (\Throwable $e) {
+            $ids = [];
+        }
+
+        $query->where(fn ($q) => $q->whereIn('Id', $ids ?: [0])
+            ->orWhereRaw('UPPER(LTRIM(RTRIM(Etab))) = ?', [mb_strtoupper(trim($code))]));
     }
 
     public function store(Request $request)
@@ -222,17 +353,33 @@ class UserController extends Controller
 
         // Un Admin Établissement (sans le niveau société) ne peut pas conférer le rôle
         // Admin Société, pas même à la création : il se donnerait un accès qui dépasse
-        // son propre périmètre.
+        // son propre périmètre. Reconnu par son code seul, jamais par son nom.
         if (! empty($data['role_id']) && ! auth()->user()->peutAccederNiveauSociete()) {
             $role = Role::find($data['role_id']);
-            $estRoleAdminSociete = $role && ($role->code === RhUser::ROLE_ADMIN_SOCIETE || $role->nom === 'Admin Société');
-            abort_if($estRoleAdminSociete, 403, "Vous ne pouvez pas attribuer le rôle Admin Société.");
+            abort_if($role && $role->estRoleAdminSociete(), 403, "Vous ne pouvez pas attribuer le rôle Admin Société.");
+        }
+
+        // Enfants d'un compte Parent : vérifiés AVANT de créer le compte, pour ne pas
+        // laisser un compte orphelin derrière un refus.
+        $roleChoisi = ! empty($data['role_id']) ? Role::find($data['role_id']) : null;
+        $estParent = $roleChoisi && $roleChoisi->code === RhUser::ROLE_PARENT && ! empty($data['etablissement_code']);
+        if ($estParent && ! empty($data['eleves'])) {
+            ElevesEtablissement::exiger($data['eleves'], $etab->code);
+        }
+
+        // Le rattachement (RH_USER.Etab) suit l'établissement d'affectation s'il n'est pas
+        // donné : c'est lui qu'affiche la page de connexion.
+        if (empty($data['etab']) && ! empty($data['etablissement_code'])) {
+            $data['etab'] = $data['etablissement_code'];
         }
 
         $id = $this->ecrivain->creer($data);
 
         // L'affectation suit immédiatement la création, pour que le compte apparaisse
         // dans la liste de celui qui vient de le créer.
+        if (! empty($data['etablissement_code']) && empty($data['role_id'])) {
+            $data['role_id'] = Role::sansRole()->id;
+        }
         if (! empty($data['etablissement_code']) && ! empty($data['role_id'])) {
             $affectation = Affectation::create([
                 'rh_user_id' => $id,
@@ -242,8 +389,7 @@ class UserController extends Controller
                 'actif' => true,
             ]);
 
-            $role = Role::find($data['role_id']);
-            if ($role && $role->code === RhUser::ROLE_PARENT && ! empty($data['eleves'])) {
+            if ($estParent && ! empty($data['eleves'])) {
                 foreach (collect($data['eleves'])->map(fn ($m) => trim((string) $m))->filter()->unique() as $matricule) {
                     AffectationEleve::create(['affectation_id' => $affectation->id, 'eleve_matricule' => $matricule]);
                 }
@@ -257,6 +403,7 @@ class UserController extends Controller
     {
         $rh = $this->trouverDansPerimetre($user);
         $this->assertCibleGerable($rh);
+        $this->assertEntierementDansPerimetre($rh);
         $data = $this->filtrerSuperAdmin($request->validate($this->regles(false, (int) $rh->Id)));
 
         if ($this->ecrivain->loginExiste($data['login'], (int) $rh->Id)) {
@@ -272,6 +419,7 @@ class UserController extends Controller
     {
         $rh = $this->trouverDansPerimetre($user);
         $this->assertCibleGerable($rh);
+        $this->assertEntierementDansPerimetre($rh);
         $this->ecrivain->definirActif((int) $rh->Id, true);
 
         return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
@@ -282,6 +430,7 @@ class UserController extends Controller
     {
         $rh = $this->trouverDansPerimetre($user);
         $this->assertCibleGerable($rh);
+        $this->assertEntierementDansPerimetre($rh);
         $this->ecrivain->definirActif((int) $rh->Id, false);
 
         return response()->json($this->ligne(RhUser::findOrFail($rh->Id)));
@@ -290,11 +439,16 @@ class UserController extends Controller
     /**
      * Réinitialise le mot de passe d'un compte, sans passer par le formulaire complet
      * d'édition — action ponctuelle, distincte de `update()`.
+     *
+     * Le mot de passe vaut pour toute la suite : refusé dès que le compte a une
+     * affectation, un rattachement ou un rôle hors du périmètre de l'appelant (voir
+     * assertEntierementDansPerimetre).
      */
     public function reinitialiserMotDePasse(Request $request, string $user)
     {
         $rh = $this->trouverDansPerimetre($user);
         $this->assertCibleGerable($rh);
+        $this->assertEntierementDansPerimetre($rh);
         $data = $request->validate(['mot_de_passe' => ['required', 'string', 'min:6', 'max:100']]);
 
         $this->ecrivain->modifier((int) $rh->Id, $data);

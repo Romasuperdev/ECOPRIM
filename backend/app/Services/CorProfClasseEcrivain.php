@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -70,18 +71,17 @@ class CorProfClasseEcrivain
         return $this->table->trouver($code);
     }
 
-    /** Affectation existante pour ce couple classe + matière sur l'année. */
+    /**
+     * Affectation existante pour ce couple classe + matière sur l'année. Une erreur de
+     * lecture remonte : « aucune » par défaut créait une seconde affectation en doublon.
+     */
     public function pourClasseEtMatiere(string $classe, string $matiere, ?string $annee)
     {
-        try {
-            return $this->requete()
-                ->where('CodeClasse', $classe)
-                ->where('CodeMatiere', $matiere)
-                ->when($annee, fn ($q) => $q->where('ANNEE', $annee))
-                ->first();
-        } catch (Throwable $e) {
-            return null;
-        }
+        return $this->requete()
+            ->where('CodeClasse', $classe)
+            ->where('CodeMatiere', $matiere)
+            ->when($annee, fn ($q) => $q->where('ANNEE', $annee))
+            ->first();
     }
 
     /**
@@ -97,7 +97,13 @@ class CorProfClasseEcrivain
                 ->where('Code', '!=', $code)
                 ->update(['Principale' => false]);
         } catch (Throwable $e) {
-            // Colonne absente sur cette base : on n'insiste pas, le reste fonctionne.
+            // Colonne Principale VRAIMENT absente sur cette base (constaté par le schéma) :
+            // il n'y a pas de titulaire à désigner. Toute autre erreur remonte — l'avaler
+            // laissait croire le titulaire désigné alors que rien n'avait été écrit.
+            if (Schema::connection('economat')->hasColumn('T_CORPROFCLASSE', 'Principale')) {
+                throw $e;
+            }
+
             return;
         }
 

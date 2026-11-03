@@ -291,9 +291,15 @@ class SaisieEconomatTest extends TestCase
 
     // --- Photo de l'élève (dossier partagé + T_ETUDIANT.Photo) ---
 
+    /**
+     * Un dossier PAR TEST, pas par processus : sous Windows, le faux fichier téléversé
+     * garde un descripteur ouvert sur la photo déplacée jusqu'à la fin du processus. Le
+     * dossier commun d'un test précédent ne pouvait donc pas être vidé (suppression « en
+     * attente »), et la photo M001.jpg suivante échouait en « Accès refusé ».
+     */
     private function dossierPhotos(): string
     {
-        $dossier = sys_get_temp_dir().'/nexora-photos-'.getmypid();
+        $dossier = sys_get_temp_dir().'/nexora-photos-'.getmypid().'-'.uniqid();
         config(['nexora.photos_eleves.chemin' => $dossier]);
 
         return $dossier;
@@ -347,6 +353,61 @@ class SaisieEconomatTest extends TestCase
         $this->postJson("/api/v1/inscriptions/{$code}/photo", [
             'photo' => UploadedFile::fake()->create('dossier.pdf', 40, 'application/pdf'),
         ])->assertStatus(422)->assertJsonValidationErrors('photo');
+    }
+
+    /**
+     * L'extension vient du CONTENU, pas du nom envoyé : des octets JPEG nommés « x.html »
+     * (le format passe la validation `image`) s'enregistrent en « .jpg », et une ancienne
+     * photo d'une autre extension disparaît.
+     */
+    public function test_l_extension_de_la_photo_vient_du_contenu_et_non_du_nom(): void
+    {
+        $dossier = $this->dossierPhotos();
+        File::ensureDirectoryExists($dossier);
+        file_put_contents($dossier.'/M001.png', 'ancienne');
+
+        $code = $this->postJson('/api/v1/inscriptions', $this->eleveValide(['matricule' => 'M001']))
+            ->assertCreated()->json('id');
+
+        $jpeg = UploadedFile::fake()->image('portrait.jpg');
+        $deguise = new UploadedFile($jpeg->getPathname(), 'x.html', 'text/html', null, true);
+
+        $this->postJson("/api/v1/inscriptions/{$code}/photo", ['photo' => $deguise])
+            ->assertOk()->assertJsonPath('photo', 'M001.jpg');
+
+        $this->assertFileExists($dossier.'/M001.jpg');
+        $this->assertFileDoesNotExist($dossier.'/M001.html');
+        $this->assertFileDoesNotExist($dossier.'/M001.png');
+    }
+
+    /** Au niveau du service : un « x.php » au contenu JPEG est enregistré en « .jpg ». */
+    public function test_le_stockage_ignore_l_extension_php_du_client(): void
+    {
+        $dossier = $this->dossierPhotos();
+
+        $jpeg = UploadedFile::fake()->image('portrait.jpg');
+        $php = new UploadedFile($jpeg->getPathname(), 'x.php', 'application/x-php', null, true);
+
+        $nom = app(\App\Services\PhotoEleveStockage::class)->enregistrer($php, 'M002');
+
+        $this->assertSame('M002.jpg', $nom);
+        $this->assertFileExists($dossier.'/M002.jpg');
+        $this->assertFileDoesNotExist($dossier.'/M002.php');
+    }
+
+    /** Un contenu qui n'est pas une image admise est refusé, quel que soit son nom. */
+    public function test_le_stockage_refuse_un_contenu_qui_n_est_pas_une_image(): void
+    {
+        $this->dossierPhotos();
+        // Un vrai fichier téléversé, pas un faux : le faux déduit son type MIME du NOM.
+        $chemin = tempnam(sys_get_temp_dir(), 'nx');
+        file_put_contents($chemin, '<?php echo 1;');
+        $faux = new UploadedFile($chemin, 'photo.jpg', 'image/jpeg', null, true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Format de photo non pris en charge');
+
+        app(\App\Services\PhotoEleveStockage::class)->enregistrer($faux, 'M003');
     }
 
     public function test_la_photo_est_servie_et_404_si_absente(): void

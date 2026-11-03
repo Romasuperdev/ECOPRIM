@@ -54,6 +54,12 @@ class ImporterCoefficients extends Command
         $matieres = $this->referentiel('T_MATIERE', 'CodeMatiere');
         $niveaux = $this->referentiel('T_NIVEAU', 'CodeNiveau');
 
+        // Référentiel illisible : vide, chaque matière passerait pour absente — et serait
+        // recréée en double dans ECONOMAT. On s'arrête là.
+        if ($matieres === null || $niveaux === null) {
+            return self::FAILURE;
+        }
+
         $bilan = ['crees' => 0, 'maj' => 0, 'rejets' => 0];
         $nouvellesMatieres = [];
         $nouveauxNiveaux = [];
@@ -178,8 +184,8 @@ class ImporterCoefficients extends Command
         return $lignes;
     }
 
-    /** @return array<string, string> code en minuscules -> code réel */
-    private function referentiel(string $table, string $colonne): array
+    /** @return array<string, string>|null code en minuscules -> code réel ; null = illisible */
+    private function referentiel(string $table, string $colonne): ?array
     {
         try {
             return DB::connection('economat')->table($table)->pluck($colonne)
@@ -187,7 +193,9 @@ class ImporterCoefficients extends Command
                 ->mapWithKeys(fn ($c) => [mb_strtolower(trim((string) $c)) => trim((string) $c)])
                 ->all();
         } catch (Throwable $e) {
-            return [];
+            $this->error("Lecture de {$table} impossible : rien n'a été importé. ".$e->getMessage());
+
+            return null;
         }
     }
 

@@ -50,7 +50,14 @@ class RapportController extends Controller
             ->when($session, fn ($q) => $q->where('CodeSession', $session));
         ContexteScolaire::appliquer($requete, 'CodeAnnee');
 
-        return $requete->orderBy('Rang')->get()->map(fn ($l) => [
+        // Rang est un VARCHAR dans ECONOMAT : trié par SQL, il donnait 1, 10, 11… 2, 20.
+        // On trie donc sur sa valeur numérique ; sans rang, à la moyenne décroissante, en fin de liste.
+        return $requete->get()->sort(function ($a, $b) {
+            $ra = is_numeric(trim((string) $a->Rang)) ? (int) $a->Rang : PHP_INT_MAX;
+            $rb = is_numeric(trim((string) $b->Rang)) ? (int) $b->Rang : PHP_INT_MAX;
+
+            return [$ra, -(float) $a->Moyenne] <=> [$rb, -(float) $b->Moyenne];
+        })->values()->map(fn ($l) => [
             'code_eleve' => $l->CodeEleve,
             'matricule' => $l->Matricule,
             'nom' => $l->Nom,

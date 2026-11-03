@@ -213,13 +213,13 @@ function lireRepliee() {
 export default function Sidebar({ dansTiroir = false, onFermer }) {
   const location = useLocation()
   const roles = useAuthStore((state) => state.roles)
-  const peutConsole = useAuthStore((state) => state.peutConsole)
+  const administrateur = useAuthStore((state) => state.administrateur)
   const permissions = useAuthStore((state) => state.permissions)
   const isSuperAdmin = roles.includes(ROLES.SUPER_ADMIN)
   // Une entrée peut exiger une permission (`permission`) : on la masque plutôt que de
   // mener vers un écran qui refusera d'agir. Le groupe disparaît s'il n'en reste aucune.
   const visibleGroups = GROUPS
-    .filter((group) => (!group.superAdminOnly || isSuperAdmin) && (!group.peutConsoleOnly || peutConsole))
+    .filter((group) => (!group.superAdminOnly || isSuperAdmin) && (!group.administrateurOnly || administrateur))
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => !item.permission || permissions.includes(item.permission)),

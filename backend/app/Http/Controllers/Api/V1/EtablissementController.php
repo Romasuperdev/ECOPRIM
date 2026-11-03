@@ -201,7 +201,15 @@ class EtablissementController extends Controller
     {
         $data = $request->validate($this->regles(true));
         PerimetreConsole::assertAutorisee($data['societe_code']);
-        $dejaDansSource = $this->source->existe($data['code']);
+        $existant = $this->lireSource($data['code']);
+        $dejaDansSource = $existant !== null;
+
+        // Reprise : l'établissement existe déjà dans ECONOMAT, et il appartient à une
+        // société. On ne le reprend que dans CELLE-LÀ — sans quoi un Admin Société
+        // s'appropriait l'établissement d'une autre société en le « reprenant » chez lui.
+        if ($existant) {
+            $this->assertMemeSociete($existant, $data['societe_code']);
+        }
 
         if (! $dejaDansSource) {
             $this->source->creer($data);
@@ -228,13 +236,54 @@ class EtablissementController extends Controller
             PerimetreConsole::assertAutorisee($data['societe_code']);
         }
 
-        if ($this->source->existe($etablissement->code)) {
+        // Changer la société d'un établissement est réservé au Super Admin : la ligne de
+        // BEtablissements est lue par toute la suite, et sa société décide qui la voit.
+        $societeDemandee = trim((string) ($data['societe_code'] ?? $etablissement->societe_code));
+        abort_if(
+            $societeDemandee !== trim((string) $etablissement->societe_code) && ! auth()->user()->isSuperAdmin(),
+            403,
+            "Seul le Super Administrateur peut changer la société d'un établissement."
+        );
+
+        $existant = $this->lireSource($etablissement->code);
+        if ($existant) {
+            // La surcouche peut diverger d'ECONOMAT : c'est la société de la ligne
+            // partagée qui fait foi, pas celle que la surcouche croit connaître.
+            $this->assertMemeSociete($existant, $societeDemandee);
             $this->source->modifier($etablissement->code, $data);
         }
 
         $etablissement->update(collect($data)->except('code')->all());
 
         return response()->json($etablissement->fresh());
+    }
+
+    /**
+     * Ligne de BEtablissements. Illisible : 503 — surtout pas « absente », qui ferait
+     * sauter la mise à jour d'ECONOMAT en silence ou tenter un INSERT en double.
+     */
+    private function lireSource(string $code): ?object
+    {
+        try {
+            return $this->source->lire($code);
+        } catch (Throwable $e) {
+            abort(503, "La base ECONOMAT ne répond pas : l'établissement n'a pas pu être vérifié. Réessayez plus tard.");
+        }
+    }
+
+    /**
+     * La ligne partagée appartient-elle bien à la société demandée ? Le Super Admin seul
+     * peut rattacher un établissement à une autre société que la sienne dans ECONOMAT ;
+     * un établissement sans société n'est repris par personne d'autre.
+     */
+    private function assertMemeSociete(object $source, string $societeCode): void
+    {
+        if (auth()->user()->isSuperAdmin()) {
+            return;
+        }
+
+        abort_if(trim((string) ($source->CodeSociete ?? '')) !== trim($societeCode), 403,
+            "Cet établissement appartient à une autre société : seul le Super Administrateur peut le rattacher ailleurs.");
     }
 
     public function activer(Etablissement $etablissement)

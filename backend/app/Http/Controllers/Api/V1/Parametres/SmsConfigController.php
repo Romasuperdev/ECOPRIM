@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1\Parametres;
 
 use App\Http\Controllers\Controller;
 use App\Services\EconomatTable;
+use App\Support\EtablissementDeTravail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -12,6 +15,10 @@ use Throwable;
  * (T_SMS n'est PAS une table de configuration : c'est le journal des envois,
  * exploité par CommunicationController.)
  * Une configuration par établissement ; création + modification, jamais de suppression.
+ *
+ * Réservé aux administrateurs de l'établissement visé (route `console:etablissement`,
+ * puis EtablissementDeTravail::exigerAdministre) : la clé d'API de la passerelle est un
+ * secret de l'école, et l'URL désigne à qui elle sera présentée.
  */
 class SmsConfigController extends Controller
 {
@@ -20,16 +27,26 @@ class SmsConfigController extends Controller
         return EconomatTable::pour('ECO_SMS_CONFIG', 'id');
     }
 
-    /** Configuration de l'établissement courant (contexte de travail), sinon la valeur par défaut. */
+    /**
+     * La configuration de cet établissement — jamais celle d'un autre. La même ligne sert à
+     * l'affichage, à l'enregistrement et à l'envoi (CommunicationController).
+     */
+    public static function configuration(string $etab): ?object
+    {
+        return EconomatTable::pour('ECO_SMS_CONFIG', 'id')->requete()
+            ->where('CODEETABLISSEMENT', $etab)
+            ->orderByDesc('IS_DEFAULT')->orderByDesc('id')->first();
+    }
+
+    /** Configuration de l'établissement de travail, sinon la valeur par défaut. */
     public function show(Request $request)
     {
-        $etab = $request->session()->get('etablissement_code');
+        $etab = EtablissementDeTravail::exigerAdministre($request->user());
 
         try {
-            $l = $this->t()->requete()
-                ->when($etab, fn ($q) => $q->where('CODEETABLISSEMENT', $etab))
-                ->orderByDesc('IS_DEFAULT')->orderByDesc('id')->first();
+            $l = self::configuration($etab);
         } catch (Throwable $e) {
+            Log::warning('Paramètres SMS illisibles.', ['etablissement' => $etab, 'exception' => $e]);
             $l = null;
         }
 
@@ -73,12 +90,14 @@ class SmsConfigController extends Controller
 
     public function store(Request $request)
     {
+        $etab = EtablissementDeTravail::exigerAdministre($request->user());
+
         $d = $request->validate([
             'actif' => ['nullable', 'boolean'],
             'nom' => ['nullable', 'string', 'max:150'],
             'fournisseur' => ['nullable', 'string', 'max:100'],
             'environnement' => ['required', 'string', 'max:20'],
-            'api_url' => ['nullable', 'string', 'max:255'],
+            'api_url' => ['nullable', 'string', 'max:255', 'url:http,https'],
             'api_key' => ['nullable', 'string', 'max:255'],
             'api_secret' => ['nullable', 'string', 'max:255'],
             'expediteur' => ['nullable', 'string', 'max:50'],
@@ -87,9 +106,12 @@ class SmsConfigController extends Controller
             'notif_auto' => ['nullable', 'boolean'],
             'pays' => ['nullable', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:255'],
+        ], [
+            'api_url.url' => "L'adresse de la passerelle doit être une URL http(s) complète.",
         ]);
 
-        $etab = $request->session()->get('etablissement_code');
+        $existante = self::configuration($etab);
+        $this->exigerSecretsSiNouvelleAdresse($existante, $d);
 
         $ligne = [
             'ENABLED' => ! empty($d['actif']) ? 1 : 0,
@@ -115,17 +137,50 @@ class SmsConfigController extends Controller
             $ligne['API_SECRET'] = $d['api_secret'];
         }
 
-        $existante = $this->t()->requete()
-            ->when($etab, fn ($q) => $q->where('CODEETABLISSEMENT', $etab))
-            ->orderByDesc('id')->first();
-
         if ($existante) {
             $this->t()->modifier($existante->id, $ligne);
             $id = $existante->id;
         } else {
-            $id = $this->t()->inserer($ligne);
+            $societe = EtablissementDeTravail::societeDe($etab);
+            $id = $this->t()->inserer($ligne + ($societe !== null ? ['CODESOCIETE' => $societe] : []));
         }
 
         return response()->json($this->ligne($this->t()->trouver($id)));
+    }
+
+    /**
+     * Les secrets enregistrés ont été confiés à UNE passerelle. Changer son adresse sans
+     * les ressaisir les ferait partir vers la nouvelle — qui peut être celle de n'importe
+     * qui : on exige de les saisir à nouveau.
+     *
+     * Les identifiants qu'ECONOMAT pose de son côté (LOGIN / PASSWORD / SECRET_KEY) ne se
+     * saisissent pas ici : s'ils existent, l'adresse se change depuis ECONOMAT.
+     */
+    private function exigerSecretsSiNouvelleAdresse(?object $existante, array $d): void
+    {
+        if (! $existante) {
+            return;
+        }
+
+        $avant = rtrim(mb_strtolower(trim((string) ($existante->API_URL ?? ''))), '/');
+        $apres = rtrim(mb_strtolower(trim((string) ($d['api_url'] ?? ''))), '/');
+        if ($avant === $apres) {
+            return;
+        }
+
+        $erreurs = [];
+        if (! empty($existante->API_KEY) && empty($d['api_key'])) {
+            $erreurs['api_key'] = ["L'adresse de la passerelle change : ressaisissez la clé d'API."];
+        }
+        if (! empty($existante->API_SECRET) && empty($d['api_secret'])) {
+            $erreurs['api_secret'] = ["L'adresse de la passerelle change : ressaisissez le secret d'API."];
+        }
+        if (! empty($existante->PASSWORD ?? null) || ! empty($existante->SECRET_KEY ?? null)) {
+            $erreurs['api_url'] = ["Cette passerelle porte des identifiants saisis dans ECONOMAT : changez son adresse depuis ECONOMAT."];
+        }
+
+        if ($erreurs !== []) {
+            throw ValidationException::withMessages($erreurs);
+        }
     }
 }

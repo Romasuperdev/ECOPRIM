@@ -209,6 +209,47 @@ class ConsoleCrudTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors('etablissement_code');
     }
 
+    public function test_affectation_limitee_a_la_societe_liee_au_compte(): void
+    {
+        Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
+        Societe::create(['code' => 'SUD', 'nom' => 'Sud']);
+        Etablissement::create(['code' => 'E1', 'intitule' => 'A', 'societe_code' => 'ABN']);
+        Etablissement::create(['code' => 'E2', 'intitule' => 'B', 'societe_code' => 'SUD']);
+        Etablissement::create(['code' => 'E3', 'intitule' => 'C', 'societe_code' => 'SUD']);
+        $role = Role::create(['code' => 'ADMIN', 'nom' => 'Admin']);
+        // Compte 1 lié à la société SUD (Société - Utilisateurs).
+        DB::connection('master')->table('societe_utilisateur')->insert(['user_id' => 1, 'societe_id' => 'SUD']);
+
+        $this->postJson('/api/v1/affectations', ['rh_user_id' => 1, 'etablissement_code' => 'E1', 'role_id' => $role->id])
+            ->assertStatus(422)->assertJsonValidationErrors('etablissement_code');
+
+        // Plusieurs établissements de SA société : acceptés.
+        $this->postJson('/api/v1/affectations', ['rh_user_id' => 1, 'etablissement_code' => 'E2', 'role_id' => $role->id])
+            ->assertCreated();
+        $this->postJson('/api/v1/affectations', ['rh_user_id' => 1, 'etablissement_code' => 'E3', 'role_id' => $role->id])
+            ->assertCreated();
+    }
+
+    public function test_un_compte_ne_se_cree_pas_sans_etablissement_sauf_super_admin(): void
+    {
+        $this->postJson('/api/v1/utilisateurs', ['login' => 'sans', 'mot_de_passe' => 'secret123', 'nom' => 'Sans'])
+            ->assertStatus(422)->assertJsonValidationErrors(['etablissement_code']);
+
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'chef', 'mot_de_passe' => 'secret123', 'nom' => 'Chef', 'super_admin' => true,
+        ])->assertCreated();
+    }
+
+    public function test_le_rattachement_suit_l_etablissement_d_affectation(): void
+    {
+        $roleId = $this->affectationPossible();
+        $id = $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'awa', 'mot_de_passe' => 'secret123', 'nom' => 'Awa', 'etablissement_code' => 'E1', 'role_id' => $roleId,
+        ])->assertCreated()->json('id');
+
+        $this->assertSame('E1', trim((string) DB::connection('master')->table('RH_USER')->where('Id', $id)->value('Etab')));
+    }
+
     public function test_affectation_anti_doublon(): void
     {
         Societe::create(['code' => 'ABN', 'nom' => 'Nord']);
@@ -309,11 +350,23 @@ class ConsoleCrudTest extends TestCase
         $this->assertSame(['ABN'], $codes);
     }
 
+    /** Établissement E1 (société S1) et rôle « secretaire » : l'affectation d'un nouveau compte. */
+    private function affectationPossible(): int
+    {
+        DB::connection('ecoprim')->table('console_societes')->insert(['id' => 1, 'code' => 'S1', 'nom' => 'Société', 'actif' => true]);
+        DB::connection('ecoprim')->table('console_etablissements')
+            ->insert(['id' => 1, 'code' => 'E1', 'intitule' => 'École', 'societe_code' => 'S1', 'actif' => true]);
+
+        return DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'secretaire', 'nom' => 'Secrétaire']);
+    }
+
     public function test_creer_un_utilisateur_dans_rh_user(): void
     {
+        $roleId = $this->affectationPossible();
         $this->postJson('/api/v1/utilisateurs', [
             'login' => 'ndiaye', 'mot_de_passe' => 'secret123', 'nom' => 'Ndiaye', 'prenom' => 'Awa',
             'email' => 'awa@ecole.ci', 'profil' => 'Secretaire',
+            'etablissement_code' => 'E1', 'role_id' => $roleId,
         ])->assertCreated()->assertJsonPath('login', 'ndiaye')->assertJsonPath('actif', true);
 
         $this->assertDatabaseHas('RH_USER', ['Login' => 'ndiaye', 'Nom' => 'Ndiaye'], 'master');
@@ -330,8 +383,13 @@ class ConsoleCrudTest extends TestCase
         DB::connection('ecoprim')->table('console_etablissements')
             ->insert(['id' => 1, 'code' => 'E1', 'intitule' => 'École', 'societe_code' => 'S1', 'actif' => true]);
         $roleId = DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'parent', 'nom' => 'Parent']);
+        // L'enfant doit être inscrit dans une classe de l'établissement de l'affectation
+        // (ElevesEtablissement) : un matricule simplement existant ne suffit plus.
+        DB::connection('economat')->table('T_CLASSE')->insert([
+            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CODEETABLISSEMENT' => 'E1'],
+        ]);
         DB::connection('economat')->table('T_ETUDIANT')->insert([
-            ['Code' => 1, 'Matricule' => 'EL1', 'Nom' => 'Koné', 'Prenom' => 'Awa'],
+            ['Code' => 1, 'Matricule' => 'EL1', 'Nom' => 'Koné', 'Prenom' => 'Awa', 'CodeClasse' => 'CP1A'],
         ]);
 
         $r = $this->postJson('/api/v1/utilisateurs', [
@@ -347,7 +405,10 @@ class ConsoleCrudTest extends TestCase
 
     public function test_login_utilisateur_doit_etre_unique(): void
     {
-        $this->postJson('/api/v1/utilisateurs', ['login' => 'boss', 'mot_de_passe' => 'secret123', 'nom' => 'Doublon'])
+        $roleId = $this->affectationPossible();
+        $this->postJson('/api/v1/utilisateurs', [
+            'login' => 'boss', 'mot_de_passe' => 'secret123', 'nom' => 'Doublon', 'etablissement_code' => 'E1', 'role_id' => $roleId,
+        ])
             ->assertStatus(422)->assertJsonValidationErrors('login');
     }
 
@@ -365,12 +426,20 @@ class ConsoleCrudTest extends TestCase
 
     public function test_desactiver_un_utilisateur_ne_le_supprime_pas(): void
     {
-        $this->postJson('/api/v1/utilisateurs/1/desactiver')->assertOk()->assertJsonPath('actif', false);
+        // Un AUTRE compte que celui connecté : un compte désactivé perd sa session à la
+        // requête suivante (middleware compte.actif) — l'administrateur qui se désactivait
+        // lui-même ne pourrait plus, à juste titre, se réactiver.
+        RhUser::on('master')->forceCreate([
+            'Id' => 2, 'Login' => 'agent', 'Nom' => 'A', 'Prenom' => 'G', 'Email' => 'a@ecole.ci',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+
+        $this->postJson('/api/v1/utilisateurs/2/desactiver')->assertOk()->assertJsonPath('actif', false);
 
         // La ligne existe toujours dans la table partagée : marquée supprimée, jamais effacée.
-        $this->assertDatabaseHas('RH_USER', ['Id' => 1, 'Supprimer' => 1], 'master');
-        $this->assertSame(1, DB::connection('master')->table('RH_USER')->where('Id', 1)->count());
+        $this->assertDatabaseHas('RH_USER', ['Id' => 2, 'Supprimer' => 1], 'master');
+        $this->assertSame(1, DB::connection('master')->table('RH_USER')->where('Id', 2)->count());
 
-        $this->postJson('/api/v1/utilisateurs/1/activer')->assertOk()->assertJsonPath('actif', true);
+        $this->postJson('/api/v1/utilisateurs/2/activer')->assertOk()->assertJsonPath('actif', true);
     }
 }

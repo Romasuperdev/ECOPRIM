@@ -118,6 +118,67 @@ class AccesAutomatiqueTest extends TestCase
         $this->assertSame(1, DB::connection('master')->table('RH_USER')->where('Login', '0708091011')->count());
     }
 
+    /**
+     * RH_USER est commun à toute la suite : le numéro saisi peut être celui d'un compte
+     * qui n'a rien d'un parent ici (un comptable d'une autre application, un
+     * administrateur...). Lui rattacher l'enfant le rendait visible, donc gérable — mot
+     * de passe compris. Seul un compte DÉJÀ Parent dans la même société est réutilisé.
+     */
+    public function test_un_compte_de_la_suite_qui_partage_le_numero_n_est_pas_reutilise(): void
+    {
+        RhUser::on('master')->forceCreate([
+            'Id' => 70, 'Login' => '0708091011', 'Nom' => 'Comptable', 'Contact' => '0708091011',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+
+        $r = $this->inscrire()->assertCreated()
+            ->assertJsonPath('acces_parent.nouveau', true)
+            ->assertJsonPath('acces_parent.login', '0708091011-2');
+        $this->assertNotEmpty($r->json('acces_parent.mot_de_passe'));
+
+        // Le compte étranger n'a reçu aucune affectation.
+        $this->assertDatabaseMissing('console_affectations', ['rh_user_id' => 70], 'ecoprim');
+    }
+
+    public function test_un_parent_d_une_autre_societe_n_est_pas_reutilise(): void
+    {
+        RhUser::on('master')->forceCreate([
+            'Id' => 71, 'Login' => '0708091011', 'Nom' => 'Parent ailleurs',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+        $eco = fn (string $t) => DB::connection('ecoprim')->table($t);
+        $eco('console_societes')->insert(['id' => 2, 'code' => 'S2', 'nom' => 'Autre', 'actif' => true]);
+        $eco('console_etablissements')->insert(['id' => 2, 'code' => 'E2', 'intitule' => 'Ailleurs', 'societe_code' => 'S2', 'actif' => true]);
+        $roleParent = $eco('console_roles')->insertGetId(['code' => 'parent', 'nom' => 'Parent']);
+        $eco('console_affectations')->insert([
+            'rh_user_id' => 71, 'societe_code' => 'S2', 'etablissement_code' => 'E2', 'role_id' => $roleParent, 'actif' => true,
+        ]);
+
+        $this->inscrire()->assertCreated()
+            ->assertJsonPath('acces_parent.nouveau', true)
+            ->assertJsonPath('acces_parent.login', '0708091011-2');
+
+        $this->assertSame(1, $eco('console_affectations')->where('rh_user_id', 71)->count());
+    }
+
+    public function test_un_parent_de_la_meme_societe_est_reconnu_meme_par_son_contact(): void
+    {
+        RhUser::on('master')->forceCreate([
+            'Id' => 72, 'Login' => 'koné.jean', 'Nom' => 'KONÉ', 'Contact' => '0708091011',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+        $eco = fn (string $t) => DB::connection('ecoprim')->table($t);
+        $roleParent = $eco('console_roles')->insertGetId(['code' => 'parent', 'nom' => 'Parent']);
+        $eco('console_affectations')->insert([
+            'rh_user_id' => 72, 'societe_code' => 'S1', 'etablissement_code' => 'E1', 'role_id' => $roleParent, 'actif' => true,
+        ]);
+
+        $this->inscrire()->assertCreated()
+            ->assertJsonPath('acces_parent.nouveau', false)
+            ->assertJsonPath('acces_parent.login', 'koné.jean')
+            ->assertJsonPath('acces_parent.mot_de_passe', null);
+    }
+
     public function test_la_mere_prend_le_relais_si_le_pere_n_a_pas_de_telephone(): void
     {
         $this->inscrire([

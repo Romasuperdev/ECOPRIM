@@ -173,4 +173,19 @@ class BulletinTest extends TestCase
         $this->assertSame('2024-2025', $vue['annee']);
         $this->assertSame([], collect($vue['moyennesParMatiere'])->all());
     }
+
+    public function test_le_classement_suit_le_rang_numerique_et_non_alphabetique(): void
+    {
+        // Rang est un VARCHAR dans ECONOMAT : « 10 » ne doit pas passer devant « 2 ».
+        DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')->insert([
+            ['Code' => 3, 'Matricule' => 'E-13', 'Nom' => 'Koné', 'Prenom' => 'Ina', 'Moyenne' => 9.1, 'Rang' => '10',
+                'CodeClasse' => 'CP1A', 'CodeSession' => 'S1', 'CodeAnnee' => '2025', 'Passage' => 'Non admis'],
+            ['Code' => 4, 'Matricule' => 'E-14', 'Nom' => 'Yao', 'Prenom' => 'Luc', 'Moyenne' => 11.8, 'Rang' => '3',
+                'CodeClasse' => 'CP1A', 'CodeSession' => 'S1', 'CodeAnnee' => '2025', 'Passage' => 'Admis'],
+        ]);
+
+        $lignes = app(\App\Http\Controllers\Api\V1\RapportController::class)->moyennes('CP1A', 'S1');
+
+        $this->assertSame([1, 2, 3, 10], $lignes->pluck('rang')->map(fn ($r) => (int) $r)->all());
+    }
 }

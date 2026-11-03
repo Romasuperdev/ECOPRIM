@@ -31,19 +31,27 @@ function nomPropose(disposition) {
   return simple ? simple[1] : null
 }
 
-export const fetchCatalogueEchanges = () =>
-  apiClient.get('echanges/catalogue').then((r) => r.data)
+// `annee` : l'année scolaire choisie sur l'écran. Vide, le serveur prend celle de l'en-tête.
+const avecAnnee = (params, annee) => (annee ? { ...(params ?? {}), annee } : params)
 
-export const exporterJeux = (jeux) =>
-  telecharger('echanges/export', jeux?.length ? { jeux: jeux.join(',') } : undefined)
+export const fetchCatalogueEchanges = (annee) =>
+  apiClient.get('echanges/catalogue', { params: avecAnnee(undefined, annee) }).then((r) => r.data)
 
-export const telechargerModele = (jeu) => telecharger('echanges/modele', { jeux: jeu })
+export const exporterJeux = (jeux, annee) =>
+  telecharger('echanges/export', avecAnnee(jeux?.length ? { jeux: jeux.join(',') } : undefined, annee))
+
+export const telechargerModele = (jeu, annee) => telecharger('echanges/modele', avecAnnee({ jeux: jeu }, annee))
 
 /** Premier temps : le rapport. Rien n'est écrit en base. */
-export const analyserImport = (jeu, fichier, options = {}) => {
+export const analyserImport = (jeu, fichier, options = {}, annee = '') => {
   const charge = new FormData()
   charge.append('fichier', fichier)
   if (options.bareme) charge.append('bareme', options.bareme)
+  // « Tout importer » est le mode par défaut côté serveur : on l'envoie quand même,
+  // explicitement, pour que la case décochée (mode strict) soit toujours entendue.
+  charge.append('tout_importer', options.toutImporter === false ? '0' : '1')
+  // L'année visée est retenue avec le rapport : l'application l'écrira dans CETTE année.
+  if (annee) charge.append('annee', annee)
 
   return apiClient
     .post(`echanges/import/${jeu}/analyse`, charge)

@@ -22,10 +22,10 @@ use Throwable;
  * pas concerné (une matière traverse les années, comme dans MatiereController).
  *
  * IMPORTABLE. Seuls les jeux pour lesquels NEXORA possède DÉJÀ un chemin d'écriture
- * contrôlé le sont. Les autres sont des modèles en lecture seule sur ECONOMAT : les rendre
- * importables reviendrait à inventer des écritures dans une base de production partagée,
- * ce que le projet s'interdit. `pourquoi_pas` le dit à l'écran plutôt que de laisser
- * l'utilisateur chercher un bouton absent.
+ * contrôlé le sont — l'écrivain de leur écran, jamais un INSERT inventé pour l'import dans
+ * une base de production partagée. C'est aujourd'hui le cas des huit. Un jeu qui ne le
+ * serait pas porte `importable => false` et un `pourquoi_pas`, que l'écran affiche plutôt
+ * que de laisser l'utilisateur chercher un bouton absent.
  */
 class CatalogueDonnees
 {
@@ -98,8 +98,7 @@ class CatalogueDonnees
             'annee' => 'AnneeCour',
             'classe' => 'CodeClasse',
             'tri' => ['Date'],
-            'importable' => false,
-            'pourquoi_pas' => "Une absence se constate en classe, jour par jour. Elle se saisit depuis l'écran Absences, qui vérifie que l'élève appartient bien à la classe.",
+            'importable' => true,
             // SQL Server rend un `bit` en 1 / 0, pas en booléen PHP : la colonne sortirait
             // donc en chiffres sur une feuille faite pour être lue. Déclaré plutôt que
             // deviné au type — une colonne qui contient 0 et 1 n'est pas forcément un
@@ -143,14 +142,14 @@ class CatalogueDonnees
             'feuille' => 'Enseignants',
             'connexion' => 'economat',
             'table' => 'T_PROFESSEUR',
-            // Pas de filtre d'année : EnseignantController n'en met pas non plus. Un
-            // professeur dont CodeAnnee est vide disparaîtrait de l'export sans que rien
-            // ne le signale, et un export muet est pire qu'un export large.
+            // T_PROFESSEUR ne porte ni classe ni établissement : le périmètre est celui de
+            // l'écran Enseignants (PerimetreEtablissement::appliquerAuxEnseignants), année
+            // comprise. Sans lui, l'export rendait les enseignants de toute la société.
             'annee' => null,
             'classe' => null,
+            'perimetre' => 'enseignants',
             'tri' => ['NomProfesseur'],
-            'importable' => false,
-            'pourquoi_pas' => "Créer un enseignant crée aussi son compte et son mot de passe. Cela passe par l'écran Enseignants, qui affiche ce mot de passe une fois et une seule.",
+            'importable' => true,
             'colonnes' => [
                 'Matricule' => 'MatriculeProfesseur',
                 'Nom' => 'NomProfesseur',
@@ -175,8 +174,7 @@ class CatalogueDonnees
             'etablissement' => 'CODEETABLISSEMENT',
             'classe' => null,
             'tri' => ['LibelleClasse'],
-            'importable' => false,
-            'pourquoi_pas' => "Une classe se crée depuis l'écran Classes : son code sert de clé à tout le reste, il ne se saisit pas en masse.",
+            'importable' => true,
             'colonnes' => [
                 'Code' => 'CodeClasse',
                 'Libellé' => 'LibelleClasse',
@@ -194,8 +192,7 @@ class CatalogueDonnees
             'annee' => null,
             'classe' => null,
             'tri' => ['LibelleMatiere'],
-            'importable' => false,
-            'pourquoi_pas' => "Le référentiel des matières se tient depuis l'écran Matières ; il change une fois par réforme, pas par fichier.",
+            'importable' => true,
             'colonnes' => [
                 'Code' => 'CodeMatiere',
                 'Libellé' => 'LibelleMatiere',
@@ -209,11 +206,12 @@ class CatalogueDonnees
             'connexion' => 'economat',
             'table' => 'T_NIVEAU',
             'annee' => 'ANNEE',
-            'etablissement' => 'CODEETABLISSEMENT',
+            // Pas de filtre d'établissement : les niveaux sont un référentiel de l'année,
+            // partagé par les établissements, et l'écran Niveaux les montre tous (voir
+            // NiveauController::index). Filtrés, ils sortaient presque tous de l'export.
             'classe' => null,
             'tri' => ['Ordre'],
-            'importable' => false,
-            'pourquoi_pas' => "Même raison que les classes : le référentiel des niveaux se tient depuis son écran.",
+            'importable' => true,
             'colonnes' => [
                 'Code' => 'CodeNiveau',
                 'Libellé' => 'LibelleNiveau',
@@ -233,9 +231,26 @@ class CatalogueDonnees
         return array_keys(self::JEUX);
     }
 
+    /**
+     * L'ordre dans lequel un classeur d'année entière s'importe — distinct de l'ordre des
+     * onglets à l'export, qui met les élèves en tête parce que c'est ce qu'on y cherche.
+     * Ici chaque feuille passe après celles dont elle dépend : on ouvre les niveaux, puis
+     * les classes qui s'y rangent, puis on y inscrit les élèves, et seulement ensuite leurs
+     * notes et leurs absences.
+     */
+    public const ORDRE_IMPORT = [
+        'niveaux', 'classes', 'matieres', 'enseignants', 'eleves', 'notes', 'absences', 'evaluations',
+    ];
+
+    /** Les jeux importables, dans l'ordre d'import. */
     public static function importables(): array
     {
-        return array_keys(array_filter(self::JEUX, fn ($j) => $j['importable']));
+        $importables = array_keys(array_filter(self::JEUX, fn ($j) => $j['importable']));
+
+        return array_values(array_merge(
+            array_intersect(self::ORDRE_IMPORT, $importables),
+            array_diff($importables, self::ORDRE_IMPORT),
+        ));
     }
 
     public static function jeu(string $code): array
@@ -326,10 +341,15 @@ class CatalogueDonnees
             ContexteScolaire::appliquer($requete, $jeu['annee']);
         }
 
-        if (! empty($jeu['etablissement'])) {
-            $etablissement = PerimetreEtablissement::code();
-            if ($etablissement !== null) {
-                $requete->where($jeu['etablissement'], $etablissement);
+        if (($jeu['perimetre'] ?? null) === 'enseignants') {
+            PerimetreEtablissement::appliquerAuxEnseignants($requete);
+        } elseif (! empty($jeu['etablissement'])) {
+            // Les établissements VISIBLES, comme les écrans — pas l'établissement de la
+            // session : sans établissement choisi, celui-ci est vide et l'export rendait
+            // les classes de tous les établissements, y compris ceux hors des affectations.
+            $etablissements = PerimetreEtablissement::etablissementsVisibles();
+            if ($etablissements !== null) {
+                $requete->whereIn($jeu['etablissement'], $etablissements);
             }
         } elseif ($jeu['classe']) {
             PerimetreEtablissement::appliquerParClasse($requete, $jeu['classe']);

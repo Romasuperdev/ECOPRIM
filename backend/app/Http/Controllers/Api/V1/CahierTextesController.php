@@ -242,6 +242,9 @@ class CahierTextesController extends Controller
         $d = $request->validate($this->reglesEntete() + [
             'classe' => ['required', 'string', 'max:50', Rule::exists('economat.T_CLASSE', 'CodeClasse')],
         ]);
+        // La classe CIBLE doit être du périmètre. Depuis le portail Enseignant (qui délègue
+        // ici), le filtre ne s'applique pas : le portail a déjà vérifié que c'est la sienne.
+        PerimetreEtablissement::exigerClasse($d['classe']);
         $annee = ContexteScolaire::annee();
         AnneeScolaireGuard::assertModifiable($annee, "La création d'un cahier de textes");
         $this->assertPasDeDoublon($d['classe'], $d['mois'], $d['semaine'], $annee);

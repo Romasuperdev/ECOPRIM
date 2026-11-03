@@ -49,8 +49,11 @@ class PermissionTest extends TestCase
             ['CODE' => 1, 'CodeAnnee' => '2025', 'LibelleAnnee' => self::ANNEE,
                 'Activer' => true, 'ClotureDefinitive' => false, 'DEBUT' => '2025-09-01'],
         ]);
+        // CM2A appartient à E-ABN, l'établissement des comptes affectés : un devoir ne peut
+        // viser qu'une classe du périmètre de qui l'écrit.
         $economat('T_CLASSE')->insert([
-            ['num' => 1, 'CodeClasse' => 'CM2A', 'LibelleClasse' => 'CM2 A', 'CodN' => 'CM2', 'ANNEE' => self::ANNEE],
+            ['num' => 1, 'CodeClasse' => 'CM2A', 'LibelleClasse' => 'CM2 A', 'CodN' => 'CM2', 'ANNEE' => self::ANNEE,
+                'CODEETABLISSEMENT' => 'E-ABN'],
         ]);
         $economat('T_MATIERE')->insert([
             ['Code' => 1, 'CodeMatiere' => 'MAT', 'LibelleMatiere' => 'Mathématiques'],
@@ -109,11 +112,37 @@ class PermissionTest extends TestCase
         $this->assertTrue($rh->aLaPermission('gerer_utilisateurs'));
     }
 
-    public function test_un_utilisateur_sans_affectation_n_a_aucune_permission(): void
+    public function test_un_utilisateur_sans_role_fait_les_traitements_pas_le_parametrage(): void
     {
         $rh = $this->compte(10, 'seul');
 
         $this->assertFalse($rh->aLaPermission('saisir_notes'));
+        $this->assertTrue($rh->aLaPermission('inscrire_eleve'));
+        $this->assertTrue($rh->aLaPermission('saisir_absences'));
+        $this->assertFalse($rh->aLaPermission('modifier_parametres_ecole'));
+        $this->assertFalse($rh->aLaPermission('gerer_coefficients'));
+    }
+
+    public function test_l_affectation_sans_role_donne_les_droits_par_defaut(): void
+    {
+        $this->actingAs($this->compte(1, 'boss', true), 'sanctum');
+        DB::connection('master')->table('RH_USER')->insert([
+            'Id' => 11, 'Login' => 'agent', 'Nom' => 'A', 'Prenom' => 'B', 'Email' => 'a@e.ci',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+
+        $this->postJson('/api/v1/affectations', ['rh_user_id' => 11, 'etablissement_code' => 'E-ABN'])->assertCreated();
+
+        $rh = RhUser::on('master')->find(11);
+        $this->assertTrue($rh->estAffecteAUnEtablissement());
+        $this->assertFalse($rh->aUnRole());
+        $this->assertSame('staff', $rh->typePortail());
+        $this->assertTrue($rh->aLaPermission('inscrire_eleve'));
+        $this->assertFalse($rh->aLaPermission('modifier_parametres_ecole'));
+
+        // Le rôle technique n'apparaît pas dans le catalogue.
+        $codes = collect($this->getJson('/api/v1/roles')->json())->pluck('code');
+        $this->assertNotContains('sans-role', $codes);
     }
 
     public function test_un_role_avec_la_permission_accordee_passe(): void
@@ -143,13 +172,23 @@ class PermissionTest extends TestCase
 
     // --- Gestion des permissions d'un rôle (RoleController) ---
 
-    public function test_l_admin_societe_consulte_et_modifie_les_permissions_d_un_role_de_sa_societe(): void
+    public function test_l_admin_societe_consulte_les_permissions_sans_pouvoir_les_modifier(): void
     {
         $this->adminSociete('ABN');
         $roleId = $this->role('secretaire', 'Secrétaire', 'ABN');
 
         $this->getJson("/api/v1/roles/{$roleId}/permissions")->assertOk()
             ->assertJsonPath('accordees', []);
+
+        // Donner des permissions à un rôle revient au seul Super Admin.
+        $this->putJson("/api/v1/roles/{$roleId}/permissions", ['permissions' => ['inscrire_eleve']])
+            ->assertForbidden();
+    }
+
+    public function test_le_super_admin_modifie_les_permissions_d_un_role(): void
+    {
+        $this->actingAs($this->compte(1, 'boss', true), 'sanctum');
+        $roleId = $this->role('secretaire', 'Secrétaire', 'ABN');
 
         $this->putJson("/api/v1/roles/{$roleId}/permissions", [
             'permissions' => ['inscrire_eleve', 'modifier_dossier_eleve'],
@@ -160,7 +199,7 @@ class PermissionTest extends TestCase
 
     public function test_remplacer_les_permissions_retire_celles_qui_ne_sont_plus_envoyees(): void
     {
-        $this->adminSociete('ABN');
+        $this->actingAs($this->compte(1, 'boss', true), 'sanctum');
         $roleId = $this->role('secretaire', 'Secrétaire', 'ABN');
         $this->accorder($roleId, ['inscrire_eleve', 'gerer_parents']);
 
@@ -170,7 +209,7 @@ class PermissionTest extends TestCase
 
     public function test_un_code_de_permission_inconnu_est_refuse(): void
     {
-        $this->adminSociete('ABN');
+        $this->actingAs($this->compte(1, 'boss', true), 'sanctum');
         $roleId = $this->role('secretaire', 'Secrétaire', 'ABN');
 
         $this->putJson("/api/v1/roles/{$roleId}/permissions", ['permissions' => ['fantome']])
@@ -186,7 +225,75 @@ class PermissionTest extends TestCase
         $this->putJson("/api/v1/roles/{$roleId}/permissions", ['permissions' => []])->assertStatus(403);
     }
 
-    // --- Application réelle sur une route protégée ---
+    // --- Compte sans rôle, administrateurs, console ---
+
+    private function sansRole(int $id = 12): RhUser
+    {
+        $rh = RhUser::on('master')->forceCreate([
+            'Id' => $id, 'Login' => 'agent'.$id, 'Nom' => 'AGENT', 'Prenom' => 'X', 'Email' => "a{$id}@e.ci",
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false, 'Etab' => 'E-ABN',
+        ]);
+        $this->actingAs($rh, 'sanctum');
+
+        return $rh;
+    }
+
+    public function test_un_compte_sans_role_ne_touche_pas_au_parametrage(): void
+    {
+        $this->sansRole();
+        $this->withSession(['etablissement_code' => 'E-ABN']);
+
+        $this->postJson('/api/v1/classes', ['code' => 'CP1A', 'nom' => 'CP1 A', 'niveau_code' => 'CM2'])->assertForbidden();
+        $this->putJson('/api/v1/classes/CM2A', ['nom' => 'X'])->assertForbidden();
+        $this->postJson('/api/v1/parametres/prerequis', ['libelle' => 'X'])->assertForbidden();
+        $this->postJson('/api/v1/affectations-enseignants', [])->assertForbidden();
+        $this->postJson('/api/v1/niveaux', ['code' => 'X', 'libelle' => 'X'])->assertForbidden();
+        // … mais consulte, et fait les traitements.
+        $this->getJson('/api/v1/classes')->assertOk();
+        $this->assertContains('inscrire_eleve', $this->getJson('/api/v1/me')->json('permissions'));
+    }
+
+    public function test_un_administrateur_n_a_pas_la_console_mais_administre_l_application(): void
+    {
+        $this->adminSociete('ABN');
+
+        $moi = $this->getJson('/api/v1/me')->assertOk();
+        $this->assertFalse($moi->json('peut_console'));
+        $this->assertTrue($moi->json('administrateur'));
+    }
+
+    public function test_les_utilisateurs_de_la_configuration_sont_ceux_de_l_etablissement_de_travail(): void
+    {
+        DB::connection('ecoprim')->table('console_etablissements')->insert(
+            ['id' => 2, 'code' => 'E-ABN2', 'intitule' => 'École Est', 'societe_code' => 'ABN', 'actif' => true]
+        );
+        $secretaire = $this->role('secretaire', 'Secrétaire');
+        $this->compte(20, 'ici');
+        $this->affecter(20, $secretaire, 'ABN', 'E-ABN');
+        $this->compte(21, 'ailleurs');
+        $this->affecter(21, $secretaire, 'ABN', 'E-ABN2');
+        DB::connection('master')->table('RH_USER')->insert([
+            'Id' => 22, 'Login' => 'rattache', 'Nom' => 'R', 'Prenom' => 'X', 'Email' => 'r@e.ci',
+            'MotDePasse' => Hash::make('x'), 'SuperAdmin' => false, 'Supprimer' => false, 'Etab' => 'E-ABN',
+        ]);
+
+        $this->adminSociete('ABN');
+        $this->withSession(['etablissement_code' => 'E-ABN']);
+
+        $logins = collect($this->getJson('/api/v1/utilisateurs?etablissement=courant')->assertOk()->json('data'))->pluck('login');
+        $this->assertContains('ici', $logins);
+        $this->assertContains('rattache', $logins);
+        $this->assertNotContains('ailleurs', $logins);
+
+        $this->getJson('/api/v1/utilisateurs/22')->assertOk();
+
+        // Code explicite (établissement par défaut, non mémorisé en session).
+        $this->withSession([]);
+        $logins = collect($this->getJson('/api/v1/utilisateurs?etablissement=E-ABN2')->assertOk()->json('data'))->pluck('login');
+        $this->assertSame(['ailleurs'], $logins->values()->all());
+    }
+
+        // --- Application réelle sur une route protégée ---
 
     // Le code de rôle 'enseignant' est réservé (RhUser::ROLE_ENSEIGNANT) : il confine son
     // titulaire au portail restreint (typePortail()), qui n'atteint jamais ces routes-ci

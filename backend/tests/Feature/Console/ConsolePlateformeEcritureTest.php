@@ -7,6 +7,7 @@ use App\Models\RhUser;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
@@ -55,6 +56,8 @@ class ConsolePlateformeEcritureTest extends TestCase
         return RhUser::on('master')->forceCreate([
             'Id' => $id, 'Login' => $login, 'Nom' => 'N', 'Prenom' => 'P', 'Email' => $login.'@e.ci',
             'MotDePasse' => Hash::make('x'), 'SuperAdmin' => $superAdmin, 'Supprimer' => false,
+            // Un compte sans établissement ne se connecte pas : on le rattache.
+            'Etab' => $superAdmin ? null : 'E1',
             'CodeApp' => $codeApp,
         ]);
     }
@@ -89,7 +92,7 @@ class ConsolePlateformeEcritureTest extends TestCase
     {
         $this->postJson('/api/v1/plateforme/societes', [
             'code' => 'MG', 'nom' => 'MENAN GROUP', 'email' => 'contact@menan.ci',
-            'codification' => true, 'capital' => 1000000,
+            'codification' => true, 'capital' => 1000000, 'applications' => ['002'],
         ])->assertCreated()->assertJsonPath('code', 'MG')->assertJsonPath('actif', true);
 
         $ligne = DB::connection('master')->table('US_SOCIETE')->where('CODESOCIETE', 'MG')->first();
@@ -102,6 +105,68 @@ class ConsolePlateformeEcritureTest extends TestCase
         // Reprise automatique : le reste d'ECOPRIM la voit aussitôt.
         $this->assertDatabaseHas('console_societes', ['code' => 'MG', 'nom' => 'MENAN GROUP', 'actif' => true], 'ecoprim');
         $this->getJson('/api/v1/societes')->assertOk()->assertJsonFragment(['code' => 'MG', 'repris' => true]);
+    }
+
+    /** Les colonnes de la fiche complète, comme sur le serveur (la base de test n'a que l'essentiel). */
+    private function ficheComplete(): void
+    {
+        Schema::connection('master')->table('US_SOCIETE', function ($t) {
+            foreach (['FORMJURIDQIUE', 'REGIMEFISCAL', 'ACTIVITESOCIETE', 'AD2SOCIETE', 'CPSOCIETE',
+                'FAXSOCIETE', 'SITESOCIETE', 'CIVILITEREPRESENTANT', 'FONCTIONREPRESENTANT', 'CELREPRESENTANT'] as $c) {
+                $t->string($c)->nullable();
+            }
+        });
+    }
+
+    public function test_la_structure_ne_propose_que_les_colonnes_presentes(): void
+    {
+        $champs = $this->getJson('/api/v1/plateforme/societes-structure')->assertOk()->json('champs');
+        $this->assertArrayHasKey('nom', $champs);
+        $this->assertArrayHasKey('ville', $champs);
+        $this->assertArrayNotHasKey('forme_juridique', $champs); // absente de cette base
+        $this->assertSame(50, $champs['nom']['largeur']);
+
+        // Une autre base, avec la fiche complète (un nouvel écrivain relit sa structure).
+        $this->ficheComplete();
+        $champs = (new \App\Services\UsSocieteEcrivain)->champsDisponibles();
+        $this->assertArrayHasKey('forme_juridique', $champs);
+        $this->assertArrayHasKey('cel_representant', $champs);
+        $this->assertArrayNotHasKey('activite_secondaire', $champs); // toujours absente
+
+        $this->actingAs($this->compte(2, 'simple', false), 'sanctum');
+        $this->getJson('/api/v1/plateforme/societes-structure')->assertForbidden();
+    }
+
+    public function test_creer_une_societe_avec_la_fiche_complete(): void
+    {
+        $this->ficheComplete();
+
+        $this->postJson('/api/v1/plateforme/societes', [
+            'code' => 'GSGP', 'nom' => 'GSGP SARL', 'forme_juridique' => 'SARL', 'activite' => 'Enseignement',
+            'adresse' => 'Cocody Angré', 'ville' => 'Abidjan', 'pays' => "Côte d'Ivoire", 'telephone' => '0102030405',
+            'fax' => '', 'site' => 'www.gsgp.ci', 'civilite_representant' => 'M.',
+            'representant' => 'KOUASSI Jean', 'fonction_representant' => 'Gérant', 'cel_representant' => '0707070707',
+            'activite_secondaire' => 'ignorée : la colonne n’existe pas ici', 'applications' => ['002'],
+        ])->assertCreated()->assertJsonPath('forme_juridique', 'SARL')->assertJsonPath('fax', null);
+
+        $l = DB::connection('master')->table('US_SOCIETE')->where('CODESOCIETE', 'GSGP')->first();
+        $this->assertSame('SARL', $l->FORMJURIDQIUE);
+        $this->assertSame('Cocody Angré', $l->AD1SOCIETE);
+        $this->assertSame('KOUASSI Jean', $l->NOMPRENOMREPRESENTANT);
+        $this->assertSame('Gérant', $l->FONCTIONREPRESENTANT);
+        $this->assertNull($l->FAXSOCIETE);
+
+        // La copie ECOPRIM suit les coordonnées saisies.
+        $this->assertDatabaseHas('console_societes', [
+            'code' => 'GSGP', 'ville' => 'Abidjan', 'adresse' => 'Cocody Angré', 'telephone' => '0102030405',
+            'representant' => 'KOUASSI Jean',
+        ], 'ecoprim');
+
+        $this->getJson('/api/v1/plateforme/societes/GSGP')->assertOk()
+            ->assertJsonPath('site', 'www.gsgp.ci')->assertJsonPath('cel_representant', '0707070707');
+
+        $this->postJson('/api/v1/plateforme/societes', ['code' => 'LONG', 'nom' => 'X', 'fax' => str_repeat('9', 21)])
+            ->assertStatus(422)->assertJsonValidationErrors('fax');
     }
 
     public function test_creer_une_societe_valide_les_entrees(): void
@@ -218,9 +283,10 @@ class ConsolePlateformeEcritureTest extends TestCase
             ->assertOk()->assertJson(['ajoutees' => 1, 'retirees' => 1]);
         $this->assertSame(['002', '003'], $this->appsDe('CI'));
 
-        // Liste vide = plus aucune application.
-        $this->putJson('/api/v1/plateforme/societes-applications/CI', ['applications' => []])->assertOk();
-        $this->assertSame([], $this->appsDe('CI'));
+        // Liste vide refusée : une société garde au moins une application.
+        $this->putJson('/api/v1/plateforme/societes-applications/CI', ['applications' => []])
+            ->assertStatus(422)->assertJsonValidationErrors('applications');
+        $this->assertSame(['002', '003'], $this->appsDe('CI'));
     }
 
     public function test_synchroniser_refuse_une_application_ou_une_societe_inconnue(): void
@@ -255,6 +321,19 @@ class ConsolePlateformeEcritureTest extends TestCase
             ->assertOk()->assertJson(['ajoutees' => 0, 'retirees' => 0]);
     }
 
+    public function test_creer_une_societe_exige_au_moins_une_application(): void
+    {
+        $this->postJson('/api/v1/plateforme/societes', ['code' => 'SANS', 'nom' => 'Sans application'])
+            ->assertStatus(422)->assertJsonValidationErrors('applications');
+        $this->postJson('/api/v1/plateforme/societes', ['code' => 'SANS', 'nom' => 'X', 'applications' => ['ZZZ']])
+            ->assertStatus(422);
+        $this->assertDatabaseMissing('US_SOCIETE', ['CODESOCIETE' => 'SANS'], 'master');
+
+        $this->postJson('/api/v1/plateforme/societes', ['code' => 'AVEC', 'nom' => 'Avec', 'applications' => ['001', '003']])
+            ->assertCreated();
+        $this->assertSame(['001', '003'], $this->appsDe('AVEC'));
+    }
+
     public function test_detacher_une_application_puis_retirer_tout(): void
     {
         DB::connection('master')->table('US_SOCIETE_APPLICATION')->insert([
@@ -268,8 +347,10 @@ class ConsolePlateformeEcritureTest extends TestCase
         $this->assertDatabaseMissing('US_SOCIETE_APPLICATION', ['CODESOCIETE' => '1'], 'master');
         $this->deleteJson('/api/v1/plateforme/societes-applications/AURIAK/001')->assertNotFound();
 
-        $this->deleteJson('/api/v1/plateforme/societes-applications/AURIAK')->assertOk()->assertJson(['retirees' => 2]);
-        $this->assertSame([], $this->appsDe('AURIAK'));
+        // Tout retirer est refusé, de même que détacher la dernière application.
+        $this->deleteJson('/api/v1/plateforme/societes-applications/AURIAK')->assertStatus(422);
+        $this->assertSame(['002', '003'], $this->appsDe('AURIAK'));
+        $this->deleteJson('/api/v1/plateforme/societes-applications/CI/001')->assertStatus(422);
         // Les autres sociétés ne sont pas touchées, ni le catalogue.
         $this->assertSame(['001'], $this->appsDe('CI'));
         $this->assertSame(3, DB::connection('master')->table('US_APPLICATIONS')->count());

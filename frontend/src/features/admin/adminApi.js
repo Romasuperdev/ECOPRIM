@@ -80,8 +80,9 @@ export async function desactiverEtablissement(id) {
 }
 
 // Utilisateurs (lecture seule — création via synchronisation RH_USER à la connexion)
-export async function fetchUtilisateurs(page = 1, q = '') {
-  const { data } = await apiClient.get('/utilisateurs', { params: { page, q: q || undefined } })
+/** `etablissement` : code de l'établissement de travail — seuls ses comptes affectés. */
+export async function fetchUtilisateurs(page = 1, q = '', etablissement = undefined) {
+  const { data } = await apiClient.get('/utilisateurs', { params: { page, q: q || undefined, etablissement: etablissement || undefined } })
   return data
 }
 
@@ -191,6 +192,10 @@ export const fetchTousEtablissements = (societeCode) =>
 export const fetchToutesSocietes = () => toutesLesPages('/societes')
 
 const societePlateforme = (code) => `plateforme/societes/${encodeURIComponent(code)}`
+
+// Champs de la fiche société que la base accepte, et leur longueur maximale.
+export const fetchStructureSocietePlateforme = () =>
+  apiClient.get('plateforme/societes-structure').then((r) => r.data)
 
 export const fetchSocietePlateforme = (code) =>
   apiClient.get(societePlateforme(code)).then((r) => r.data)

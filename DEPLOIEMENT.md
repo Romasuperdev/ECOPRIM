@@ -183,7 +183,9 @@ php artisan key:generate
 
 ## Étape 6 — La base de données
 
-Créez la base `ecoprim` si elle n'existe pas, puis :
+Les tables propres à NEXORA vont dans la base **ATECH** du serveur, comme celles des
+applications Hôtel et Comptabilité. Dans `backend\.env` : `DB_ECOPRIM_DATABASE=ATECH`
+(en local, la base `ecoprim` joue ce rôle). Puis :
 
 ```
 php artisan migrate --database=ecoprim --path=database/migrations/console --force
@@ -191,6 +193,19 @@ php artisan migrate --database=ecoprim --path=database/migrations/console --forc
 
 Cette commande ne crée que les tables **propres à NEXORA**. Elle ne touche ni à
 `ECONOMAT` ni à `dbmasterbacou`.
+
+**Avant de la lancer sur ATECH**, vérifiez qu'aucune de ses tables n'y existe déjà
+(une autre application de la suite pourrait porter le même nom) :
+
+```sql
+SELECT name FROM ATECH.sys.tables WHERE name IN ('console_societes','console_etablissements',
+  'console_roles','console_affectations','console_affectation_eleves','console_role_permissions',
+  'evaluations','devoirs','evenements','coefficients_matiere','aide_categories','aide_articles',
+  'nouveautes_versions','nouveautes_elements','nouveautes_lues');
+```
+
+Si la requête renvoie une ligne, ne lancez pas la migration : la table est peut-être celle
+d'une autre application.
 
 **Désactivez l'expiration du mot de passe** du compte SQL, dans SSMS :
 
@@ -296,6 +311,13 @@ php artisan nexora:verifier-deploiement
 | **« Login failed … password has expired »** | Mot de passe SQL expiré — voir l'étape 6 |
 | Une **photo refusée** sans raison | `upload_max_filesize` trop bas — voir l'étape 4 |
 | Messages d'erreur **en anglais** | `APP_LOCALE=fr` manque, ou le cache de configuration est périmé |
+| **« Cet écran ne peut pas s'afficher… (référence E-XXXXXX) »** | Une table ou une colonne attendue manque dans la base du serveur (souvent `ECONOMAT` d'une version différente, ou `DB_ECONOMAT_DATABASE` qui pointe vers la mauvaise base). Cherchez la référence dans `laravel.log` : la ligne donne la table en cause. Lancez ensuite `php artisan nexora:verifier-deploiement`. |
+| **« La base de données ne répond pas… (référence E-XXXXXX) »** | SQL Server arrêté, mauvais `DB_HOST`, compte refusé ou mot de passe expiré — même démarche |
+| Une **requête SQL** ou un **chemin `C:\…`** s'affiche à l'écran | Le serveur tourne avec une ancienne version du code, ou avec `APP_DEBUG=true` : mettez `APP_DEBUG=false`, puis `php artisan config:cache` |
+
+Chaque erreur technique affiche à l'utilisateur une **référence courte** (`E-7K2QH9`) et
+jamais de détail technique. Le détail complet est dans `laravel.log`, sous cette même
+référence : `findstr "E-7K2QH9" backend\storage\logs\laravel.log`.
 
 Les journaux utiles :
 

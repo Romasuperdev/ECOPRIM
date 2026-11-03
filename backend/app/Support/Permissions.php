@@ -30,6 +30,9 @@ class Permissions
         'modifier_dossier_eleve' => ['libelle' => 'Modifier un dossier élève', 'groupe' => 'Administratif'],
         'gerer_parents' => ['libelle' => 'Gérer les parents', 'groupe' => 'Administratif'],
         'imprimer_documents' => ['libelle' => 'Imprimer les documents', 'groupe' => 'Administratif'],
+        // Envoyer un SMS ou un mail au nom de l'école, et relire ce qui a été envoyé : des
+        // numéros et des messages de familles. Ce n'est pas l'affaire de tout le personnel.
+        'envoyer_communications' => ['libelle' => 'Envoyer des SMS et des mails', 'groupe' => 'Administratif'],
         'supprimer_classe' => ['libelle' => 'Supprimer une classe', 'groupe' => 'Administratif'],
         'gerer_utilisateurs' => ['libelle' => 'Gérer les utilisateurs', 'groupe' => 'Administration'],
         'gerer_roles' => ['libelle' => 'Gérer les rôles', 'groupe' => 'Administration'],
@@ -41,6 +44,9 @@ class Permissions
         // donner le second à qui n'a besoin que du premier.
         'exporter_donnees' => ['libelle' => 'Exporter les données (Excel)', 'groupe' => 'Administration'],
         'importer_donnees' => ['libelle' => 'Importer des données (Excel)', 'groupe' => 'Administration'],
+        // Une année clôturée résiste à tous les écrans ; seul l'import peut encore y ranger
+        // un historique, ou créer l'année qui manque. Pas pour qui importe au quotidien.
+        'importer_annee_cloturee' => ['libelle' => 'Importer dans une année clôturée ou à créer', 'groupe' => 'Administration'],
         'consulter_activites' => ["libelle" => "Consulter l'historique d'activité", 'groupe' => 'Administration'],
     ];
 
@@ -59,6 +65,20 @@ class Permissions
      * consulte — c'est même son intérêt — mais ne l'écrit pas.
      */
     public const INTERDITES_AUX_ADMINISTRATEURS = ['saisir_notes', 'saisir_cahier_journal'];
+
+    /**
+     * Compte affecté à un établissement SANS rôle : il se connecte et fait les traitements
+     * du quotidien (élèves, absences, échanges, communication, impressions…), mais ne
+     * touche pas au paramétrage de l'école (années, niveaux, classes, matières, barèmes,
+     * documents, affectations enseignant-classe), ni aux comptes et rôles.
+     */
+    public const SANS_ROLE = [
+        'consulter_classes', 'consulter_emploi_du_temps', 'consulter_eleves',
+        'saisir_absences', 'creer_devoirs',
+        'inscrire_eleve', 'modifier_dossier_eleve', 'gerer_parents', 'imprimer_documents',
+        'envoyer_communications', 'consulter_statistiques',
+        'exporter_donnees', 'importer_donnees',
+    ];
 
     public static function interditeAuxAdministrateurs(string $code): bool
     {

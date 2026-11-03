@@ -382,6 +382,7 @@ abstract class TestCase extends BaseTestCase
             $t->string('DateDepart')->nullable();
             $t->string('Motif')->nullable();
             $t->string('EtabAccueil')->nullable();
+            $t->string('Site')->nullable();
             $t->string('Corps')->nullable();
             $t->string('Echelon')->nullable();
             $t->string('FormaProf')->nullable();

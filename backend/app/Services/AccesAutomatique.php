@@ -23,7 +23,9 @@ use Throwable;
  *      mère. Renseigner les deux ne crée pas deux accès.
  *   2. Le TÉLÉPHONE identifie la personne. Un parent qui inscrit un deuxième enfant est
  *      reconnu par son numéro : on rattache l'enfant au compte existant au lieu d'en
- *      créer un doublon — c'est tout l'intérêt (« un parent, plusieurs élèves »).
+ *      créer un doublon — c'est tout l'intérêt (« un parent, plusieurs élèves »). Seul
+ *      un compte ayant DÉJÀ ce rôle dans la même société est ainsi reconnu : jamais un
+ *      compte quelconque de la suite qui partagerait le numéro (voir trouverParTelephone).
  *   3. Le téléphone sert aussi d'identifiant de connexion, et le mot de passe est tiré au
  *      hasard puis renvoyé UNE fois dans la réponse, pour être lu à l'intéressé. Il n'est
  *      jamais stocké en clair : RH_USER n'en garde que le haché.
@@ -180,7 +182,7 @@ class AccesAutomatique
             );
         }
 
-        $existant = $this->trouverParTelephone($telephone);
+        $existant = $this->trouverParTelephone($telephone, $codeRole, $perimetre['societe']);
 
         if ($existant) {
             $utilisateur = $existant;
@@ -189,7 +191,7 @@ class AccesAutomatique
         } else {
             $motDePasse = $this->motDePasse();
             $id = $this->ecrivain->creer([
-                'login' => $telephone,
+                'login' => $this->loginLibre($telephone),
                 'mot_de_passe' => $motDePasse,
                 'nom' => $nom ?: $telephone,
                 'prenom' => $prenom,
@@ -212,15 +214,57 @@ class AccesAutomatique
 
     /**
      * Le numéro reconnaît la personne : soit il est déjà son identifiant (compte créé
-     * ici), soit il figure dans ses coordonnées (compte créé à la main par un admin) —
-     * dans les deux cas c'est elle, et on ne crée pas de doublon.
+     * ici), soit il figure dans ses coordonnées (compte créé à la main par un admin).
+     *
+     * Mais RH_USER est commun à TOUTE la suite : un numéro saisi à l'inscription peut
+     * être celui d'un comptable d'une autre société, d'un administrateur, d'un compte
+     * d'une autre application. Le rattacher à ce compte-là lui donnait un rôle ici, le
+     * rendait visible des administrateurs de l'établissement — qui pouvaient dès lors
+     * changer son mot de passe. On ne réutilise donc qu'un compte qui a DÉJÀ ce rôle
+     * (Parent, ou Enseignant pour une fiche enseignant) dans la MÊME société ; sinon on en
+     * crée un nouveau.
      */
-    private function trouverParTelephone(string $telephone): ?RhUser
+    private function trouverParTelephone(string $telephone, string $codeRole, string $societe): ?RhUser
     {
-        return RhUser::query()
+        $candidats = RhUser::query()
             ->where(fn ($q) => $q->where('Login', $telephone)->orWhere('Contact', $telephone))
             ->orderBy('Id')
-            ->first();
+            ->pluck('Id')
+            ->all();
+
+        if ($candidats === []) {
+            return null;
+        }
+
+        $id = Affectation::query()
+            ->join('console_roles as r', 'r.id', '=', 'console_affectations.role_id')
+            ->whereIn('console_affectations.rh_user_id', $candidats)
+            ->where('console_affectations.societe_code', $societe)
+            ->where('r.code', $codeRole)
+            ->orderBy('console_affectations.rh_user_id')
+            ->value('console_affectations.rh_user_id');
+
+        return $id !== null ? RhUser::find($id) : null;
+    }
+
+    /**
+     * Le téléphone sert d'identifiant ; s'il est déjà pris (par un compte qu'on vient de
+     * refuser de réutiliser), on le suffixe : 0708091011-2, -3...
+     */
+    private function loginLibre(string $telephone): string
+    {
+        if (! $this->ecrivain->loginExiste($telephone)) {
+            return $telephone;
+        }
+
+        for ($n = 2; $n <= 99; $n++) {
+            $candidat = "{$telephone}-{$n}";
+            if (! $this->ecrivain->loginExiste($candidat)) {
+                return $candidat;
+            }
+        }
+
+        throw new RuntimeException("aucun identifiant libre n'a été trouvé pour le numéro {$telephone}.");
     }
 
     /** L'affectation de ce rôle dans l'établissement courant, créée si elle manque. */

@@ -1,0 +1,2795 @@
+{
+ "BEtablissements": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CodeEtablissement",
+    "type": "nvarchar",
+    "longueur": "20",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Intitule",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Adresse1",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Pays",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Ville",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SiteWeb",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Telephone",
+    "type": "nvarchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Email",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSociete",
+    "type": "nvarchar",
+    "longueur": "20",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "updated_at",
+    "type": "datetime2",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "created_at",
+    "type": "datetime2",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CodeEtablissement"
+  ]
+ },
+ "ECO_SMS_CONFIG": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "id",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODEETABLISSEMENT",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ENABLED",
+    "type": "bit",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "NAME",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PROVIDER",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ENVIRONMENT",
+    "type": "nvarchar",
+    "longueur": "20",
+    "nullable": false,
+    "defaut": "('test')"
+   },
+   {
+    "nom": "API_URL",
+    "type": "nvarchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "API_KEY",
+    "type": "nvarchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "API_SECRET",
+    "type": "nvarchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SENDER_ID",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DELIVERY_REPORTS",
+    "type": "bit",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "LONG_SMS",
+    "type": "bit",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "AUTO_NOTIF",
+    "type": "bit",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "UPDATED_AT",
+    "type": "datetime",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DESCRIPTION",
+    "type": "nvarchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "COUNTRY",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TIMEZONE",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "IS_DEFAULT",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "LOGIN",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PASSWORD",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SECRET_KEY",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TIMEOUT",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ENCODING",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "API_VERSION",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "UNICODE",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "SPLIT_AUTO",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "RETRY",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "LOG_ALL",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   },
+   {
+    "nom": "CAMPAIGNS",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "('0')"
+   }
+  ],
+  "cle_primaire": [
+   "id"
+  ]
+ },
+ "T_ABSENCEELEVE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Matricule",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Heure",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Cour",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Date",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Cause",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSession",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "AnneeCour",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEleve",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Justifier",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_ANNEEACADEMIQUE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "30",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LibelleAnnee",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Activer",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CloturePartielle",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "ClotureDefinitive",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "CODE",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "DEBUT",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "FIN",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CODE"
+  ]
+ },
+ "T_CAHIER_JOURNAL": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Num",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Lundi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Mardi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Mercredi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Jeudi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Vendredi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Matiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEntete",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NumSem",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ },
+ "T_CLASSE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LibelleClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "num",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeF",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "BoolClassExam",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSerie",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Site",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODEETABLISSEMENT",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CodeClasse"
+  ]
+ },
+ "T_CORPROFCLASSE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LOGIN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeMatiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeProfesseur",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Principale",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_CORPROFMAT": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LOGIN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeMatiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MatriculeProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_EMPJOUR": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Libelle",
+    "type": "varchar",
+    "longueur": "30",
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ },
+ "T_EMPLOIDUTEMPS": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CODEJOUR",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODEHEURE",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODEMATIERE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODECLASSE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODE",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CODESALLE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CODE"
+  ]
+ },
+ "T_ENTETE_JOURNAL": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CodeEntete",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Annee",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Mois",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Semaine",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeNiveau",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Prof",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NumSem",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ },
+ "T_ETUDIANT": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Matricule",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Nom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Prenom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Sexe",
+    "type": "varchar",
+    "longueur": "17",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateNaiss",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LieuNaiss",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Adresse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Email",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Telephone",
+    "type": "varchar",
+    "longueur": "15",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Nationalite",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NiveauOrigine",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EtabOrigine",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Photo",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Redoublant",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeCycle",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeFiliere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeNiveau",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NumeroPC",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeCategorie",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "AnneeAcad",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Ville",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Commune",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Quartier",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Ethnie",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SituationFamiliale",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Decede",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "OrganismePC",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TypeEleve",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NomPereTuteur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PrenomPereTuteur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ProfessionPereTuteur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TelephonePereTuteur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EmailPereTuteur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NomMere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PrenomMere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ProfessionMere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TelephoneMere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EmailMere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Region",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Religion",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Oriente",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MDP",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MDP2",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Taille",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Poids",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NUM",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "TypePC",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateInscription",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Rb_PC",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Rb_SCO",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Scolarite",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TotalPaye",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PC",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Remise",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "AgeActuel",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ActNaissance",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ActDu",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PaysNaiss",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Statut",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Regime",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Etat",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EnLigne",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Transfert",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EcoleP",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Site",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Inscription",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Reinscription",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Aide",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CompteTiers",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CompteGeneral",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LV2",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_HORAIRE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "COD_HORAIRE",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "HEUR_DEBUT",
+    "type": "varchar",
+    "longueur": "10",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "HEUR_FIN",
+    "type": "varchar",
+    "longueur": "10",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DUREEE",
+    "type": "varchar",
+    "longueur": "10",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "COD_HORAIRE"
+  ]
+ },
+ "T_MAIL_DIFFUSION": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "ID_MAIL_DIF",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "ADRESS_MAIL",
+    "type": "varchar",
+    "longueur": "80",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MOT_PASS",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SERVEUR_SMTP",
+    "type": "varchar",
+    "longueur": "80",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "code_etab",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PORT_SMTP",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "ID_MAIL_DIF"
+  ]
+ },
+ "T_MATIERE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodeMatiere",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LibelleMatiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Type",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Composition",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "CodeCycle",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_NIVEAU": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Num",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodeNiveau",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LibelleNiveau",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeCycle",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeFiliere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NiveauExamen",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Ordre",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODEETABLISSEMENT",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ },
+ "T_NOTEDETAILS": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Matricule",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Note",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSession",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEntete",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEleve",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Valide",
+    "type": "bit",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "Importer",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_NOTEENTETE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeMatiere",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Coefficient",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Date",
+    "type": "datetime",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSession",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CoefficientSession",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LOGIN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TypeNote",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Valide",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "LoginValidateur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEssai",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeCycle",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Note_Num",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Importer",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_PREREQUIS": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CODES",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CODENIVEAU",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TYPE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MONTANT",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ANNEE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LIBELLE",
+    "type": "varchar",
+    "longueur": "200",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "INSCR",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "SCO",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": "((0))"
+   },
+   {
+    "nom": "CODEELEVE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "QUANTITE",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CODES"
+  ]
+ },
+ "T_PROFESSEUR": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "MatriculeProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NomProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "PrenomProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "AdresseProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ContactProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "TypeProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SalaireMensuel",
+    "type": "money",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EmailProfesseur",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "GradeProfesseur",
+    "type": "varchar",
+    "longueur": "30",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LOGIN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Sexe",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateEmbauche",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Cellulaire",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeCnx",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Matiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Mdp",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NomComplet",
+    "type": "varchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateDepart",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Motif",
+    "type": "varchar",
+    "longueur": "500",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EtabAccueil",
+    "type": "varchar",
+    "longueur": "200",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "VHORAIRE",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Apellation",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "SituationMatrimoniale",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateNaiss",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LieuNaiss",
+    "type": "varchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DiplTitrUniv",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "FormaProf",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Detail_Formationprofe",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Corps",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Echelon",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateDerPromo",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DatePremPriseService",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EcolePriseService",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NbrAnneeService",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateDerInspect",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "sai_Detail_Formationprofe",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Cours",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NoteObtenue",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Distinction",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Datedistinct",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LieuDistinct",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "EcoleInspection",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Adresse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Email",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Telephone",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Ville",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateArriveePoste",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateRepriseService",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Service",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DDEN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateEntreeDREN",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DREN",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NumeroAvancement",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateAvancement",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Emploi",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "fonction",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "gradeActuel",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "GradeEntreeFP",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateChangementGrade",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DateNominationFonction",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Site",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "Code"
+  ]
+ },
+ "T_SALLESCLASSE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "CODE",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CODESALLE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LIBELLESALLE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NBREPLACE",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODE_TYPE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "CODE"
+  ]
+ },
+ "T_SMS": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "id",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Date",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Numero",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Message",
+    "type": "varchar",
+    "longueur": "250",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Heure",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Users",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Type",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "id"
+  ]
+ },
+ "T_TRACABILITE": {
+  "type": "BASE TABLE",
+  "colonnes": [
+   {
+    "nom": "id",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "LOGIN",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "CODE_ETAB",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODECAISSE",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "ACTION",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "TABLE",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DETAILS",
+    "type": "nvarchar",
+    "longueur": "-1",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "RESULTAT",
+    "type": "nvarchar",
+    "longueur": "20",
+    "nullable": false,
+    "defaut": "('SUCCÈS')"
+   },
+   {
+    "nom": "IP_ADRESSE",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NAVIGATEUR",
+    "type": "nvarchar",
+    "longueur": "150",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "DATE_ACTION",
+    "type": "datetime",
+    "longueur": null,
+    "nullable": false,
+    "defaut": "(getdate())"
+   },
+   {
+    "nom": "MODULE",
+    "type": "nvarchar",
+    "longueur": "100",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "MONTANT",
+    "type": "decimal",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "NIVEAU",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CLASSE",
+    "type": "nvarchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CODESOCIETE",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   }
+  ],
+  "cle_primaire": [
+   "id"
+  ]
+ },
+ "V_MOYENNE_ELEVE_CLASSE": {
+  "type": "VIEW",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Nom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Prenom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Moyenne",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSession",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Rang",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Rang2",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEleve",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Matricule",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Passage",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Date",
+    "type": "date",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Heure",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Sexe",
+    "type": "varchar",
+    "longueur": "17",
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ },
+ "V_NOTECLASSE": {
+  "type": "VIEW",
+  "colonnes": [
+   {
+    "nom": "Code",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Matricule",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Nom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Prenom",
+    "type": "varchar",
+    "longueur": "255",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Note",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeSession",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeAnnee",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeMatiere",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Valide",
+    "type": "bit",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEleve",
+    "type": "int",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeEntete",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "TypeNote",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "LibelleMatiere",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Note_Num",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeNiveau",
+    "type": "varchar",
+    "longueur": "50",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "CodeClasse",
+    "type": "varchar",
+    "longueur": "20",
+    "nullable": true,
+    "defaut": null
+   },
+   {
+    "nom": "Expr1",
+    "type": "int",
+    "longueur": null,
+    "nullable": false,
+    "defaut": null
+   },
+   {
+    "nom": "Coefficient",
+    "type": "real",
+    "longueur": null,
+    "nullable": true,
+    "defaut": null
+   }
+  ]
+ }
+}

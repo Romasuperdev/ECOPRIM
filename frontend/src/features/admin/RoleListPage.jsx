@@ -7,11 +7,14 @@ import Input from '../../components/ui/Input'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import { createRole, deleteRole, fetchRoles } from './adminApi'
+import { useAuthStore } from '../../store/authStore'
 
 export default function RoleListPage() {
   const [form, setForm] = useState(null)
   const [erreurs, setErreurs] = useState({})
   const qc = useQueryClient()
+  // Créer et supprimer un rôle : Super Admin seul. Les administrateurs consultent.
+  const superAdmin = useAuthStore((s) => s.superAdmin)
 
   const { data: roles, isLoading } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
   const invalider = () => qc.invalidateQueries({ queryKey: ['roles'] })
@@ -33,10 +36,13 @@ export default function RoleListPage() {
           <h1 className="text-2xl font-bold text-slate-800">Rôles</h1>
           <p className="mt-1 text-sm text-slate-500">
             Catalogue des rôles attribuables aux utilisateurs, établissement par établissement.
-            Ce que chaque rôle a le droit de faire se règle dans <Link to="/admin/permissions" className="text-primary-700 hover:underline">Permissions</Link>.
+            Ce que chaque rôle a le droit de faire se voit dans <Link to="/configuration/permissions" className="text-primary-700 hover:underline">Permissions</Link>.
+            {!superAdmin && ' Les rôles sont créés par le Super Administrateur : vous les consultez.'}
           </p>
         </div>
-        <Button onClick={() => { setErreurs({}); setForm({ code: '', nom: '' }) }}>+ Nouveau rôle</Button>
+        {superAdmin && (
+          <Button onClick={() => { setErreurs({}); setForm({ code: '', nom: '' }) }}>+ Nouveau rôle</Button>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-card">
@@ -53,7 +59,7 @@ export default function RoleListPage() {
             {isLoading && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
             {!isLoading && roles?.length === 0 && (
               <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">
-                Aucun rôle. Créez-en un, ou lancez <code>php artisan console:importer</code> pour semer le catalogue par défaut.
+                Aucun rôle pour l’instant.{superAdmin && <> Créez-en un, ou lancez <code>php artisan console:importer</code> pour semer le catalogue par défaut.</>}
               </td></tr>
             )}
             {roles?.map((r) => (
@@ -65,20 +71,20 @@ export default function RoleListPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
-                    to={`/admin/permissions?role=${r.id}`}
+                    to={`/configuration/permissions?role=${r.id}`}
                     className="mr-1 inline-flex rounded p-1.5 text-slate-500 hover:bg-slate-100"
-                    title="Voir et modifier les permissions de ce rôle"
+                    title={superAdmin ? 'Voir et modifier les permissions de ce rôle' : 'Voir les permissions de ce rôle'}
                   >
                     <KeyRound size={16} />
                   </Link>
-                  <button
+                  {superAdmin && <button
                     onClick={() => supprimer.mutate(r.id)}
                     disabled={supprimer.isPending}
                     className="rounded p-1.5 text-red-500 hover:bg-red-50"
                     title="Retirer ce rôle du catalogue"
                   >
                     <Trash2 size={16} />
-                  </button>
+                  </button>}
                 </td>
               </tr>
             ))}

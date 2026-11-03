@@ -8,6 +8,7 @@ use App\Models\Console\AffectationEleve;
 use App\Models\Console\Etablissement;
 use App\Models\Console\Role;
 use App\Models\RhUser;
+use App\Support\ElevesEtablissement;
 use App\Support\PerimetreConsole;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -94,28 +95,54 @@ class AffectationController extends Controller
         $data = $request->validate([
             'rh_user_id' => ['required', 'integer'],
             'etablissement_code' => ['required', 'string', Rule::exists('ecoprim.console_etablissements', 'code')],
-            'role_id' => ['required', Rule::exists('ecoprim.console_roles', 'id')],
+            // Facultatif : sans rôle, le compte se connecte et fait les traitements, sans
+            // toucher au paramétrage (Permissions::SANS_ROLE).
+            'role_id' => ['nullable', Rule::exists('ecoprim.console_roles', 'id')],
             // Matricules d'élèves à rattacher — pertinent seulement pour le rôle Parent,
             // ignoré silencieusement pour tout autre rôle.
             'eleves' => ['nullable', 'array'],
             'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
         ]);
 
+        $user = auth()->user();
+        if (empty($data['role_id'])) {
+            $data['role_id'] = Role::sansRole()->id;
+        }
+
+        // Seul un compte DÉJÀ dans le périmètre de l'appelant peut recevoir une
+        // affectation de sa part. Accepter n'importe quel identifiant RH_USER — table
+        // commune à toute la suite — permettait d'affecter un compte étranger, qui devenait
+        // alors visible, puis de réinitialiser son mot de passe : une prise de contrôle
+        // valable dans toutes les applications. Un compte nouveau entre dans le périmètre
+        // par UserController::store, qui l'affecte dans le même geste. Le contrôle passe
+        // AVANT la recherche du compte : hors périmètre, son existence n'a pas à être dite.
+        $this->assertCompteDansPerimetre((int) $data['rh_user_id']);
+
         // L'utilisateur doit exister dans RH_USER (lecture seule).
-        abort_unless(RhUser::find($data['rh_user_id']), 422, "Utilisateur RH_USER introuvable.");
+        $cible = RhUser::find($data['rh_user_id']);
+        abort_unless($cible, 422, "Utilisateur RH_USER introuvable.");
+        $this->assertCibleGerable($cible);
 
         $etab = Etablissement::where('code', $data['etablissement_code'])->firstOrFail();
 
-        $user = auth()->user();
         PerimetreConsole::assertAutoriseeEtablissement($etab->code, $etab->societe_code);
 
         // Un Admin Établissement (sans le niveau société) ne peut pas conférer le rôle
-        // Admin Société : il se donnerait un accès qui dépasse son propre périmètre.
+        // Admin Société : il se donnerait un accès qui dépasse son propre périmètre. Le
+        // rôle se reconnaît à son code, jamais à son nom (voir RhUser::ROLES_ADMINISTRATION).
         if (! $user->peutAccederNiveauSociete()) {
             $role = Role::findOrFail($data['role_id']);
-            $estRoleAdminSociete = $role->code === RhUser::ROLE_ADMIN_SOCIETE || $role->nom === 'Admin Société';
-            abort_if($estRoleAdminSociete, 403, "Vous ne pouvez pas attribuer le rôle Admin Société.");
+            abort_if($role->estRoleAdminSociete(), 403, "Vous ne pouvez pas attribuer le rôle Admin Société.");
         }
+
+        $role = Role::find($data['role_id']);
+        if ($role && $role->code === RhUser::ROLE_PARENT) {
+            ElevesEtablissement::exiger($data['eleves'] ?? [], $etab->code);
+        }
+
+        // Règle : un compte ne s'affecte qu'aux établissements de la société à laquelle il
+        // est lié dans « Société - Utilisateurs ».
+        \App\Support\SocietesDuCompte::exigerEtablissementDeSaSociete((int) $data['rh_user_id'], $etab->societe_code);
 
         // Règle : un utilisateur appartient à une seule société.
         $existante = Affectation::where('rh_user_id', $data['rh_user_id'])->first();
@@ -130,7 +157,11 @@ class AffectationController extends Controller
             ->where('etablissement_code', $data['etablissement_code'])
             ->where('role_id', $data['role_id'])->exists();
         if ($doublon) {
-            throw ValidationException::withMessages(['role_id' => ['Cet utilisateur a déjà ce rôle dans cet établissement.']]);
+            throw ValidationException::withMessages(['role_id' => [
+                Role::find($data['role_id'])?->estSansRole()
+                    ? 'Cet utilisateur est déjà affecté à cet établissement.'
+                    : 'Cet utilisateur a déjà ce rôle dans cet établissement.',
+            ]]);
         }
 
         $affectation = Affectation::create([
@@ -140,7 +171,6 @@ class AffectationController extends Controller
             'role_id' => $data['role_id'],
         ]);
 
-        $role = Role::find($data['role_id']);
         if ($role && $role->code === RhUser::ROLE_PARENT) {
             $this->synchroniserEnfants($affectation, $data['eleves'] ?? []);
         }
@@ -151,6 +181,11 @@ class AffectationController extends Controller
     public function destroy(Affectation $affectation)
     {
         PerimetreConsole::assertAutoriseeEtablissement($affectation->etablissement_code, $affectation->societe_code);
+        // Retirer l'affectation d'un administrateur plus élevé (un Admin Société présent
+        // dans l'établissement) n'est pas du ressort d'un Admin Établissement.
+        if ($cible = RhUser::find($affectation->rh_user_id)) {
+            $this->assertCibleGerable($cible);
+        }
         $affectation->delete();
 
         return response()->noContent();
@@ -168,14 +203,58 @@ class AffectationController extends Controller
         abort_unless($role && $role->code === RhUser::ROLE_PARENT, 422,
             "Seule une affectation du rôle Parent peut être rattachée à des élèves.");
 
+        if ($cible = RhUser::find($affectation->rh_user_id)) {
+            $this->assertCibleGerable($cible);
+        }
+
         $data = $request->validate([
             'eleves' => ['present', 'array'],
             'eleves.*' => ['string', 'max:50', Rule::exists('economat.T_ETUDIANT', 'Matricule')],
         ]);
 
+        // Un matricule existant ne suffit pas : l'élève doit être, cette année, dans une
+        // classe de l'établissement de l'affectation.
+        ElevesEtablissement::exiger($data['eleves'], $affectation->etablissement_code);
+
         $this->synchroniserEnfants($affectation, $data['eleves']);
 
         return response()->json($affectation->load(['etablissement', 'role', 'eleves']));
+    }
+
+    /**
+     * Le compte a-t-il déjà une affectation dans le périmètre de l'appelant ? Le Super
+     * Admin n'est pas borné ; un Admin Société l'est à ses sociétés, un Admin
+     * Établissement à ses établissements. Même définition que la liste des utilisateurs
+     * (UserController::cloisonner) : une affectation inactive ou échue y compte, elle
+     * rend déjà le compte visible.
+     */
+    private function assertCompteDansPerimetre(int $rhUserId): void
+    {
+        $user = auth()->user();
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        $societes = $user->societesAdministrees();
+        $etablissements = $user->etablissementsAdministres();
+
+        $dedans = ($societes !== [] || $etablissements !== [])
+            && Affectation::where('rh_user_id', $rhUserId)
+                ->where(fn ($q) => $q
+                    ->when($societes !== [], fn ($w) => $w->orWhereIn('societe_code', $societes))
+                    ->when($etablissements !== [], fn ($w) => $w->orWhereIn('etablissement_code', $etablissements)))
+                ->exists();
+
+        abort_unless($dedans, 403,
+            "Ce compte n'est pas dans votre périmètre : seul un compte déjà affecté chez vous, "
+            ."ou créé depuis cet écran, peut recevoir une affectation. Adressez-vous au Super Administrateur.");
+    }
+
+    /** Même règle que UserController : jamais un compte d'un niveau égal ou supérieur. */
+    private function assertCibleGerable(RhUser $cible): void
+    {
+        abort_unless(auth()->user()->peutGererCompte($cible), 403,
+            "Ce compte a un niveau d'administration égal ou supérieur au vôtre : vous ne pouvez pas le gérer.");
     }
 
     private function synchroniserEnfants(Affectation $affectation, array $matricules): void

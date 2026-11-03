@@ -31,13 +31,20 @@ class BEtablissementEcrivain
     /** Colonnes NOT NULL côté SQL Server : le formulaire doit les exiger. */
     public const OBLIGATOIRES = ['code', 'intitule', 'adresse', 'pays', 'societe_code'];
 
+    /**
+     * Une erreur de lecture REMONTE : « illisible » n'est pas « absent ». L'assimiler
+     * faisait sauter en silence la mise à jour d'ECONOMAT, ou tenter l'INSERT d'un
+     * établissement qui existait déjà.
+     */
     public function existe(string $code): bool
     {
-        try {
-            return $this->table()->where('CodeEtablissement', $code)->exists();
-        } catch (Throwable $e) {
-            return false;
-        }
+        return $this->lire($code) !== null;
+    }
+
+    /** Ligne de BEtablissements, ou null si absente. Erreur de lecture : exception. */
+    public function lire(string $code): ?object
+    {
+        return $this->table()->where('CodeEtablissement', $code)->first();
     }
 
     public function tous()

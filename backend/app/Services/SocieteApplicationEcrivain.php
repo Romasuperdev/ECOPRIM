@@ -125,16 +125,28 @@ class SocieteApplicationEcrivain
 
         abort_if($ids->isEmpty(), 404, 'Cette application n’est pas rattachée à cette société.');
 
+        // Une société est toujours rattachée à au moins une application : on ne retire pas
+        // la dernière.
+        $restantes = $this->lignesDe($societe['code'])
+            ->map(fn ($l) => trim((string) $l->CodeApp))->filter()->unique()
+            ->reject(fn ($a) => $a === trim($codeApp));
+        if ($restantes->isEmpty()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['applications' => [
+                'Une société doit rester affectée à au moins une application : rattachez-en une autre avant de retirer celle-ci.',
+            ]]);
+        }
+
         return $this->table()->whereIn('ID', $ids->all())->delete();
     }
 
     /** « Retirer tout » : détache la société de toutes ses applications. */
     public function retirerTout(string $codeSociete): int
     {
-        $societe = $this->societe($codeSociete);
-        $ids = $this->lignesDe($societe['code'])->pluck('ID');
+        $this->societe($codeSociete);
 
-        return $ids->isEmpty() ? 0 : $this->table()->whereIn('ID', $ids->all())->delete();
+        throw \Illuminate\Validation\ValidationException::withMessages(['applications' => [
+            'Une société doit rester affectée à au moins une application : retirez-les une à une en en gardant une.',
+        ]]);
     }
 
     // --- Lecture ------------------------------------------------------------------------

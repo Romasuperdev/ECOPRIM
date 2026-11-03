@@ -28,8 +28,11 @@ class SocieteApplicationController extends Controller
     public function synchroniser(Request $request, string $code)
     {
         $data = $request->validate([
-            'applications' => ['present', 'array'],
+            'applications' => ['required', 'array', 'min:1'],
             'applications.*' => ['string', 'max:50'],
+        ], [
+            'applications.required' => 'Une société doit être affectée à au moins une application.',
+            'applications.min' => 'Une société doit être affectée à au moins une application.',
         ]);
 
         return response()->json($this->ecrivain->synchroniser($code, $data['applications']));

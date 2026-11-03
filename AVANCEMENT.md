@@ -4366,3 +4366,195 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
   (« ? » et cloche de l'en-tête).
 - **Libellé d'année** : plus de « Année Année Scolaire… » sur les écrans du personnel
   (`lib/annee.js` : `libelleAnnee`, `anneeSeule`).
+
+## Fiche société complète (US_SOCIETE) ; tables propres à NEXORA dans ATECH sur le serveur
+
+- **Constat en ligne** : « Nom d'objet 'console_societes' non valide » à la création d'une
+  société. Les tables propres à NEXORA n'ont pas été migrées sur le serveur. Règle de
+  l'utilisateur : elles vont dans **ATECH** (`DB_ECOPRIM_DATABASE=ATECH`), jamais dans
+  dbmasterbacou. `DEPLOIEMENT.md` (étape 6) et `.env.example` le disent désormais, avec une
+  requête de contrôle des noms de tables avant la migration (ATECH est partagée).
+- **Formulaire Société refait** : trois onglets, à la création comme à la modification.
+  - Identité : sigle, raison sociale, forme juridique, régime fiscal, activités, capital,
+    codification.
+  - Coordonnées : adresses, complément, code postal, ville, lieu, pays, téléphone, fax,
+    email, site.
+  - Représentant légal : civilité, nom et prénoms, fonction, téléphone, cellulaire.
+- **Structure lue dans la base** (`UsSocieteEcrivain::champsDisponibles`, route
+  `plateforme/societes-structure`) : largeur réelle de chaque colonne (nvarchar compté en
+  caractères) ; une colonne absente du serveur n'est ni proposée ni écrite.
+- Jamais écrites : NOMBASE, STATUT_BASE, NB_*, provisionnement, suppression, CODEEXPERT,
+  LOGO, ni les doublons ADRESSE / REPRESENTANT / FONCTIONREPESENTANT.
+- La copie `console_societes` suit aussi ville, adresse, téléphone et représentant saisis.
+- Tests : 3 nouveaux. Suite complète : 622 réussis. Build Vite et oxlint propres. Non
+  vérifié dans un navigateur.
+
+## Tables propres à NEXORA créées d'elles-mêmes en ligne
+
+- **Constat** : en ligne, `console_affectations`, `aide_categories`, `nouveautes_versions`…
+  introuvables. La migration n'avait pas été lancée, et l'utilisateur déploie par simple
+  copie de fichiers.
+- **`TablesPropres` + middleware `InstallerTablesPropres`** (groupe `api`) : au premier appel,
+  les 15 tables manquantes sont créées par la migration `database/migrations/console`. Une
+  fois faites, ce n'est plus qu'une lecture de cache.
+- **Garde-fous** :
+  - refus si `ecoprim` désigne dbmasterbacou ou ECONOMAT ;
+  - refus si une table à créer existe déjà sans sa migration (autre application dans ATECH) ;
+  - verrou, et un nouvel essai au plus toutes les 10 minutes après un échec ;
+  - compte-rendu dans `laravel.log` (« [NEXORA] ») ;
+  - désactivable (`NEXORA_INSTALLATION_AUTO=false`, posé dans `phpunit.xml`).
+- Tests : `TablesPropresTest` (4). Suite complète : 626 réussis.
+
+## Import d'une année scolaire entière : les huit feuilles (29 oct. 2026)
+
+- **Constat** : sur `/echanges`, l'import « Année scolaire entière » ne reprenait que trois
+  feuilles (Élèves, Notes, Évaluations). Classes, Niveaux, Matières, Enseignants et Absences
+  s'exportaient mais étaient refusés à l'import. Pour ces cinq jeux, la raison donnée datait
+  d'avant leurs écrivains contrôlés ; ceux-ci existent désormais.
+- **Cinq nouveaux importateurs** (`app/Services/Echange`). Chacun passe par l'écrivain de son
+  écran, jamais par un INSERT propre à l'import :
+  - `ImportNiveaux`, `ImportClasses`, `ImportMatieres` : via `ReferentielEcrivain`, socle
+    commun `ImportReferentiel`. Clé : le code (dans l'année pour niveaux et classes). Une
+    classe d'un autre établissement est écartée, pas réécrite.
+  - `ImportEnseignants` : via `ProfesseurEcrivain`, clé le matricule. Il crée **la fiche,
+    pas le compte** : pas de mot de passe fabriqué en masse, l'accès s'ouvre depuis l'écran
+    Enseignants.
+  - `ImportAbsences` : via `AbsenceEcrivain`. La classe suit l'élève, pas d'absence future.
+    Même élève, même jour, même heure : la ligne existante est mise à jour, pas dupliquée.
+- **Ordre d'import** (`CatalogueDonnees::ORDRE_IMPORT`) : Niveaux → Classes → Matières →
+  Enseignants → Élèves → Notes → Absences → Évaluations, quel que soit l'ordre des onglets.
+  L'ordre d'export ne change pas.
+- **Les feuilles s'enchaînent** (`Importateur::avecAttendus`). Chaque feuille est jugée sur
+  ce que les précédentes vont créer : une classe sur son niveau, un élève sur sa classe, une
+  note ou une absence sur son élève. Un classeur d'année neuve s'analyse donc sans rejet.
+  Ce mécanisme remplace `ImportNotes::avecEleves`.
+- **Rattachement** : une classe ou un enseignant créé est rattaché à l'établissement de
+  travail s'il est unique, sinon la création est refusée (même règle que `ClasseController`).
+  `ClassesEnseignant::rattacher()` accepte maintenant un établissement explicite.
+- **Fuite de périmètre corrigée à l'export** : la feuille Enseignants rendait les
+  enseignants de toute la société (6 au lieu des 2 de l'écran, sur ETAB001). La règle de
+  l'écran est extraite dans `PerimetreEtablissement::appliquerAuxEnseignants()`, partagée par
+  `EnseignantController::index` et l'export.
+- **Vérifié sur la vraie base ECONOMAT, sans écriture** : année 2026-2027, ETAB001, export
+  puis analyse du même classeur. Résultat : 43 lignes, 42 modifications, 0 création,
+  1 rejet. Le rejet est une évaluation au type « Devoir surveillé », retiré volontairement
+  de la liste des types.
+- Écran : libellé « Année scolaire entière — 8 feuilles ». L'aide mentionne la colonne Année
+  ignorée (on peut ouvrir une année depuis l'export de la précédente) et les enseignants
+  créés sans compte.
+- Tests : `EchangeTest` passe de 47 à 56. Couverts : année neuve appliquée en entier,
+  réimport sans doublon, niveau inconnu, classe d'un autre établissement, absence future ou
+  mal classée, export enseignants borné. Suite complète : 661 réussis ; 2 échecs dans
+  `SocieteUtilisateurTest` (401 au lieu de 403), dus au lot en cours sur les comptes sans
+  établissement. Build Vite OK. Non vérifié dans un navigateur.
+- Corrigé au passage : `ComptesSansEtablissement.php` (apostrophe dans une chaîne entre
+  quotes simples) faisait planter toutes les commandes artisan.
+- **Suite : classeur où le niveau est saisi à la place de la classe**. Constat sur un vrai
+  fichier : 101 élèves, tous écartés (« CM1 » au lieu de « CM1 A »). Le bouton grisé
+  « Rien à appliquer » ne disait pas pourquoi.
+  - Le rejet suggère désormais la classe (« Vouliez-vous dire « CM1 A » ? »), sans
+    corriger d'office : un second CM1 rendrait la correction ambiguë. Sans candidat, il
+    liste les classes de l'année (`Importateur::suggestionClasse`).
+  - Sous le bouton grisé : « Aucune ligne n'est importable… corrigez le fichier d'après les
+    motifs, puis déposez-le à nouveau. »
+  - **Périmètre de l'export corrigé** (`CatalogueDonnees::requete`). Classes : on filtre
+    sur les établissements visibles, comme les écrans, et non plus sur l'établissement de
+    session. Sans établissement choisi, l'export rendait les classes de tous les
+    établissements. Niveaux : plus de filtre d'établissement, l'écran les montre tous ;
+    l'export n'en rendait qu'1 sur 6 pour ETAB001.
+  - Tests : `EchangeTest` 59, tous verts.
+
+## Import : l'année mentionnée par le fichier, créée si besoin (29 oct. 2026)
+
+- **Demande** : l'import doit aller dans l'année que le fichier mentionne, même si elle est
+  clôturée. Si elle n'existe pas, il la crée, clôturée quand elle est antérieure. Droit
+  réservé à l'admin et au Super Admin.
+- **`AnneeImport`** (`app/Services/Echange`) — l'année visée :
+  - l'année choisie à l'écran, si on en choisit une ;
+  - sinon celle que le fichier mentionne : la plus fréquente de ses colonnes Année, à
+    défaut son nom (« …2025-2026.xlsx ») ;
+  - sinon l'année de travail.
+
+  Une année absente est créée **à l'application seulement** :
+  - sur le modèle de l'année de travail (« Année Scolaire 2026-2027 » / « 2026 » donne
+    « Année Scolaire 2025-2026 » / « 2025 »), dates décalées, même société, jamais active ;
+  - **clôturée si antérieure** ;
+  - sans feuille Classes dans le classeur, elle reprend les niveaux et classes de l'année
+    de travail (établissements visibles), annoncés dans le rapport.
+
+  `ContexteScolaire::forcerNouvelle()` permet d'analyser dans une année qui n'existe pas
+  encore.
+- **Permission `importer_annee_cloturee`** (« Importer dans une année clôturée ou à
+  créer »). Super Admin, Admin Société et Admin Établissement l'ont d'office ; elle peut être
+  accordée à d'autres rôles (Direction…) depuis l'écran Permissions. Elle est vérifiée à
+  l'analyse et à l'application. Sans elle, le refus est explicite. Chaque import de ce type
+  est journalisé (`laravel.log`). Les écrans restent verrouillés sur une année close.
+- **Défaut corrigé** : ECONOMAT ne garde qu'une fiche par élève (aucun matricule en double
+  sur 104 élèves). Un élève déjà inscrit dans une AUTRE année était « mis à jour » : sa fiche
+  de l'autre année était modifiée, alors que le rapport annonçait l'année visée. Il est
+  désormais écarté avec ce motif.
+- Écran : bloc « Année visée » en tête du rapport (source, création, clôture, classes
+  reprises). Le verrou d'année clôturée n'apparaît plus pour qui a le droit. Aide et
+  sélecteur d'année réécrits.
+- Vérifié sur la vraie base, sans écriture. Le fichier
+  « nexora-annee-scolaire-2025-2026-corrige.xlsx » vise « Année Scolaire 2025-2026 », à
+  créer clôturée, avec 6 classes reprises. Ses 67 élèves sont refusés : l'utilisateur les a
+  déjà importés en 2026-2027.
+- **Déplacement des 67 élèves en 2025-2026** (demande explicite de l'utilisateur), fait sur
+  la vraie base :
+  - créée : « Année Scolaire 2025-2026 » (CODE 2023, clôturée, inactive, SOC00001) et ses
+    6 niveaux CP1 → CM2 ;
+  - créées : 6 classes « CE1 A-2025 » … « CP2 A-2025 » (libellés identiques, ETAB001) ;
+  - les 67 fiches ont reçu AnneeAcad 2025-2026 et leur classe -2025, en une transaction ;
+  - vérifié : 67 élèves visibles en 2025-2026, 2026-2027 revenu à ses 10 élèves ;
+  - aucune note ni absence ne leur était rattachée ;
+  - sauvegarde des 67 fiches avant déplacement (Code, Matricule, AnneeAcad, CodeClasse) :
+    `sauvegarde-67-eleves-avant-deplacement.json`, dans le dossier temporaire de session.
+- **Découverte : `CodeClasse` est la clé primaire de T_CLASSE sur le serveur**, un code ne
+  sert qu'une fois toutes années confondues. Le code supposait l'inverse (« unique dans
+  l'année, réutilisable l'an suivant »). La première création de « CE1 A » en 2025-2026 a
+  donc échoué (PK_T_CLASSE), après la création de l'année et des niveaux mais avant toute
+  classe.
+  - `AnneeImport` : année et structure créées en une seule transaction. Une classe reprise
+    dont le code est pris devient « CODE-AAAA » (même libellé), et les classes du fichier
+    y sont traduites (`_alias_classes`), annoncé dans le rapport (« CE1 A → CE1 A-2025 »).
+  - `ImportClasses` et `ClasseController::assertCodeLibre` refusent un code pris dans une
+    autre année, avec un message clair au lieu de l'erreur SQL.
+- Tests : `EchangeTest` 66, `ReferentielsCrudTest` +1. Suite complète : 671 réussis,
+  mêmes 2 échecs `SocieteUtilisateurTest`. Build Vite OK. Non vérifié dans un navigateur.
+- **Import annulé à la demande de l'utilisateur** (il le refera lui-même). Supprimé de
+  ECONOMAT, en une transaction :
+  - les 67 élèves P24/P25 ;
+  - les 6 classes « …-2025 » et les 6 niveaux de 2025-2026 ;
+  - l'année « Année Scolaire 2025-2026 ».
+
+  La base est revenue à son état d'avant l'import (37 élèves, 3 années). Sauvegarde
+  complète des lignes supprimées, toutes colonnes :
+  `backend/storage/app/sauvegardes/suppression-import-2025-2026-20261029-135045.json`.
+  Les corrections de code (année mentionnée, codes de classe uniques…) restent en place.
+- **Reprise des classes d'une année neuve : chercher l'année qui les porte**. Constat : le
+  réimport de l'utilisateur écartait les 101 élèves, faute de classe reprise.
+  - Cause, une incohérence de données : ETAB001 (« Flygroup », société AURIAK) a ses
+    classes sous « Année Scolaire 2026-2027 » (SOC00001), et non sous « 2026-2027 », l'année
+    AURIAK de l'en-tête. L'en-tête affiche les deux « 2026-2027 ».
+  - Correctif : `AnneeImport::structure()` prend les classes de l'année de travail, sinon
+    celles de l'année la plus récente où les établissements visibles en ont. Le rapport
+    nomme l'année d'origine.
+  - À blanc, dans le contexte de l'utilisateur (AURIAK 2026-2027, ETAB001) : année
+    « 2025-2026 » à créer, clôturée ; 6 classes reprises « CE1 A → CE1 A-2025 »… ;
+    67 créations, 34 rejets attendus (PS/MS/GS, 2 matricules en double).
+  - Test : `test_la_reprise_cherche_les_classes_dans_l_annee_qui_les_porte`.
+- **Option « Tout importer »** (case à cocher, décochée par défaut). Elle importe aussi ce
+  qui serait écarté, quand c'est faisable :
+  - les classes citées par le fichier, absentes de l'année visée mais ouvertes une autre
+    année par un établissement visible, y sont reprises sous un code libre (« PS → PS-2025
+    (de 2024/2025) »), avec leur niveau (`AnneeImport::completerStructure`). Pour une année
+    existante, elles s'ouvrent à l'application (`ouvrirStructure`) ;
+  - un matricule porté par deux enfants DIFFÉRENTS : le second reçoit « MATRICULE-2 »,
+    signalé ligne par ligne dans le rapport. Le même enfant deux fois reste écarté ;
+  - une classe introuvable partout reste écartée : on ne fabrique pas une classe sans
+    niveau.
+- À blanc sur le fichier de l'utilisateur, dans son contexte : 101 créations, 0 rejet. Les
+  6 classes primaires et PS/MS/GS sont reprises ; P24-0046 et P24-0068 en double sont
+  renumérotés.
+- Tests : `EchangeTest` 68.

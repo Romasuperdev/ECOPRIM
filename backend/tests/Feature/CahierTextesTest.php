@@ -62,8 +62,11 @@ class CahierTextesTest extends TestCase
             ['CODE' => 2, 'CodeAnnee' => '2024', 'LibelleAnnee' => '2024-2025',
                 'Activer' => false, 'ClotureDefinitive' => true, 'DEBUT' => '2024-09-01'],
         ]);
+        // CP1A appartient à E1, l'établissement du compte : un compte du personnel ne voit que
+        // les classes des établissements de ses affectations (périmètre fermé par défaut).
         $eco('T_CLASSE')->insert([
-            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1', 'ANNEE' => self::ANNEE],
+            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1', 'ANNEE' => self::ANNEE,
+                'CODEETABLISSEMENT' => 'E1'],
         ]);
         $eco('T_MATIERE')->insert([
             ['Code' => 1, 'CodeMatiere' => 'MATH', 'LibelleMatiere' => 'Mathématiques'],
@@ -200,6 +203,13 @@ class CahierTextesTest extends TestCase
 
     public function test_une_annee_cloturee_verrouille_la_creation(): void
     {
+        // La classe existe aussi dans l'année clôturée, toujours en E1 : c'est bien le verrou
+        // d'année qui doit répondre, pas le périmètre (une classe d'une autre année n'est pas
+        // une classe de l'année de travail).
+        DB::connection('economat')->table('T_CLASSE')->insert([
+            'num' => 9, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1',
+            'ANNEE' => '2024-2025', 'CODEETABLISSEMENT' => 'E1',
+        ]);
         $this->postJson('/api/v1/contexte/annee', ['annee' => '2024-2025'])->assertOk();
 
         $this->postJson('/api/v1/cahier-textes', $this->entete())->assertStatus(423);

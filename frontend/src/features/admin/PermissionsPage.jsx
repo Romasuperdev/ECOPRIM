@@ -7,13 +7,14 @@ import Button from '../../components/ui/Button'
 import MessageErreur from '../../components/ui/MessageErreur'
 import { messageErreurApi } from '../../lib/erreurs'
 import { enregistrerPermissionsRole, fetchPermissionsRole, fetchRoles } from './adminApi'
+import { useAuthStore } from '../../store/authStore'
 
 /**
  * L'éditeur d'un rôle précis, remonté (voir `key={roleId}` plus bas) à chaque changement
  * de rôle : `coches` s'initialise alors directement depuis `permissions`, sans effet pour
  * le resynchroniser après coup.
  */
-function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
+function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre, lectureSeule }) {
   const [coches, setCoches] = useState(() => new Set(permissions.accordees))
   // Issue du dernier enregistrement : sans elle, un échec passait pour un succès (le
   // bouton revenait simplement à « Enregistrer »).
@@ -63,6 +64,7 @@ function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
                 <input
                   type="checkbox"
                   checked={coches.has(code)}
+                  disabled={lectureSeule}
                   onChange={() => basculer(code)}
                   className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-400"
                 />
@@ -91,9 +93,11 @@ function EditeurPermissions({ roleId, roleActuel, permissions, onEnregistre }) {
           <ShieldCheck size={13} className="mr-1 inline" />
           {roleActuel?.nom ?? 'Ce rôle'} — {coches.size} permission{coches.size > 1 ? 's' : ''} accordée{coches.size > 1 ? 's' : ''}
         </p>
-        <Button onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>
-          {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
+        {!lectureSeule && (
+          <Button onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>
+            {enregistrer.isPending ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -111,6 +115,8 @@ export default function PermissionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const roleId = searchParams.get('role') ?? ''
   const qc = useQueryClient()
+  // Donner des permissions à un rôle : Super Admin seul. Les administrateurs consultent.
+  const superAdmin = useAuthStore((s) => s.superAdmin)
 
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles })
   const { data: permissions, isLoading, error } = useQuery({
@@ -128,6 +134,8 @@ export default function PermissionsPage() {
         <p className="mt-1 text-sm text-slate-500">
           Ce que chaque rôle a le droit de faire. Les administrateurs (Super Admin, Admin Société,
           Admin Établissement) gardent toujours accès à tout — ces cases ne concernent que les rôles métier.
+          {superAdmin ? '' : ' Seul le Super Administrateur les modifie : vous les consultez.'}
+          {' '}Un compte affecté sans rôle fait les traitements (élèves, absences, échanges…) sans toucher au paramétrage.
         </p>
       </div>
 
@@ -146,7 +154,7 @@ export default function PermissionsPage() {
 
       {!roleId && (
         <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-muted">
-          Choisissez un rôle pour voir et modifier ses permissions.
+          Choisissez un rôle pour voir {superAdmin ? 'et modifier ' : ''}ses permissions.
         </p>
       )}
 
@@ -160,6 +168,7 @@ export default function PermissionsPage() {
           roleActuel={roleActuel}
           permissions={permissions}
           onEnregistre={(data) => qc.setQueryData(['role-permissions', roleId], data)}
+          lectureSeule={!superAdmin}
         />
       )}
     </div>

@@ -105,7 +105,7 @@ class ContexteTest extends TestCase
 
     public function test_impossible_de_choisir_un_etablissement_non_accessible(): void
     {
-        $this->connecte(false); // aucune affectation
+        $this->connecte(false, ['Etab' => 'E9']); // rattaché à un autre établissement
 
         $this->postJson('/api/v1/contexte/etablissement', ['code' => 'E1'])
             ->assertStatus(422)->assertJsonValidationErrors('code');
@@ -192,5 +192,34 @@ class ContexteTest extends TestCase
         $this->assertTrue($annees->firstWhere('libelle', '2024-2025')['cloturee']);
         $this->assertFalse($annees->firstWhere('libelle', '2025-2026')['cloturee']);
         $this->assertTrue($annees->firstWhere('libelle', '2025-2026')['active']);
+    }
+
+    // --- Compte rattaché à un établissement sans rôle d'affectation ---
+
+    public function test_un_compte_rattache_sans_role_voit_son_etablissement(): void
+    {
+        // Cas de la console : le compte est rattaché à E2 (RH_USER.Etab), sans affectation.
+        $this->connecte(false, ['Etab' => 'E2']);
+
+        $r = $this->getJson('/api/v1/contexte')->assertOk();
+
+        $this->assertSame(['E2'], collect($r->json('disponibles'))->pluck('code')->all());
+        $this->assertSame('E2', $r->json('etablissement_code'));
+        $this->assertSame('École Bêta', $r->json('etablissement_nom'));
+    }
+
+    public function test_le_code_d_affectation_est_compare_sans_casse(): void
+    {
+        $rh = $this->connecte(false);
+        $role = Role::create(['code' => 'SEC', 'nom' => 'Secrétaire']);
+        Affectation::create([
+            'rh_user_id' => $rh->Id, 'societe_code' => 'ABN', 'etablissement_code' => ' e1 ', 'role_id' => $role->id,
+        ]);
+
+        $r = $this->getJson('/api/v1/contexte')->assertOk();
+        $this->assertSame(['E1'], collect($r->json('disponibles'))->pluck('code')->all());
+
+        $this->postJson('/api/v1/contexte/etablissement', ['code' => 'e1'])->assertOk()
+            ->assertJsonPath('etablissement_code', 'E1');
     }
 }

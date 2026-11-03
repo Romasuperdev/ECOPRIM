@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Exports\ClasseurDonnees;
 use App\Http\Controllers\Controller;
+use App\Services\Echange\AnneeImport;
 use App\Services\Echange\CatalogueDonnees;
 use App\Services\Echange\LecteurClasseur;
 use App\Services\Echange\ServiceImport;
@@ -11,9 +12,12 @@ use App\Support\AnneeScolaireGuard;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use PDOException;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 
 /**
  * Import et export Excel.
@@ -36,13 +40,16 @@ class EchangeController extends Controller
     ) {}
 
     /** Ce qu'il y a à exporter, combien de lignes, et ce qui s'importe en retour. */
-    public function catalogue()
+    public function catalogue(Request $request)
     {
+        $this->anneeDemandee($request);
         $annee = ContexteScolaire::annee();
 
         return [
             'annee' => $annee,
             'annee_cloturee' => AnneeScolaireGuard::estCloturee($annee),
+            // Une année clôturée reste importable pour qui a ce droit (AnneeImport).
+            'peut_importer_annee_cloturee' => AnneeImport::autorise(),
             'etablissement' => PerimetreEtablissement::nom(),
             'lignes_max_import' => LecteurClasseur::LIGNES_MAX,
             // L'année entière n'est pas un jeu de plus : c'est le classeur complet, dont on
@@ -76,6 +83,7 @@ class EchangeController extends Controller
     /** Un classeur, une feuille par jeu demandé. Sans `jeux`, toute l'année. */
     public function exporter(Request $request)
     {
+        $this->anneeDemandee($request);
         $jeux = $this->jeuxDemandes($request);
 
         return Excel::download(
@@ -90,6 +98,7 @@ class EchangeController extends Controller
      */
     public function modele(Request $request)
     {
+        $this->anneeDemandee($request);
         // « annee » n'est pas un jeu du catalogue mais le classeur entier : le modèle porte
         // alors une feuille par jeu importable, et l'import les reprend toutes.
         $jeux = $request->input('jeux') === ServiceImport::JEU_ANNEE
@@ -111,6 +120,7 @@ class EchangeController extends Controller
     /** Premier temps : le rapport. Rien n'est écrit. */
     public function analyser(Request $request, string $jeu)
     {
+        $this->anneeDemandee($request);
         $this->validerJeuImportable($jeu);
 
         $data = $request->validate([
@@ -118,6 +128,9 @@ class EchangeController extends Controller
             // seul en portait une.
             'fichier' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:20480'],
             'bareme' => ['nullable', 'numeric', 'min:1', 'max:100'],
+            // « Tout importer » (par défaut) : reprendre aussi ce qui serait écarté quand
+            // c'est faisable ; 0 / false pour le mode strict (voir ServiceImport).
+            'tout_importer' => ['nullable', 'boolean'],
         ]);
 
         try {
@@ -125,10 +138,17 @@ class EchangeController extends Controller
                 $jeu,
                 $data['fichier'],
                 (int) $request->user()->getKey(),
-                array_filter(['bareme' => $data['bareme'] ?? null], fn ($v) => $v !== null),
+                array_filter([
+                    'bareme' => $data['bareme'] ?? null,
+                    // « Tout importer » par défaut : seule une case explicitement décochée
+                    // (0 / false) remet le mode strict. Retenu avec le rapport.
+                    'tout_importer' => $request->filled('tout_importer') ? $request->boolean('tout_importer') : true,
+                ], fn ($v) => $v !== null),
+                // Année choisie à l'écran : elle prime sur celle que le fichier mentionne.
+                trim((string) $request->input('annee', '')) !== '',
             );
         } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['fichier' => $e->getMessage()]);
+            throw ValidationException::withMessages(['fichier' => $this->messageClient($e)]);
         }
     }
 
@@ -140,8 +160,24 @@ class EchangeController extends Controller
         try {
             return $this->imports->appliquer($data['jeton'], (int) $request->user()->getKey());
         } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['jeton' => $e->getMessage()]);
+            throw ValidationException::withMessages(['jeton' => $this->messageClient($e)]);
         }
+    }
+
+    /**
+     * Le message d'une RuntimeException levée volontairement (fichier illisible, jeton
+     * périmé, référentiel injoignable…) se montre tel quel. Une erreur de base (texte SQL)
+     * ou de fichier (chemin du serveur) — RuntimeException elles aussi — part au journal.
+     */
+    private function messageClient(RuntimeException $e): string
+    {
+        if ($e instanceof PDOException || $e instanceof FileException) {
+            Log::error('Import : erreur technique.', ['exception' => $e]);
+
+            return "L'import n'a pas pu aboutir à cause d'une erreur technique, journalisée. Réessayez, ou prévenez l'administrateur.";
+        }
+
+        return $e->getMessage();
     }
 
     /**
@@ -170,6 +206,19 @@ class EchangeController extends Controller
         }
 
         return array_values(array_intersect(CatalogueDonnees::codes(), $demandes));
+    }
+
+    /**
+     * Année choisie sur l'écran (paramètre `annee`) : elle prime, pour cette requête, sur
+     * l'année de l'en-tête. Sans paramètre, rien ne change.
+     */
+    private function anneeDemandee(Request $request): void
+    {
+        $annee = trim((string) $request->input('annee', ''));
+        if ($annee !== '') {
+            ContexteScolaire::forcer($annee);
+            PerimetreEtablissement::oublier();
+        }
     }
 
     private function validerJeuImportable(string $jeu): void

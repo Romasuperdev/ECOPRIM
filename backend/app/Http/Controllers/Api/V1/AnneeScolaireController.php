@@ -20,6 +20,12 @@ use Illuminate\Validation\ValidationException;
  *    erreur serait irréversible. Rouvrir une année est donc possible, et c'est voulu.
  *  - **Une seule année active à la fois** : en activer une désactive les autres, sinon le
  *    contexte de travail ne saurait laquelle prendre par défaut.
+ *
+ * Qui peut quoi : l'écriture est réservée aux administrateurs (route `console:etablissement`).
+ * Mais T_ANNEEACADEMIQUE est COMMUNE à toutes les sociétés — activer une année désactive
+ * celle de tout le monde, clôturer ou rouvrir verrouille ou déverrouille les données de
+ * toutes les écoles. Ces trois gestes (active, cloturee, cloture_partielle) sont donc
+ * réservés au Super Admin (assertEtatModifiable).
  */
 class AnneeScolaireController extends Controller
 {
@@ -76,6 +82,7 @@ class AnneeScolaireController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->regles(true));
+        $this->assertEtatModifiable($request, $data);
         $this->assertLibelleLibre($data['libelle']);
 
         $code = $this->ecrivain->creer($data, self::BOOLEENS);
@@ -90,6 +97,7 @@ class AnneeScolaireController extends Controller
     public function update(Request $request, AnneeScolaire $anneeScolaire)
     {
         $data = $request->validate($this->regles(false));
+        $this->assertEtatModifiable($request, $data, $anneeScolaire);
         $id = $anneeScolaire->getRawOriginal('CODE');
 
         if (isset($data['libelle'])) {
@@ -118,6 +126,31 @@ class AnneeScolaireController extends Controller
         $this->ecrivain->supprimer($anneeScolaire->getRawOriginal('CODE'));
 
         return response()->noContent();
+    }
+
+    /**
+     * Activer, clôturer (partiellement ou non) ou rouvrir une année : Super Admin seul,
+     * l'année étant commune à toutes les sociétés. Un formulaire qui renvoie l'état
+     * inchangé passe — seul un CHANGEMENT d'état est refusé, et une création ne peut
+     * naître ni active ni clôturée.
+     */
+    private function assertEtatModifiable(Request $request, array $data, ?AnneeScolaire $annee = null): void
+    {
+        if ($request->user()?->isSuperAdmin()) {
+            return;
+        }
+
+        foreach (self::BOOLEENS as $champ) {
+            if (! array_key_exists($champ, $data) || $data[$champ] === null) {
+                continue;
+            }
+
+            $actuel = $annee ? (bool) $annee->{$champ} : false;
+            if ((bool) $data[$champ] !== $actuel) {
+                abort(403, "Activer, clôturer ou rouvrir une année scolaire est réservé au Super Administrateur : "
+                    .'cette année est commune à toutes les sociétés.');
+            }
+        }
     }
 
     /** Le libellé sert de clé métier partout dans l'application : il doit rester unique. */

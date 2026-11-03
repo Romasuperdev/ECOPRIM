@@ -9,7 +9,7 @@ import Textarea from '../../components/ui/Textarea'
 import ModaleAcces from '../../components/ui/ModaleAcces'
 import SelecteurMultiple from '../../components/ui/SelecteurMultiple'
 import { messageErreurApi } from '../../lib/erreurs'
-import { fetchMatieres } from '../reference/referenceApi'
+import { fetchAllClasses, fetchMatieres } from '../reference/referenceApi'
 import { fetchEnseignant, createEnseignant, updateEnseignant } from './enseignantsApi'
 
 const VIDE = {
@@ -17,7 +17,7 @@ const VIDE = {
   situation_matrimoniale: '',
   adresse: '', ville: '', telephone: '', cellulaire: '', email: '',
   statut: '', corps: '', grade: '', echelon: '', diplome: '', formation: '',
-  matieres: [], volume_horaire: '', date_embauche: '', annee_code: '',
+  matieres: [], classes: [], volume_horaire: '', date_embauche: '', annee_code: '',
   fonction: '', emploi: '', dren: '', dden: '', service: '',
   date_premiere_prise_service: '', ecole_prise_service: '', annees_service: '', date_arrivee_poste: '',
   date_depart: '', motif_depart: '', etab_accueil: '',
@@ -36,7 +36,7 @@ const SITUATIONS = [
 const ONGLETS_BASE = [
   { libelle: 'État civil', champs: ['matricule', 'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance', 'situation_matrimoniale'] },
   { libelle: 'Coordonnées', champs: ['adresse', 'ville', 'telephone', 'cellulaire', 'email'] },
-  { libelle: 'Carrière', champs: ['statut', 'corps', 'grade', 'echelon', 'diplome', 'formation', 'matieres', 'volume_horaire', 'date_embauche', 'annee_code'] },
+  { libelle: 'Carrière', champs: ['statut', 'corps', 'grade', 'echelon', 'diplome', 'formation', 'matieres', 'classes', 'volume_horaire', 'date_embauche', 'annee_code'] },
   { libelle: 'Administration', champs: ['fonction', 'emploi', 'service', 'dren', 'dden', 'date_premiere_prise_service', 'ecole_prise_service', 'annees_service', 'date_arrivee_poste'] },
 ]
 const ONGLET_DEPART = { libelle: 'Départ', champs: ['date_depart', 'etab_accueil', 'motif_depart'] }
@@ -81,6 +81,8 @@ export default function EnseignantFormPage() {
   const ficheManquante = enEdition && !enseignant
 
   const { data: matieres } = useQuery({ queryKey: ['matieres', 'all'], queryFn: fetchMatieres })
+  const { data: classes } = useQuery({ queryKey: ['classes', 'all'], queryFn: fetchAllClasses })
+  const [avertissements, setAvertissements] = useState([])
 
   const base = enseignant
     ? { ...VIDE, ...Object.fromEntries(Object.entries(enseignant).map(([k, v]) => [k, v ?? ''])) }
@@ -91,6 +93,13 @@ export default function EnseignantFormPage() {
     mutationFn: () => (enEdition ? updateEnseignant(id, form) : createEnseignant(form)),
     onSuccess: (enseignant) => {
       qc.invalidateQueries({ queryKey: ['enseignants'] })
+      qc.invalidateQueries({ queryKey: ['affectations-enseignants'] })
+      // Une matière déjà assurée par un collègue n'est pas écrasée : on le dit avant de
+      // quitter la fiche, plutôt que de laisser croire l'affectation faite.
+      if (enseignant?.avertissements?.length) {
+        setAvertissements(enseignant.avertissements)
+        if (!enseignant?.acces_enseignant) return
+      }
       // Les identifiants ne s'affichent qu'une fois : on reste sur la page tant qu'ils
       // n'ont pas été lus, puis on retourne à la liste.
       if (enseignant?.acces_enseignant) {
@@ -230,12 +239,35 @@ export default function EnseignantFormPage() {
                 placeholder="— Cocher les matières —"
                 error={err('matieres') ?? err('matieres.0')}
               />
+              <SelecteurMultiple
+                label="Classes où il donne cours"
+                options={(classes ?? []).map((c) => ({ valeur: c.code, libelle: c.nom ?? c.libelle ?? c.code }))}
+                selection={form.classes ?? []}
+                onChange={(v) => champ('classes', v)}
+                placeholder="— Cocher les classes —"
+                error={err('classes') ?? err('classes.0')}
+              />
               <Input label="Volume horaire (h/sem.)" type="number" min="0" max="60" value={form.volume_horaire}
                      onChange={(e) => champ('volume_horaire', e.target.value)} error={err('volume_horaire')} />
               <Input label="Date d’embauche" value={form.date_embauche} onChange={(e) => champ('date_embauche', e.target.value)}
                      error={err('date_embauche')} placeholder="jj/mm/aaaa" />
               <Input label="Année scolaire" value={form.annee_code} onChange={(e) => champ('annee_code', e.target.value)} error={err('annee_code')} />
             </GrilleFormulaire>
+            <p className="mt-3 text-xs text-muted">
+              Chaque classe cochée est affectée à l’enseignant pour les matières cochées ;
+              une matière déjà assurée par un collègue n’est pas modifiée.
+            </p>
+            {avertissements.length > 0 && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="font-semibold">Enregistré, avec ces réserves :</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {avertissements.map((a) => <li key={a}>{a}</li>)}
+                </ul>
+                <button type="button" className="mt-2 font-semibold underline" onClick={() => navigate('/enseignants')}>
+                  Retour à la liste
+                </button>
+              </div>
+            )}
             <p className="mt-3 text-xs text-muted">
               Le salaire reste géré dans ECONOMAT et n’est jamais modifié depuis NEXORA.
             </p>

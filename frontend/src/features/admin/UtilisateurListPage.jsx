@@ -11,6 +11,7 @@ import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import { GrilleFormulaire, RecapErreurs } from '../../components/ui/CarteFormulaire'
 import SelecteurEleves from './SelecteurEleves'
 import { useAuthStore } from '../../store/authStore'
+import { fetchContexte } from '../contexte/contexteApi'
 import {
   activerUtilisateur,
   createUtilisateur,
@@ -30,12 +31,14 @@ const VIDE = {
   etablissement_code: '', role_id: '',
 }
 
+
 export default function UtilisateurListPage() {
   // Les trois niveaux d'administrateur peuvent créer et gérer un compte — c'est le
   // quotidien d'un établissement d'inscrire ses propres enseignants et parents, pas une
   // prérogative réservée à la société. Le périmètre (quel établissement, quel rôle) reste
   // décidé par le serveur à chaque appel.
-  const peutConsole = useAuthStore((s) => s.peutConsole)
+  // Administrateurs de l'application (Super Admin, Admin Société, Admin Établissement).
+  const peutConsole = useAuthStore((s) => s.administrateur)
   const superAdmin = useAuthStore((s) => s.superAdmin)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
@@ -48,9 +51,13 @@ export default function UtilisateurListPage() {
   // Recherche envoyée une fois la frappe posée ; la page affichée reste en place pendant
   // le chargement de la suivante (pas de clignotement à chaque touche).
   const recherche = useDiffere(q.trim())
+  // Les comptes affectés à l'établissement de travail (console : affectations, ou
+  // établissement de rattachement) — pas tous ceux de la société.
+  const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
+  const etablissementCourant = contexte?.etablissement_code || 'courant'
   const { data, isLoading, error: erreurListe } = useQuery({
-    queryKey: ['utilisateurs', page, recherche],
-    queryFn: () => fetchUtilisateurs(page, recherche),
+    queryKey: ['utilisateurs', page, recherche, etablissementCourant],
+    queryFn: () => fetchUtilisateurs(page, recherche, etablissementCourant),
     placeholderData: keepPreviousData,
   })
 
@@ -86,12 +93,13 @@ export default function UtilisateurListPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Utilisateurs &amp; Accès</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Comptes de connexion. La suppression est volontairement
+            Comptes affectés à {contexte?.etablissement_nom ? `« ${contexte.etablissement_nom} »` : 'l’établissement de travail'}
+            {' '}(affectations faites dans la console). La suppression est volontairement
             impossible : un compte retiré est désactivé.
           </p>
         </div>
         {peutConsole && (
-          <Button onClick={() => { setErreurs({}); setEnfants([]); setForm({ ...VIDE }) }}>+ Nouvel utilisateur</Button>
+          <Button onClick={() => { setErreurs({}); setEnfants([]); setForm({ ...VIDE, etablissement_code: contexte?.etablissement_code ?? '' }) }}>+ Nouvel utilisateur</Button>
         )}
       </div>
 
@@ -192,7 +200,7 @@ export default function UtilisateurListPage() {
           onFermer={() => setForm(null)}
           onValider={() => enregistrer.mutate(form)}
           enCours={enregistrer.isPending}
-          valideDesactive={!form.id && !superAdmin && (!form.etablissement_code || !form.role_id)}
+          valideDesactive={!form.id && !form.super_admin && !form.etablissement_code}
         >
           <RecapErreurs erreurs={erreurs._} />
 
@@ -255,11 +263,12 @@ export default function UtilisateurListPage() {
                 du SEUL rôle Enseignant ou Parent est dirigé vers son propre portail
                 restreint (ses classes, ou les enfants rattachés ci-dessous) au lieu de
                 l'application complète.
-                {!superAdmin && ' Obligatoire pour créer un compte que vous pourrez retrouver ensuite.'}
+ L'établissement est obligatoire (sauf Super Admin). Sans rôle, le compte se connecte
+                et fait les traitements, sans toucher au paramétrage.
               </p>
               <GrilleFormulaire colonnes={2}>
                 <Select
-                  label={!superAdmin ? 'Établissement *' : 'Établissement'}
+                  label={form.super_admin ? 'Établissement' : 'Établissement *'}
                   value={form.etablissement_code ?? ''} error={erreurs.etablissement_code?.[0]}
                   onChange={(ev) => champ('etablissement_code', ev.target.value)}
                 >
@@ -267,11 +276,11 @@ export default function UtilisateurListPage() {
                   {etablissements?.map((e) => <option key={e.code} value={e.code}>{e.intitule} ({e.code})</option>)}
                 </Select>
                 <Select
-                  label={!superAdmin ? 'Rôle *' : 'Rôle'}
+                  label="Rôle"
                   value={form.role_id ?? ''} error={erreurs.role_id?.[0]}
                   onChange={(ev) => champ('role_id', ev.target.value)}
                 >
-                  <option value="">— Choisir —</option>
+                  <option value="">— Aucun rôle —</option>
                   {roles?.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
                 </Select>
               </GrilleFormulaire>

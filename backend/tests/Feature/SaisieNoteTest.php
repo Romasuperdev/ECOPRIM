@@ -68,9 +68,13 @@ class SaisieNoteTest extends TestCase
             ['CODE' => 2, 'CodeAnnee' => '2024', 'LibelleAnnee' => '2024-2025',
                 'Activer' => false, 'ClotureDefinitive' => true, 'DEBUT' => '2024-09-01'],
         ]);
+        // Classes de E1, l'établissement du compte : un compte du personnel ne voit que les
+        // classes des établissements de ses affectations (périmètre fermé par défaut).
         $eco('T_CLASSE')->insert([
-            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1', 'ANNEE' => self::ANNEE],
-            ['num' => 2, 'CodeClasse' => 'CP2A', 'LibelleClasse' => 'CP2 A', 'CodN' => 'CP2', 'ANNEE' => self::ANNEE],
+            ['num' => 1, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1', 'ANNEE' => self::ANNEE,
+                'CODEETABLISSEMENT' => 'E1'],
+            ['num' => 2, 'CodeClasse' => 'CP2A', 'LibelleClasse' => 'CP2 A', 'CodN' => 'CP2', 'ANNEE' => self::ANNEE,
+                'CODEETABLISSEMENT' => 'E1'],
         ]);
         $eco('T_ETUDIANT')->insert([
             ['Code' => 11, 'Matricule' => 'E-11', 'Nom' => 'Kouassi', 'Prenom' => 'Awa',
@@ -278,6 +282,13 @@ class SaisieNoteTest extends TestCase
 
     public function test_une_annee_cloturee_interdit_la_saisie(): void
     {
+        // La classe existe aussi dans l'année clôturée, toujours en E1 : c'est bien le verrou
+        // d'année qui doit répondre, pas le périmètre (une classe d'une autre année n'est pas
+        // une classe de l'année de travail).
+        DB::connection('economat')->table('T_CLASSE')->insert([
+            'num' => 9, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1',
+            'ANNEE' => '2024-2025', 'CODEETABLISSEMENT' => 'E1',
+        ]);
         $this->postJson('/api/v1/contexte/annee', ['annee' => '2024-2025'])->assertOk();
 
         // 423 Locked : c'est le verrou d'année, pas un refus de structure.

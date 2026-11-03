@@ -26,11 +26,19 @@ return [
 
     'photos_eleves' => [
         'chemin' => env('NEXORA_PHOTOS_ELEVES') ?: storage_path('app/photos-eleves'),
-        // 50 Mo. Attention : PHP tranche AVANT Laravel — si `upload_max_filesize` ou
-        // `post_max_size` du php.ini sont plus bas, c'est eux qui font loi et le fichier
-        // n'atteint même pas la validation. Les deux doivent suivre cette valeur.
-        'taille_max_ko' => (int) env('NEXORA_PHOTOS_TAILLE_MAX_KO', 51200),
+        // 5 Mo : largement assez pour un portrait, même pris au téléphone ; au-delà, on
+        // remplit le dossier partagé pour rien. Attention : PHP tranche AVANT Laravel — si
+        // `upload_max_filesize` ou `post_max_size` du php.ini sont plus bas, c'est eux qui
+        // font loi et le fichier n'atteint même pas la validation.
+        'taille_max_ko' => (int) env('NEXORA_PHOTOS_TAILLE_MAX_KO', 5120),
         'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
     ],
+
+    /*
+    | Tables propres à NEXORA (connexion `ecoprim`, ATECH sur le serveur) : créées d'elles-
+    | mêmes au premier appel de l'API si elles manquent (voir App\Support\TablesPropres).
+    | NEXORA_INSTALLATION_AUTO=false pour s'en tenir à `php artisan migrate`.
+    */
+    'installation_auto' => filter_var(env('NEXORA_INSTALLATION_AUTO', true), FILTER_VALIDATE_BOOL),
 
 ];

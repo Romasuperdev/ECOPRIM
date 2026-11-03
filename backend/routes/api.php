@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\NoteController;
 use App\Http\Controllers\Api\V1\SaisieNoteController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EmploiDuTempsController;
+use App\Http\Controllers\Api\V1\TrameHoraireController;
 use App\Http\Controllers\Api\V1\ImpressionController;
 use App\Http\Controllers\Api\V1\NiveauController;
 use App\Http\Controllers\Api\V1\AnneeScolaireController;
@@ -49,15 +50,17 @@ use App\Http\Controllers\Api\V1\NouveauteController;
 // Routes API ECOPRIM - v1
 Route::prefix('v1')->group(function () {
 
-    // Publiques
-    Route::post('/login', [AuthController::class, 'login']);
+    // Publiques — limiteur `login` (AppServiceProvider) : 5 essais par minute pour un
+    // même identifiant depuis une même adresse, plus un plafond par adresse.
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
     // Public : libellé de l'établissement rattaché à un identifiant, affiché sur la page
     // de connexion. Limité en débit pour freiner l'énumération d'identifiants.
     Route::post('/etablissement-du-compte', [AuthController::class, 'etablissementDuCompte'])
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:login');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    // `compte.actif` : un compte désactivé perd sa session à la requête suivante (401).
+    Route::middleware(['auth:sanctum', 'compte.actif'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
 
@@ -81,11 +84,15 @@ Route::prefix('v1')->group(function () {
         // refusée dès qu'une ligne s'y rattache (voir DependancesReferentiel).
         Route::get('classes', [ClasseController::class, 'index']);
         Route::get('classes/{classe}', [ClasseController::class, 'show']);
-        Route::post('classes', [ClasseController::class, 'store']);
-        Route::put('classes/{classe}', [ClasseController::class, 'update']);
+        // Paramétrage : administrateurs, ou rôle ayant « Modifier les paramètres de l'école ».
+        // Un compte sans rôle fait les traitements, pas le paramétrage.
+        Route::post('classes', [ClasseController::class, 'store'])->middleware('permission:modifier_parametres_ecole');
+        Route::put('classes/{classe}', [ClasseController::class, 'update'])->middleware('permission:modifier_parametres_ecole');
         Route::delete('classes/{classe}', [ClasseController::class, 'destroy'])->middleware('permission:supprimer_classe');
         // Emplois du temps : grille par classe, bornée à l'année de travail.
         Route::get('emplois-du-temps/referentiels', [EmploiDuTempsController::class, 'referentiels']);
+        // Trame horaire (jours + plages) : saisie d'un bloc, voir TrameHoraireController.
+        Route::put('emplois-du-temps/trame', [TrameHoraireController::class, 'enregistrer']);
         Route::get('emplois-du-temps', [EmploiDuTempsController::class, 'index']);
         Route::post('emplois-du-temps', [EmploiDuTempsController::class, 'store']);
         Route::put('emplois-du-temps/{creneau}', [EmploiDuTempsController::class, 'update']);
@@ -95,9 +102,11 @@ Route::prefix('v1')->group(function () {
         // En amont de l'emploi du temps, qui en deduit l'enseignant de chaque creneau.
         Route::get('affectations-enseignants/referentiels', [AffectationEnseignantController::class, 'referentiels']);
         Route::get('affectations-enseignants', [AffectationEnseignantController::class, 'index']);
-        Route::post('affectations-enseignants', [AffectationEnseignantController::class, 'store']);
-        Route::put('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'update']);
-        Route::delete('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'destroy']);
+        Route::middleware('permission:modifier_parametres_ecole')->group(function () {
+            Route::post('affectations-enseignants', [AffectationEnseignantController::class, 'store']);
+            Route::put('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'update']);
+            Route::delete('affectations-enseignants/{affectation}', [AffectationEnseignantController::class, 'destroy']);
+        });
 
         // Cahier journal : une semaine par classe, une ligne par matière affectée.
         //
@@ -131,28 +140,32 @@ Route::prefix('v1')->group(function () {
         Route::put('enseignants/{enseignant}', [EnseignantController::class, 'update']);
         Route::get('matieres', [MatiereController::class, 'index']);
         Route::get('matieres/{matiere}', [MatiereController::class, 'show']);
-        Route::post('matieres', [MatiereController::class, 'store']);
-        Route::put('matieres/{matiere}', [MatiereController::class, 'update']);
-        Route::delete('matieres/{matiere}', [MatiereController::class, 'destroy']);
+        // Référentiels communs (matières, niveaux, années) : écriture réservée aux
+        // administrateurs de la console, jusqu'à l'Admin Établissement.
+        Route::post('matieres', [MatiereController::class, 'store'])->middleware('console:etablissement');
+        Route::put('matieres/{matiere}', [MatiereController::class, 'update'])->middleware('console:etablissement');
+        Route::delete('matieres/{matiere}', [MatiereController::class, 'destroy'])->middleware('console:etablissement');
         // Absences : saisie, correction et retrait (suppression réelle assumée — une
         // absence mal saisie n'a pas d'autre voie de correction).
         Route::get('absences', [AbsenceController::class, 'index']);
         Route::get('absences/{absence}', [AbsenceController::class, 'show']);
         Route::post('absences', [AbsenceController::class, 'store'])->middleware('permission:saisir_absences');
-        Route::put('absences/{absence}', [AbsenceController::class, 'update']);
-        Route::delete('absences/{absence}', [AbsenceController::class, 'destroy']);
+        Route::put('absences/{absence}', [AbsenceController::class, 'update'])->middleware('permission:saisir_absences');
+        Route::delete('absences/{absence}', [AbsenceController::class, 'destroy'])->middleware('permission:saisir_absences');
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
-        Route::post('niveaux', [NiveauController::class, 'store']);
-        Route::put('niveaux/{niveau}', [NiveauController::class, 'update']);
-        Route::delete('niveaux/{niveau}', [NiveauController::class, 'destroy']);
+        Route::post('niveaux', [NiveauController::class, 'store'])->middleware('console:etablissement');
+        Route::put('niveaux/{niveau}', [NiveauController::class, 'update'])->middleware('console:etablissement');
+        Route::delete('niveaux/{niveau}', [NiveauController::class, 'destroy'])->middleware('console:etablissement');
 
-        // Années scolaires : lecture seule (ECONOMAT.T_ANNEEACADEMIQUE)
+        // Années scolaires (ECONOMAT.T_ANNEEACADEMIQUE, commune à toutes les sociétés) :
+        // lecture pour tous, écriture pour les administrateurs ; activer, clôturer ou
+        // rouvrir une année reste au Super Admin (AnneeScolaireController::assertEtatModifiable).
         Route::get('annees-scolaires', [AnneeScolaireController::class, 'index']);
         Route::get('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'show']);
-        Route::post('annees-scolaires', [AnneeScolaireController::class, 'store']);
-        Route::put('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'update']);
-        Route::delete('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'destroy']);
+        Route::post('annees-scolaires', [AnneeScolaireController::class, 'store'])->middleware('console:etablissement');
+        Route::put('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'update'])->middleware('console:etablissement');
+        Route::delete('annees-scolaires/{anneeScolaire}', [AnneeScolaireController::class, 'destroy'])->middleware('console:etablissement');
         Route::get('classes/{classe}/moyennes', [RapportController::class, 'moyennesClasse']);
         Route::get('classes/{classe}/assiduite', [RapportController::class, 'assiduiteClasse']);
         Route::get('evaluations', [RapportController::class, 'evaluations']);
@@ -168,8 +181,8 @@ Route::prefix('v1')->group(function () {
         Route::get('devoirs/referentiels', [DevoirController::class, 'referentiels']);
         Route::get('devoirs', [DevoirController::class, 'index']);
         Route::post('devoirs', [DevoirController::class, 'store'])->middleware('permission:creer_devoirs');
-        Route::put('devoirs/{devoir}', [DevoirController::class, 'update']);
-        Route::delete('devoirs/{devoir}', [DevoirController::class, 'destroy']);
+        Route::put('devoirs/{devoir}', [DevoirController::class, 'update'])->middleware('permission:creer_devoirs');
+        Route::delete('devoirs/{devoir}', [DevoirController::class, 'destroy'])->middleware('permission:creer_devoirs');
         // Calendrier scolaire : congés/vacances, réunions parents-professeurs, sorties et
         // activités pédagogiques — un seul modèle d'événement, distingué par type.
         Route::get('evenements/referentiels', [EvenementController::class, 'referentiels']);
@@ -218,24 +231,38 @@ Route::prefix('v1')->group(function () {
         Route::get('inscriptions/{inscription}', [InscriptionController::class, 'show']);
         Route::put('inscriptions/{inscription}', [InscriptionController::class, 'update'])->middleware('permission:modifier_dossier_eleve');
         Route::get('inscriptions/{inscription}/photo', [InscriptionController::class, 'photo']);
-        Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto']);
+        // La photo se joint à l'inscription comme à la modification du dossier : l'une ou l'autre.
+        Route::post('inscriptions/{inscription}/photo', [InscriptionController::class, 'televerserPhoto'])
+            ->middleware('permission:inscrire_eleve|modifier_dossier_eleve');
 
         // Console Administrative — gestion (base propre ECOPRIM). Réservée au Super Admin.
         // Paramètres (ECONOMAT) : documents élèves, passerelle SMS, messagerie SMTP.
         Route::get('parametres/prerequis', [PrerequisController::class, 'index']);
-        Route::post('parametres/prerequis', [PrerequisController::class, 'store']);
-        Route::put('parametres/prerequis/{prerequis}', [PrerequisController::class, 'update']);
-        Route::delete('parametres/prerequis/{prerequis}', [PrerequisController::class, 'destroy']);
+        Route::middleware('permission:modifier_parametres_ecole')->group(function () {
+            Route::post('parametres/prerequis', [PrerequisController::class, 'store']);
+            Route::put('parametres/prerequis/{prerequis}', [PrerequisController::class, 'update']);
+            Route::delete('parametres/prerequis/{prerequis}', [PrerequisController::class, 'destroy']);
+        });
 
-        Route::get('parametres/sms', [SmsConfigController::class, 'show']);
-        Route::post('parametres/sms', [SmsConfigController::class, 'store']);
+        // Passerelle SMS et messagerie SMTP : administrateurs seulement (Super Admin, Admin
+        // Société, Admin Établissement), et de l'établissement visé — vérifié dans le
+        // contrôleur. Pas une permission délégable : ces paramètres portent les secrets
+        // d'envoi de l'école et désignent le serveur à qui ils sont présentés.
+        Route::middleware('console:etablissement')->group(function () {
+            Route::get('parametres/sms', [SmsConfigController::class, 'show']);
+            Route::post('parametres/sms', [SmsConfigController::class, 'store']);
 
-        Route::get('parametres/mail', [MailConfigController::class, 'show']);
-        Route::post('parametres/mail', [MailConfigController::class, 'store']);
+            Route::get('parametres/mail', [MailConfigController::class, 'show']);
+            Route::post('parametres/mail', [MailConfigController::class, 'store']);
+        });
 
-        // Communication : envoi SMS/mail + historique.
-        Route::post('communication/envoyer', [CommunicationController::class, 'envoyer']);
-        Route::get('communication/historique', [CommunicationController::class, 'historique']);
+        // Communication : envoi SMS/mail + historique. Débit limité : un envoi peut viser
+        // 500 destinataires.
+        Route::middleware('permission:envoyer_communications')->group(function () {
+            Route::post('communication/envoyer', [CommunicationController::class, 'envoyer'])
+                ->middleware('throttle:10,1');
+            Route::get('communication/historique', [CommunicationController::class, 'historique']);
+        });
 
         // Contexte de travail : choix de l'établissement courant (tout utilisateur connecté).
         Route::get('contexte', [ContexteController::class, 'show']);
@@ -304,6 +331,11 @@ Route::prefix('v1')->group(function () {
 
         // Console générale — Super Admin seul : le catalogue des sociétés.
         Route::middleware('console:generale')->group(function () {
+            // Rôles et permissions : création, suppression, permissions — Super Admin seul.
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+            Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
+
             Route::get('societes', [SocieteController::class, 'index']);
             Route::post('societes', [SocieteController::class, 'store']);
             Route::post('societes/importer', [SocieteController::class, 'importer']);
@@ -332,6 +364,7 @@ Route::prefix('v1')->group(function () {
             // Sociétés, applications et Société - Applications, comme la console parcauto.
             // Sociétés : US_SOCIETE puis la copie ECOPRIM ; « supprimer » = désactiver.
             // Applications : refus de supprimer une application encore utilisée.
+            Route::get('plateforme/societes-structure', [PlateformeSocieteController::class, 'structure']);
             Route::get('plateforme/societes/{code}', [PlateformeSocieteController::class, 'show']);
             Route::post('plateforme/societes', [PlateformeSocieteController::class, 'store']);
             Route::put('plateforme/societes/{code}', [PlateformeSocieteController::class, 'update']);
@@ -392,13 +425,10 @@ Route::prefix('v1')->group(function () {
             // (RoleController le vérifie lui-même). Un rôle propre à une société se gère
             // par quiconque administre cette société — Admin Société directement, Admin
             // Établissement via la société de son propre établissement.
+            // Rôles et permissions : les administrateurs CONSULTENT ; créer, supprimer un
+            // rôle et lui donner des permissions revient au seul Super Admin (plus bas).
             Route::get('roles', [RoleController::class, 'index']);
-            Route::post('roles', [RoleController::class, 'store']);
-            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
-            // Permissions accordées à un rôle (App\Support\Permissions) : même périmètre
-            // que la suppression d'un rôle (RoleController::assertGerable).
             Route::get('roles/{role}/permissions', [RoleController::class, 'permissions']);
-            Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
             Route::get('etablissements', [EtablissementController::class, 'index']);
             Route::get('etablissements/{code}', [EtablissementController::class, 'show']);

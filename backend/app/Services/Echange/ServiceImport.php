@@ -2,12 +2,17 @@
 
 namespace App\Services\Echange;
 
+use App\Services\AbsenceEcrivain;
 use App\Services\EtudiantEcrivain;
 use App\Services\GrilleCoefficients;
 use App\Services\NoteEcrivain;
+use App\Services\ProfesseurEcrivain;
+use App\Support\ContexteScolaire;
+use App\Support\PerimetreEtablissement;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -42,9 +47,30 @@ class ServiceImport
     /** Au-delà, l'aperçu cesse d'être lisible et devient un second fichier à dépouiller. */
     private const APERCU_MAX = 25;
 
-    public function __construct(private LecteurClasseur $lecteur) {}
+    public function __construct(
+        private LecteurClasseur $lecteur,
+        private AnneeImport $annees,
+    ) {}
+
+    /**
+     * « Tout importer » est le mode par défaut : une option absente vaut oui. Seul un
+     * `tout_importer` explicitement faux (case décochée) remet le mode strict.
+     */
+    public static function toutImporter(array $options): bool
+    {
+        $valeur = $options['tout_importer'] ?? true;
+
+        return is_bool($valeur)
+            ? $valeur
+            : ! in_array(mb_strtolower(trim((string) $valeur)), ['0', 'false', 'non', 'off', 'no'], true);
+    }
 
     public function importateur(string $jeu, array $options = []): Importateur
+    {
+        return $this->construire($jeu, $options)->toutImporter(self::toutImporter($options));
+    }
+
+    private function construire(string $jeu, array $options): Importateur
     {
         return match ($jeu) {
             'eleves' => new ImportEleves(new EtudiantEcrivain),
@@ -52,12 +78,23 @@ class ServiceImport
                 isset($options['bareme']) ? (float) $options['bareme'] : null
             ),
             'evaluations' => new ImportEvaluations,
+            'niveaux' => new ImportNiveaux,
+            'classes' => new ImportClasses,
+            'matieres' => new ImportMatieres,
+            'enseignants' => new ImportEnseignants(new ProfesseurEcrivain),
+            'absences' => new ImportAbsences(new AbsenceEcrivain),
             default => throw new RuntimeException("Le jeu « {$jeu} » ne s'importe pas."),
         };
     }
 
-    /** Analyse le fichier déposé et le met de côté. N'écrit RIEN dans les bases. */
-    public function analyser(string $jeu, UploadedFile $fichier, int $utilisateur, array $options = []): array
+    /**
+     * Analyse le fichier déposé et le met de côté. N'écrit RIEN dans les bases — pas même
+     * l'année à créer, qui ne l'est qu'à l'application (voir AnneeImport).
+     *
+     * @param  bool  $anneeChoisie  une année a été choisie à l'écran : elle prime sur celle
+     *                              que le fichier mentionne
+     */
+    public function analyser(string $jeu, UploadedFile $fichier, int $utilisateur, array $options = [], bool $anneeChoisie = false): array
     {
         $this->purger();
 
@@ -67,7 +104,19 @@ class ServiceImport
         $fichier->move($this->dossier(), $jeton.'.'.$extension);
 
         try {
-            $rapport = $this->rapport($jeu, $chemin, $options);
+            $cible = $this->annees->preparer(
+                $chemin,
+                $fichier->getClientOriginalName(),
+                $anneeChoisie,
+                $this->apporteClasses($jeu, $chemin),
+            );
+            $this->exigerDroitsSurAnnee($cible);
+            // « Tout importer » : les classes que le fichier cite et qu'un établissement
+            // visible a ouvertes une autre année sont reprises dans l'année visée.
+            if (self::toutImporter($options)) {
+                $cible = $this->annees->completerStructure($cible, $this->classesCitees($jeu, $chemin));
+            }
+            $rapport = $this->rapport($jeu, $chemin, $options, AnneeImport::attendusDe($cible['structure']));
         } catch (Throwable $e) {
             @unlink($chemin);
 
@@ -80,26 +129,60 @@ class ServiceImport
             'nom_origine' => $fichier->getClientOriginalName(),
             'utilisateur' => $utilisateur,
             'options' => $options,
+            // L'année visée par l'import est celle de l'ANALYSE : l'appliquer plus tard,
+            // après avoir changé d'année dans l'en-tête, ne doit pas l'écrire ailleurs.
+            'annee' => ContexteScolaire::annee(),
+            'cible' => $cible,
             'depose_le' => CarbonImmutable::now()->toIso8601String(),
         ], JSON_UNESCAPED_UNICODE));
 
         unset($rapport['_verdicts']);
 
-        return $rapport + ['jeton' => $jeton];
+        return $rapport + ['annee_cible' => $this->resumeCible($cible), 'jeton' => $jeton];
     }
 
     /**
      * Applique l'import analysé sous ce jeton. Le rapport est recalculé à partir du même
      * fichier : ce qui s'écrit est exactement ce qui avait été annoncé.
      *
-     * L'ordre des feuilles est celui du catalogue, et il n'est pas indifférent : les élèves
-     * passent avant les notes, sans quoi une note porterait sur un élève qui n'existe pas
-     * encore.
+     * L'ordre des feuilles est celui de CatalogueDonnees::importables(), et il n'est pas
+     * indifférent : les niveaux avant les classes, les classes avant les élèves, les élèves
+     * avant leurs notes et leurs absences — sans quoi une ligne porterait sur ce qui
+     * n'existe pas encore.
      */
     public function appliquer(string $jeton, int $utilisateur): array
     {
         $meta = $this->meta($jeton, $utilisateur);
-        $rapport = $this->rapport($meta['jeu'], $meta['fichier'], $meta['options'] ?? []);
+        $cible = $meta['cible'] ?? null;
+
+        // Le rapport se recalcule dans le MÊME contexte que l'analyse — y compris pour une
+        // année encore à créer : c'est la seule façon d'écrire ce qui avait été annoncé.
+        if (! empty($cible['creation'])) {
+            ContexteScolaire::forcerNouvelle($cible['creation']['libelle'], $cible['creation']['code']);
+        } elseif (! empty($meta['annee'])) {
+            ContexteScolaire::forcer((string) $meta['annee']);
+        }
+        PerimetreEtablissement::oublier();
+
+        if ($cible) {
+            $this->exigerDroitsSurAnnee($cible);
+        }
+        $rapport = $this->rapport($meta['jeu'], $meta['fichier'], $meta['options'] ?? [], AnneeImport::attendusDe($cible['structure'] ?? null));
+
+        if (! empty($cible['creation'])) {
+            $this->annees->creer($cible);
+        } elseif (! empty($cible['structure'])) {
+            $this->annees->ouvrirStructure($cible);
+        }
+        if ($cible && ($cible['cloturee'] || ! empty($cible['creation']))) {
+            Log::info('Import dans une année clôturée ou créée par l’import.', [
+                'utilisateur' => $utilisateur,
+                'annee' => $cible['libelle'],
+                'creee' => ! empty($cible['creation']),
+                'cloturee' => $cible['cloturee'],
+                'fichier' => $meta['nom_origine'] ?? null,
+            ]);
+        }
 
         $total = ['creees' => 0, 'modifiees' => 0, 'echecs' => []];
         $parJeu = [];
@@ -115,6 +198,10 @@ class ServiceImport
             ));
 
             $parJeu[] = ['jeu' => $code, 'jeu_libelle' => CatalogueDonnees::jeu($code)['libelle']] + $bilan;
+
+            // Les classes tout juste ouvertes entrent dans le périmètre : la feuille
+            // suivante doit les voir comme l'écran les verra.
+            PerimetreEtablissement::oublier();
         }
 
         $this->oublier($jeton, $meta);
@@ -122,6 +209,7 @@ class ServiceImport
         unset($rapport['_verdicts']);
 
         return $rapport + [
+            'annee_cible' => $cible ? $this->resumeCible($cible) : null,
             'bilan' => $total,
             'bilan_par_jeu' => $parJeu,
             'nom_origine' => $meta['nom_origine'] ?? null,
@@ -129,11 +217,11 @@ class ServiceImport
     }
 
     /** Le rapport d'un fichier : ce qui serait créé, modifié, écarté — et pourquoi. */
-    private function rapport(string $jeu, string $chemin, array $options): array
+    private function rapport(string $jeu, string $chemin, array $options, array $attendus = []): array
     {
         $feuilles = $jeu === self::JEU_ANNEE
-            ? $this->feuillesAnnee($chemin, $options)
-            : $this->feuilleUnique($jeu, $chemin, $options);
+            ? $this->feuillesAnnee($chemin, $options, $attendus)
+            : $this->feuilleUnique($jeu, $chemin, $options, $attendus);
 
         $somme = fn (string $cle) => array_sum(array_column($feuilles['lues'], $cle));
 
@@ -146,6 +234,10 @@ class ServiceImport
             'creations' => $somme('creations'),
             'modifications' => $somme('modifications'),
             'rejets' => $somme('rejets'),
+            // Lignes qui passent grâce à un ajustement (« tout importer ») : leur motif dit
+            // ce qui a été rattrapé.
+            'ajustees' => $somme('ajustees'),
+            'tout_importer' => self::toutImporter($options),
             'feuilles' => array_map(fn ($f) => Arr::except($f, ['_verdicts']), $feuilles['lues']),
             'feuilles_absentes' => $feuilles['absentes'],
             '_verdicts' => array_column($feuilles['lues'], '_verdicts', 'jeu'),
@@ -153,26 +245,28 @@ class ServiceImport
     }
 
     /** Un seul jeu : la première feuille du fichier, quel que soit son nom. */
-    private function feuilleUnique(string $jeu, string $chemin, array $options): array
+    private function feuilleUnique(string $jeu, string $chemin, array $options, array $attendus = []): array
     {
         $this->exigerImportable($jeu);
 
-        $importateur = $this->importateur($jeu, $options);
+        $importateur = $this->importateur($jeu, $options)->avecAttendus($attendus);
         $this->exigerDisponible($importateur);
 
-        return ['lues' => [$this->analyse($jeu, $importateur, $this->lecteur->lire($chemin), null)], 'absentes' => []];
+        return ['lues' => [$this->analyse($jeu, $importateur, $this->lecteur->lire($chemin), null, $attendus['_alias_classes'] ?? [])], 'absentes' => []];
     }
 
     /**
      * L'année entière : chaque jeu importable dont le classeur porte la feuille, dans
-     * l'ordre du catalogue.
+     * l'ordre d'import. Chaque feuille est jugée sur ce que les précédentes vont créer
+     * (voir Importateur::avecAttendus) : un classeur d'année neuve ouvre ses niveaux, puis
+     * ses classes, puis y inscrit ses élèves — rien de tout cela n'est encore en base au
+     * moment de l'analyse.
      */
-    private function feuillesAnnee(string $chemin, array $options): array
+    private function feuillesAnnee(string $chemin, array $options, array $attendus = []): array
     {
         $feuilles = $this->lecteur->lireToutes($chemin);
         $lues = [];
         $absentes = [];
-        $elevesAttendus = [];
 
         foreach (CatalogueDonnees::importables() as $code) {
             $attendue = CatalogueDonnees::jeu($code)['feuille'];
@@ -184,22 +278,28 @@ class ServiceImport
                 continue;
             }
 
-            $importateur = $this->importateur($code, $options);
-
-            // Les notes sont jugées sur les élèves que la feuille précédente va créer, pas
-            // seulement sur ceux déjà en base — sinon un classeur d'année neuve verrait
-            // toutes ses notes écartées pour « matricule inconnu ».
-            if ($importateur instanceof ImportNotes) {
-                $importateur->avecEleves($elevesAttendus);
-            }
-
+            $importateur = $this->importateur($code, $options)->avecAttendus($attendus);
             $this->exigerDisponible($importateur);
 
-            $analyse = $this->analyse($code, $importateur, $feuilles[$nom], $nom);
+            $analyse = $this->analyse($code, $importateur, $feuilles[$nom], $nom, $attendus['_alias_classes'] ?? []);
             $lues[] = $analyse;
 
-            if ($code === 'eleves') {
-                $elevesAttendus = $this->elevesDe($analyse['_verdicts']);
+            // Ce que la feuille écrit s'ajoute à ce qui était déjà attendu (la structure
+            // reprise par une année neuve), sans l'effacer.
+            $attendus[$code] = ($code === 'eleves'
+                ? $this->elevesDe($analyse['_verdicts'])
+                : $this->codesDe($analyse['_verdicts'])) + ($attendus[$code] ?? []);
+
+            // « Tout importer » : les classes qu'une feuille crée en passant (classe
+            // inconnue d'un élève…) existent pour les feuilles suivantes ; une classe que la
+            // feuille Classes a dû ouvrir sous un autre code reçoit les lignes de l'ancien.
+            $attendus['classes'] = Importateur::classesCreeesPar($analyse['_verdicts']) + ($attendus['classes'] ?? []);
+            if ($code === 'classes') {
+                foreach ($analyse['_verdicts'] as $v) {
+                    if ($v['action'] !== Importateur::REJET && isset($v['donnees']['_alias_de'], $v['donnees']['code'])) {
+                        $attendus['_alias_classes'][$v['donnees']['_alias_de']] = $v['donnees']['code'];
+                    }
+                }
             }
         }
 
@@ -217,10 +317,22 @@ class ServiceImport
     }
 
     /** Le sort de chaque ligne d'une feuille, et ce qu'on a su reconnaître de ses colonnes. */
-    private function analyse(string $jeu, Importateur $importateur, array $lu, ?string $nomFeuille): array
+    private function analyse(string $jeu, Importateur $importateur, array $lu, ?string $nomFeuille, array $alias = []): array
     {
         $attendus = CatalogueDonnees::entetes($jeu);
         $rapproche = $this->lecteur->rapprocher($lu['entetes'], $lu['lignes'], $attendus);
+
+        // Une année neuve range « CE1 A » dans sa copie « CE1 A-2025 » (voir AnneeImport) :
+        // le fichier parle des classes qu'il connaît, la traduction est exacte, pas devinée.
+        if ($alias !== [] && $jeu !== 'classes') {
+            foreach ($rapproche['lignes'] as &$ligne) {
+                $classe = trim((string) ($ligne['Classe'] ?? ''));
+                if (isset($alias[$classe])) {
+                    $ligne['Classe'] = $alias[$classe];
+                }
+            }
+            unset($ligne);
+        }
 
         if ($rapproche['reconnues'] === []) {
             throw new RuntimeException(
@@ -241,14 +353,20 @@ class ServiceImport
             'creations' => $compte(Importateur::CREATION),
             'modifications' => $compte(Importateur::MODIFICATION),
             'rejets' => $compte(Importateur::REJET),
+            'ajustees' => count(array_filter(
+                $verdicts,
+                fn ($v) => $v['action'] !== Importateur::REJET && ! empty($v['motif']),
+            )),
             'colonnes_reconnues' => $rapproche['reconnues'],
             'colonnes_inconnues' => $rapproche['inconnues'],
             'colonnes_absentes' => $rapproche['absentes'],
-            // Les rejets d'abord : c'est ce qu'on vient chercher dans un rapport.
+            // Les rejets d'abord, puis les lignes ajustées : c'est ce qu'on vient chercher
+            // dans un rapport.
             'apercu' => array_slice(
                 array_merge(
                     array_values(array_filter($verdicts, fn ($v) => $v['action'] === Importateur::REJET)),
-                    array_values(array_filter($verdicts, fn ($v) => $v['action'] !== Importateur::REJET)),
+                    array_values(array_filter($verdicts, fn ($v) => $v['action'] !== Importateur::REJET && ! empty($v['motif']))),
+                    array_values(array_filter($verdicts, fn ($v) => $v['action'] !== Importateur::REJET && empty($v['motif']))),
                 ),
                 0,
                 self::APERCU_MAX,
@@ -278,6 +396,125 @@ class ServiceImport
         }
 
         return $index;
+    }
+
+    /**
+     * Les codes qu'une feuille de référentiel va écrire (niveaux, classes, matières).
+     *
+     * @return array<string, true>
+     */
+    private function codesDe(array $verdicts): array
+    {
+        $codes = [];
+
+        foreach ($verdicts as $v) {
+            if ($v['action'] !== Importateur::REJET && isset($v['donnees']['code'])) {
+                $codes[$v['donnees']['code']] = true;
+            }
+        }
+
+        return $codes;
+    }
+
+    /** Le classeur apporte-t-il ses propres classes ? Sinon une année neuve reprend celles de l'année de travail. */
+    /**
+     * Les codes de classe que le fichier cite, dans les feuilles qui en portent une
+     * (élèves, notes, absences, évaluations).
+     *
+     * @return array<int, string>
+     */
+    private function classesCitees(string $jeu, string $chemin): array
+    {
+        $jeux = ['eleves', 'notes', 'absences', 'evaluations'];
+
+        try {
+            if ($jeu === self::JEU_ANNEE) {
+                $toutes = $this->lecteur->lireToutes($chemin);
+                $feuilles = [];
+                foreach ($jeux as $code) {
+                    $nom = $this->lecteur->feuillePour($toutes, CatalogueDonnees::jeu($code)['feuille']);
+                    if ($nom !== null) {
+                        $feuilles[] = $toutes[$nom];
+                    }
+                }
+            } else {
+                $feuilles = in_array($jeu, $jeux, true) ? [$this->lecteur->lire($chemin)] : [];
+            }
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        $codes = [];
+        foreach ($feuilles as $feuille) {
+            $colonne = collect($feuille['entetes'])->first(fn ($e) => mb_strtolower(trim($e)) === 'classe');
+            if ($colonne === null) {
+                continue;
+            }
+            foreach ($feuille['lignes'] as $ligne) {
+                $valeur = trim((string) ($ligne[$colonne] ?? ''));
+                if ($valeur !== '') {
+                    $codes[$valeur] = true;
+                }
+            }
+        }
+
+        return array_keys($codes);
+    }
+
+    private function apporteClasses(string $jeu, string $chemin): bool
+    {
+        if ($jeu === 'classes') {
+            return true;
+        }
+        if ($jeu !== self::JEU_ANNEE) {
+            return false;
+        }
+
+        try {
+            $feuilles = $this->lecteur->lireToutes($chemin);
+            $nom = $this->lecteur->feuillePour($feuilles, CatalogueDonnees::jeu('classes')['feuille']);
+
+            return $nom !== null && $feuilles[$nom]['lignes'] !== [];
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Écrire dans une année clôturée, ou en créer une : AnneeImport::PERMISSION. Vérifié
+     * à l'analyse ET à l'application — un droit retiré entre les deux ne s'exerce plus.
+     */
+    private function exigerDroitsSurAnnee(array $cible): void
+    {
+        if (AnneeImport::autorise() || (! $cible['cloturee'] && empty($cible['creation']))) {
+            return;
+        }
+
+        $quoi = ! empty($cible['creation'])
+            ? "L'année « {$cible['libelle']} », mentionnée par le fichier, n'existe pas : la créer"
+                .($cible['cloturee'] ? ' (clôturée, car antérieure à l’année en cours)' : '')
+            : "L'année « {$cible['libelle']} » est clôturée : y importer";
+
+        throw new RuntimeException(
+            $quoi.' est réservé aux administrateurs, ou à un rôle ayant la permission « Importer dans une année clôturée ou à créer ».'
+        );
+    }
+
+    /** Ce que l'écran affiche de l'année visée. */
+    private function resumeCible(array $cible): array
+    {
+        return [
+            'libelle' => $cible['libelle'],
+            'source' => $cible['source'],
+            'existe' => $cible['existe'],
+            'cloturee' => $cible['cloturee'],
+            'reference' => $cible['reference'] ?? null,
+            'classes_reprises' => array_values(array_map(
+                fn ($c) => ($c['origine'] === $c['code'] ? $c['code'] : "{$c['origine']} → {$c['code']}")
+                    .(isset($c['depuis']) ? " (de {$c['depuis']})" : ''),
+                $cible['structure']['classes'] ?? [],
+            )),
+        ];
     }
 
     private function exigerImportable(string $jeu): void

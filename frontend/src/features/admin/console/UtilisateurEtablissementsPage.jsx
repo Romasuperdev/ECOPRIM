@@ -46,7 +46,7 @@ export default function UtilisateurEtablissementsPage() {
 
   const affecter = useMutation({
     mutationFn: () => createAffectation({
-      rh_user_id: Number(form.utilisateur), etablissement_code: form.etablissement, role_id: Number(form.role),
+      rh_user_id: Number(form.utilisateur), etablissement_code: form.etablissement, role_id: form.role ? Number(form.role) : null,
       eleves: estRoleParent ? form.eleves.map((e) => e.matricule) : undefined,
     }),
     onSuccess: () => {
@@ -122,7 +122,8 @@ export default function UtilisateurEtablissementsPage() {
     },
   ]
 
-  const incomplet = !form.etablissement || !form.utilisateur || !form.role
+  // Le rôle est facultatif : sans rôle, le compte fait les traitements, pas le paramétrage.
+  const incomplet = !form.etablissement || !form.utilisateur
 
   return (
     <GrilleConsole
@@ -149,8 +150,8 @@ export default function UtilisateurEtablissementsPage() {
                 <option key={u.id} value={u.id}>{u.login}{u.name && u.name !== u.login ? ` - ${u.name}` : ''}</option>
               ))}
             </Select>
-            <Select label="Rôle *" value={form.role} onChange={(e) => champ('role', e.target.value)}>
-              <option value="">-- Choisir un rôle --</option>
+            <Select label="Rôle" value={form.role} onChange={(e) => champ('role', e.target.value)}>
+              <option value="">-- Aucun rôle (traitements seulement) --</option>
               {(roles ?? []).map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
             </Select>
             {estRoleParent && <SelecteurEleves selection={form.eleves} onChange={(eleves) => champ('eleves', eleves)} />}

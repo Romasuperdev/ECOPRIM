@@ -9,6 +9,7 @@ import Select from '../../components/ui/Select'
 import MessageErreur from '../../components/ui/MessageErreur'
 import MessageRefus from '../../components/ui/MessageRefus'
 import { useAuthStore } from '../../store/authStore'
+import { fetchContexte } from '../contexte/contexteApi'
 import {
   analyserImport, appliquerImport, exporterJeux, fetchCatalogueEchanges, telechargerModele,
 } from './echangesApi'
@@ -49,8 +50,21 @@ function Etiquette({ action }) {
   )
 }
 
+/** Ligne importée moyennant un ajustement (mode « Tout importer »). */
+function BadgeAjuste() {
+  return (
+    <span
+      className="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold"
+      style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}
+      title="Ligne importée avec un ajustement : le motif dit lequel."
+    >
+      ajusté
+    </span>
+  )
+}
+
 /** Choix des jeux à exporter. Lecture seule : rien ici ne peut abîmer quoi que ce soit. */
-function SectionExport({ catalogue }) {
+function SectionExport({ catalogue, anneeChoisie }) {
   const [choisis, setChoisis] = useState([])
   const [refus, setRefus] = useState(null)
 
@@ -58,7 +72,7 @@ function SectionExport({ catalogue }) {
   const tout = choisis.length === 0
 
   const exporter = useMutation({
-    mutationFn: () => exporterJeux(choisis),
+    mutationFn: () => exporterJeux(choisis, anneeChoisie),
     onError: (e) => setRefus(texteErreur(e)),
   })
 
@@ -160,6 +174,7 @@ function FeuilleRapport({ feuille, montrerTitre }) {
             {feuille.creations} création{feuille.creations > 1 ? 's' : ''}, {feuille.modifications} mise
             {feuille.modifications > 1 ? 's' : ''} à jour, {feuille.rejets} écartée
             {feuille.rejets > 1 ? 's' : ''}
+            {feuille.ajustees > 0 && ` · dont ${feuille.ajustees} ajustée${feuille.ajustees > 1 ? 's' : ''}`}
           </span>
         </h4>
       )}
@@ -195,9 +210,20 @@ function FeuilleRapport({ feuille, montrerTitre }) {
               {feuille.apercu.map((l) => (
                 <tr key={l.ligne}>
                   <td className="px-3 py-2 font-semibold text-muted">{l.ligne}</td>
-                  <td className="px-3 py-2"><Etiquette action={l.action} /></td>
+                  <td className="px-3 py-2">
+                    <span className="flex flex-wrap items-center gap-1">
+                      <Etiquette action={l.action} />
+                      {/* Ligne passée grâce à un ajustement : son motif dit lequel. */}
+                      {l.action !== 'rejet' && l.motif && <BadgeAjuste />}
+                    </span>
+                  </td>
                   <td className="px-3 py-2 font-semibold text-heading">{l.apercu || '—'}</td>
-                  <td className="px-3 py-2 text-muted">{l.motif ?? '—'}</td>
+                  <td
+                    className={`px-3 py-2 ${l.action !== 'rejet' && l.motif ? 'font-semibold' : 'text-muted'}`}
+                    style={l.action !== 'rejet' && l.motif ? { color: 'var(--warning-text)' } : undefined}
+                  >
+                    {l.motif ?? '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -205,7 +231,7 @@ function FeuilleRapport({ feuille, montrerTitre }) {
           {feuille.lignes > feuille.apercu.length && (
             <p className="border-t border-slate-200 px-3 py-2 text-xs font-semibold text-muted">
               {feuille.apercu.length} lignes affichées sur {feuille.lignes} — les lignes écartées
-              d’abord.
+              d’abord, puis les lignes ajustées.
             </p>
           )}
         </div>
@@ -215,6 +241,58 @@ function FeuilleRapport({ feuille, montrerTitre }) {
 }
 
 /** Le rapport d'analyse : ce qui se passerait, avant que quoi que ce soit ne se passe. */
+const SOURCES = {
+  fichier: 'mentionnée par le fichier',
+  choisie: 'choisie ci-dessus',
+  travail: 'année de travail — le fichier n’en mentionne aucune',
+}
+
+/**
+ * L'année où l'import va écrire, et ce qu'il va lui faire. Une année créée ou clôturée se
+ * lit ici AVANT d'appliquer : c'est le seul moment où l'on peut encore renoncer.
+ */
+function AnneeCible({ cible }) {
+  if (!cible) return null
+  const alerte = !cible.existe || cible.cloturee
+
+  return (
+    <div
+      className="mb-4 rounded-xl border px-4 py-3 text-sm font-medium"
+      style={alerte
+        ? { borderColor: 'var(--warning-border)', background: 'var(--warning-bg)', color: 'var(--warning-text)' }
+        : { borderColor: 'var(--border)', color: 'var(--text)' }}
+    >
+      <p>
+        Année visée : <strong>{cible.libelle}</strong>{' '}
+        <span className="text-muted">({SOURCES[cible.source] ?? cible.source})</span>
+      </p>
+      {!cible.existe && (
+        <p className="mt-1">
+          Elle n’existe pas encore : elle sera <strong>créée</strong> à l’application
+          {cible.cloturee && <>, <strong>clôturée</strong> car antérieure à l’année en cours</>}.
+          {cible.classes_reprises?.length > 0 && (
+            <>
+              {' '}Le fichier n’apportant pas de classes, elle reprend celles de{' '}
+              {cible.reference ?? 'l’année de travail'} : {cible.classes_reprises.join(', ')}.
+            </>
+          )}
+        </p>
+      )}
+      {cible.existe && cible.classes_reprises?.length > 0 && (
+        <p className="mt-1">
+          Classes ouvertes dans cette année par l’import : {cible.classes_reprises.join(', ')}.
+        </p>
+      )}
+      {cible.existe && cible.cloturee && (
+        <p className="mt-1">
+          Cette année est <strong>clôturée</strong> : vos droits permettent d’y importer. Les
+          écrans, eux, restent en consultation seule.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
   const aEcrire = rapport.creations + rapport.modifications
   const plusieurs = rapport.feuilles.length > 1
@@ -230,11 +308,25 @@ function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
         {plusieurs && ` sur ${rapport.feuilles.length} feuilles`}. Rien n’a encore été écrit.
       </p>
 
+      <AnneeCible cible={rapport.annee_cible} />
+
       <div className="grid grid-cols-3 gap-3">
         <Compteur valeur={rapport.creations} libelle="Créations" couleur="var(--success)" />
         <Compteur valeur={rapport.modifications} libelle="Mises à jour" couleur="var(--brand-accent)" />
         <Compteur valeur={rapport.rejets} libelle="Écartées" couleur="var(--danger)" />
       </div>
+
+      {rapport.ajustees > 0 && (
+        <p className="mt-4 flex items-start gap-2 text-sm font-medium" style={{ color: 'var(--warning-text)' }}>
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            <strong>{rapport.ajustees}</strong> ligne{rapport.ajustees > 1 ? 's passent' : ' passe'} grâce
+            à un ajustement (classe créée, valeur coupée, matricule attribué, doublon fusionné…) :
+            {rapport.ajustees > 1 ? ' elles sont marquées' : ' elle est marquée'} « ajusté » ci-dessous,
+            avec ce qui a été fait.
+          </span>
+        </p>
+      )}
 
       {rapport.feuilles_absentes?.length > 0 && (
         <p className="mt-4 text-sm font-medium text-muted">
@@ -261,19 +353,33 @@ function Rapport({ rapport, onAppliquer, onAnnuler, enCours }) {
               : `Appliquer : ${rapport.creations} création${rapport.creations > 1 ? 's' : ''}, ${rapport.modifications} mise${rapport.modifications > 1 ? 's' : ''} à jour`}
         </Button>
         <Button variant="outline" disabled={enCours} onClick={onAnnuler}>Annuler</Button>
-        <span className="text-xs font-semibold text-muted">
-          Les lignes écartées ne seront pas importées. Rien n’est jamais supprimé.
-        </span>
+        {aEcrire === 0 && rapport.rejets > 0 ? (
+          // Un bouton grisé sans explication se lit comme une panne.
+          <span className="text-xs font-semibold" style={{ color: 'var(--danger)' }}>
+            Aucune ligne n’est importable : toutes ont été écartées. Corrigez le fichier d’après
+            les motifs ci-dessus, puis déposez-le à nouveau.
+          </span>
+        ) : (
+          <span className="text-xs font-semibold text-muted">
+            {rapport.tout_importer === false
+              ? 'Mode strict : les lignes écartées ne seront pas importées.'
+              : 'Les lignes encore écartées ne peuvent pas être écrites : leur motif dit pourquoi.'}{' '}
+            Rien n’est jamais supprimé.
+          </span>
+        )}
       </div>
     </div>
   )
 }
 
-function SectionImport({ catalogue }) {
+function SectionImport({ catalogue, anneeChoisie }) {
   const qc = useQueryClient()
   const champFichier = useRef(null)
   const [jeu, setJeu] = useState('')
   const [bareme, setBareme] = useState('20')
+  // Coché par défaut : tout ce qui peut s'importer s'importe, les lignes ajustées sont
+  // listées avec leur note. Décoché : mode strict, la moindre anomalie écarte la ligne.
+  const [toutImporter, setToutImporter] = useState(true)
   const [fichier, setFichier] = useState(null)
   const [rapport, setRapport] = useState(null)
   const [bilan, setBilan] = useState(null)
@@ -300,7 +406,12 @@ function SectionImport({ catalogue }) {
   const concerneLesNotes = jeu === 'notes' || jeu === codeAnnee
 
   const analyser = useMutation({
-    mutationFn: () => analyserImport(jeu, fichier, concerneLesNotes ? { bareme } : {}),
+    mutationFn: () => analyserImport(
+      jeu,
+      fichier,
+      { ...(concerneLesNotes ? { bareme } : {}), toutImporter },
+      anneeChoisie,
+    ),
     onSuccess: (data) => { setRapport(data); setBilan(null); setRefus(null) },
     onError: (e) => { setRapport(null); setRefus(texteErreur(e)) },
   })
@@ -316,7 +427,7 @@ function SectionImport({ catalogue }) {
     onError: (e) => setRefus(texteErreur(e)),
   })
 
-  if (catalogue?.annee_cloturee) {
+  if (catalogue?.annee_cloturee && !catalogue?.peut_importer_annee_cloturee) {
     return (
       <section className="card rounded-2xl p-5">
         <h2 className="flex items-center gap-2 text-lg font-bold text-heading">
@@ -326,8 +437,10 @@ function SectionImport({ catalogue }) {
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-slate-200 bg-card px-4 py-3 text-sm font-medium text-muted">
           <Lock size={16} className="mt-0.5 shrink-0" />
           <span>
-            L’année <strong>{catalogue.annee}</strong> est clôturée : plus rien ne peut y être
-            importé. L’export, lui, reste ouvert — c’est justement une année close qu’on archive.
+            L’année <strong>{catalogue.annee}</strong> est clôturée : seul un administrateur, ou
+            un rôle ayant la permission « Importer dans une année clôturée ou à créer », peut
+            encore y importer. L’export, lui, reste ouvert — c’est justement une année close
+            qu’on archive.
           </span>
         </p>
       </section>
@@ -394,7 +507,7 @@ function SectionImport({ catalogue }) {
           <option value="">— Choisir —</option>
           {/* En tête de liste : c'est le geste de début d'année, et celui qui répond à
               l'export « toute l'année » d'à côté. */}
-          {annee && <option value={annee.code}>{annee.libelle} ({annee.feuilles.join(' + ')})</option>}
+          {annee && <option value={annee.code}>{annee.libelle} — {annee.feuilles.length} feuilles</option>}
           {importables.map((j) => (
             <option key={j.code} value={j.code}>{j.libelle} uniquement</option>
           ))}
@@ -414,6 +527,25 @@ function SectionImport({ catalogue }) {
 
       {jeu && (
         <>
+          {/* Cochée par défaut : seules restent écartées les lignes impossibles à écrire. */}
+          <label className="mt-4 flex max-w-2xl items-start gap-2 text-sm font-medium text-heading">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={toutImporter}
+              onChange={(e) => { setToutImporter(e.target.checked); setRapport(null) }}
+            />
+            <span>
+              <strong>Tout importer</strong> (recommandé) : par défaut, tout ce qui peut être
+              importé l’est. Une classe ouverte une autre année est reprise, une classe inconnue
+              est créée, une valeur trop longue est coupée, un matricule manquant ou porté par
+              deux enfants est attribué, une ligne en double met à jour la précédente… Chaque
+              ligne ajustée est listée dans le rapport, avec sa note. Seules restent écartées les
+              lignes impossibles à écrire. Décochez pour le mode strict : la moindre anomalie
+              écarte la ligne.
+            </span>
+          </label>
+
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <input
               ref={champFichier}
@@ -431,7 +563,7 @@ function SectionImport({ catalogue }) {
             </Button>
             <button
               type="button"
-              onClick={() => telechargerModele(jeu)}
+              onClick={() => telechargerModele(jeu, anneeChoisie)}
               className="text-sm font-semibold underline"
               style={{ color: 'var(--brand-accent)' }}
             >
@@ -443,11 +575,26 @@ function SectionImport({ catalogue }) {
             .xlsx, .xls ou .csv, jusqu’à {catalogue?.lignes_max_import} lignes par feuille. La
             casse et les accents des en-têtes n’ont pas d’importance ; une colonne inconnue est
             signalée, pas devinée.
+            {!anneeChoisie && (
+              <>
+                {' '}L’import va dans <strong>l’année que le fichier mentionne</strong> (colonne
+                Année, sinon son nom, par exemple « …2025-2026.xlsx ») ; si elle n’existe pas, elle
+                est créée — clôturée si elle est antérieure. Choisissez une année ci-dessus pour
+                l’imposer.
+              </>
+            )}
             {jeu === codeAnnee && (
               <>
                 {' '}Un onglet manquant est simplement laissé de côté. Les feuilles sont reprises
-                dans l’ordre <strong>{annee.feuilles.join(' → ')}</strong> : une note doit pouvoir
-                se poser sur un élève que la feuille précédente vient de créer.
+                dans l’ordre <strong>{annee.feuilles.join(' → ')}</strong> : chacune s’appuie sur
+                ce que les précédentes créent — une classe sur son niveau, un élève sur sa
+                classe, une note ou une absence sur son élève.
+              </>
+            )}
+            {(jeu === codeAnnee || jeu === 'enseignants') && (
+              <>
+                {' '}Les enseignants sont créés <strong>sans compte de connexion</strong> : ouvrez
+                leur accès depuis l’écran Enseignants, qui affiche le mot de passe une seule fois.
               </>
             )}
           </p>
@@ -490,10 +637,15 @@ function SectionImport({ catalogue }) {
  */
 export default function EchangesPage() {
   const peutImporter = useAuthStore((s) => s.permissions.includes('importer_donnees'))
+  // Année visée par l'import et l'export : celle de l'en-tête par défaut, mais on peut en
+  // choisir une autre ici sans changer l'année de travail du reste de l'application.
+  const [anneeChoisie, setAnneeChoisie] = useState('')
+  const { data: contexte } = useQuery({ queryKey: ['contexte'], queryFn: fetchContexte, retry: false })
+  const annees = contexte?.annees ?? []
 
   const { data: catalogue, isLoading, error } = useQuery({
-    queryKey: ['echanges-catalogue'],
-    queryFn: fetchCatalogueEchanges,
+    queryKey: ['echanges-catalogue', anneeChoisie],
+    queryFn: () => fetchCatalogueEchanges(anneeChoisie),
     // Un refus d'accès ne se répare pas en réessayant trois fois.
     retry: false,
   })
@@ -508,6 +660,19 @@ export default function EchangesPage() {
             : <>Année <strong>{catalogue?.annee}</strong>, toute la société. </>}
           Un export rend exactement ce que les écrans montrent, ni plus ni moins.
         </p>
+        {annees.length > 0 && (
+          <div className="mt-3 max-w-xs">
+            <Select label="Année scolaire importée / exportée" value={anneeChoisie}
+                    onChange={(e) => setAnneeChoisie(e.target.value)}>
+              <option value="">Année de travail ({contexte?.annee ?? '—'}) · import : celle du fichier</option>
+              {annees.map((a) => (
+                <option key={a.libelle} value={a.libelle}>
+                  {a.libelle}{a.active ? ' • en cours' : ''}{a.cloturee ? ' • clôturée' : ''}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </header>
 
       {isLoading && <p className="font-medium text-muted">Chargement…</p>}
@@ -520,8 +685,10 @@ export default function EchangesPage() {
 
       {catalogue && (
         <div className="space-y-5">
-          <SectionExport catalogue={catalogue} />
-          {peutImporter && <SectionImport catalogue={catalogue} />}
+          <SectionExport catalogue={catalogue} anneeChoisie={anneeChoisie} />
+          {/* La clé remet l'import à zéro quand on change d'année : un rapport lu pour une
+              année ne doit pas s'appliquer à une autre. */}
+          {peutImporter && <SectionImport key={anneeChoisie} catalogue={catalogue} anneeChoisie={anneeChoisie} />}
         </div>
       )}
     </div>

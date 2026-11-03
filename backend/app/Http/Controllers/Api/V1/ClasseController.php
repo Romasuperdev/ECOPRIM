@@ -150,18 +150,22 @@ class ClasseController extends Controller
         return response()->noContent();
     }
 
-    /** Un code de classe est unique DANS une année : il se réutilise l'année suivante. */
+    /**
+     * Un code de classe est unique dans T_CLASSE, TOUTES ANNÉES CONFONDUES : c'est sa clé
+     * primaire sur le serveur (PK_T_CLASSE). Le croire unique dans l'année seulement
+     * laissait passer une création que SQL Server rejetait ensuite, en erreur technique.
+     */
     private function assertCodeLibre(string $code, ?string $annee, $sauf = null): void
     {
-        $existe = $this->ecrivain->requete()
+        $existante = $this->ecrivain->requete()
             ->where('CodeClasse', $code)
-            ->when($annee, fn ($q) => $q->where('ANNEE', $annee))
             ->when($sauf !== null, fn ($q) => $q->where('num', '!=', $sauf))
-            ->exists();
+            ->first(['ANNEE']);
 
-        if ($existe) {
+        if ($existante) {
+            $ou = trim((string) $existante->ANNEE) === trim((string) $annee) ? 'pour cette année' : "en {$existante->ANNEE}";
             throw ValidationException::withMessages([
-                'code' => ["La classe « {$code} » existe déjà pour cette année."],
+                'code' => ["La classe « {$code} » existe déjà {$ou} : un code de classe ne sert qu'une fois, toutes années confondues."],
             ]);
         }
     }

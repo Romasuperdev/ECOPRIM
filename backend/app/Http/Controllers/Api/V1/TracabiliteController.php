@@ -11,6 +11,7 @@ use App\Support\Tracabilite;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -65,7 +66,10 @@ class TracabiliteController extends Controller
             $parPage = min(max($request->integer('per_page', 30), 1), 200);
             $page = $requete->paginate($parPage, ['*'], 'page', max($request->integer('page', 1), 1));
         } catch (Throwable $e) {
-            return $this->vide($request, "La traçabilité n'a pas pu être lue : ".$e->getMessage());
+            // Le détail (texte SQL, noms de tables) part au journal, pas à l'écran.
+            Log::error('Traçabilité illisible.', ['exception' => $e]);
+
+            return $this->vide($request, "La traçabilité n'a pas pu être lue. Réessayez, ou prévenez l'administrateur si cela persiste.");
         }
 
         return [

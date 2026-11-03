@@ -74,6 +74,15 @@ class PerimetreConsoleTest extends TestCase
         ], $extra));
     }
 
+    /** Un rôle sans portée d'administration (Surveillant), créé au besoin. */
+    private function roleSimple(): int
+    {
+        $eco = DB::connection('ecoprim')->table('console_roles');
+
+        return (int) ($eco->where('code', 'surveillant')->value('id')
+            ?: DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'surveillant', 'nom' => 'Surveillant']));
+    }
+
     private function superAdmin(): RhUser
     {
         $rh = $this->compte(1, 'boss', true);
@@ -305,7 +314,7 @@ class PerimetreConsoleTest extends TestCase
         // à celui qui vient de le créer.
         $this->postJson('/api/v1/utilisateurs', [
             'login' => 'nouveau', 'mot_de_passe' => 'secret1', 'nom' => 'Nouveau',
-        ])->assertStatus(422)->assertJsonValidationErrors(['etablissement_code', 'role_id']);
+        ])->assertStatus(422)->assertJsonValidationErrors(['etablissement_code']);
 
         // Et il ne peut pas le créer dans une autre société.
         $this->postJson('/api/v1/utilisateurs', [
@@ -439,38 +448,25 @@ class PerimetreConsoleTest extends TestCase
             ->assertJsonPath('etablissements', 1);
     }
 
-    public function test_l_admin_societe_gere_ses_propres_roles_mais_pas_le_catalogue_general(): void
+    public function test_l_admin_societe_consulte_les_roles_sans_les_gerer(): void
     {
         $this->adminSociete('ABN');
 
         // Il voit le catalogue général (2 rôles : admin-societe, direction)…
         $this->getJson('/api/v1/roles')->assertOk()->assertJsonCount(2);
 
-        // … peut créer et supprimer un rôle propre à sa société…
-        $cree = $this->postJson('/api/v1/roles', ['code' => 'coordinateur', 'nom' => 'Coordinateur'])
-            ->assertCreated()
-            ->assertJsonPath('societe_code', 'ABN');
-
-        $this->getJson('/api/v1/roles')->assertOk()->assertJsonCount(3);
-
-        $this->deleteJson('/api/v1/roles/'.$cree->json('id'))->assertNoContent();
-
-        // … mais ne peut pas toucher au catalogue général, commun à toutes les sociétés.
+        // … mais ne crée ni ne supprime aucun rôle : c'est le Super Admin qui les gère.
+        $this->postJson('/api/v1/roles', ['code' => 'coordinateur', 'nom' => 'Coordinateur'])->assertForbidden();
         $this->deleteJson('/api/v1/roles/2')->assertForbidden();
     }
 
-    public function test_l_admin_etablissement_gere_aussi_les_roles_de_sa_societe(): void
+    public function test_l_admin_etablissement_consulte_les_roles_sans_les_gerer(): void
     {
         $this->adminEtablissement('ABN', 'E-ABN');
 
-        // Sa société se déduit de son établissement : même capacité qu'un Admin Société.
-        $cree = $this->postJson('/api/v1/roles', ['code' => 'surveillant-abn', 'nom' => 'Surveillant'])
-            ->assertCreated()
-            ->assertJsonPath('societe_code', 'ABN');
-
-        $this->deleteJson('/api/v1/roles/'.$cree->json('id'))->assertNoContent();
-
-        // Ni lui ni un Admin Société d'ABN ne touchent au catalogue général.
+        // Il consulte les rôles, sans les créer ni les supprimer.
+        $this->getJson('/api/v1/roles')->assertOk();
+        $this->postJson('/api/v1/roles', ['code' => 'surveillant-abn', 'nom' => 'Surveillant'])->assertForbidden();
         $this->deleteJson('/api/v1/roles/2')->assertForbidden();
     }
 
@@ -525,7 +521,10 @@ class PerimetreConsoleTest extends TestCase
 
     public function test_l_admin_societe_ne_peut_pas_affecter_dans_une_autre_societe(): void
     {
+        // La cible doit déjà être dans le périmètre de l'appelant (voir
+        // test_affecter_un_compte_hors_perimetre_est_refuse) : un premier rôle chez ABN.
         $this->compte(13, 'cible');
+        $this->affecter(13, 'ABN', 'E-ABN', $this->roleSimple());
         $this->adminSociete('ABN');
 
         $this->postJson('/api/v1/affectations', [
@@ -637,6 +636,8 @@ class PerimetreConsoleTest extends TestCase
             ['id' => 3, 'code' => 'E-NEW', 'intitule' => 'Autre école', 'societe_code' => 'ABN', 'actif' => true]
         );
         $this->compte(13, 'cible');
+        // Déjà affectée chez lui : seul un compte de son périmètre peut recevoir un rôle.
+        $this->affecter(13, 'ABN', 'E-ABN', $this->roleSimple());
         $this->adminEtablissement('ABN', 'E-ABN');
 
         $this->postJson('/api/v1/affectations', [

@@ -18,6 +18,7 @@ import {
   enregistrerLigneCahier,
   fetchCahierReferentiels,
   fetchCahiers,
+  fetchMesClasses,
   fetchMesAbsences,
   fetchMesDevoirs,
   fetchMesEleves,
@@ -50,6 +51,9 @@ const TABS = [
 export default function EnseignantClassePage() {
   const { classe } = useParams()
   const [onglet, setOnglet] = useState('cahier')
+  // Le nom de la classe (« CM1 A ») plutôt que son code (« CM1A ») dans le bandeau.
+  const { data: mes } = useQuery({ queryKey: ['mes-classes'], queryFn: fetchMesClasses })
+  const nomClasse = mes?.classes?.find((c) => c.classe === classe)?.classe_libelle ?? classe
 
   return (
     <div>
@@ -61,7 +65,7 @@ export default function EnseignantClassePage() {
       </Link>
 
       <div className="mb-5">
-        <BandeauPortail titre={classe} sousTitre="Cahier journal, notes, devoirs, absences et emploi du temps." />
+        <BandeauPortail titre={nomClasse} sousTitre="Cahier journal, notes, devoirs, absences et emploi du temps." />
       </div>
 
       <Onglets onglets={TABS} actif={onglet} onChanger={setOnglet} />
@@ -89,7 +93,7 @@ export default function EnseignantClassePage() {
 
 // --- Cahier journal ---
 
-function LigneCahier({ entete, ligne, onSaved, onRemoved }) {
+function LigneCahier({ entete, ligne, onSaved, onRemoved, modifiable = true }) {
   const initial = { lundi: ligne.lundi, mardi: ligne.mardi, mercredi: ligne.mercredi, jeudi: ligne.jeudi, vendredi: ligne.vendredi }
   const [valeurs, setValeurs] = useState(initial)
   const [erreur, setErreur] = useState(null)
@@ -112,6 +116,8 @@ function LigneCahier({ entete, ligne, onSaved, onRemoved }) {
         <td key={j.cle} className="px-1.5 py-2">
           <input
             type="text" maxLength={50} value={valeurs[j.cle] ?? ''}
+            readOnly={!modifiable}
+            title={modifiable ? undefined : 'Matière assurée par un collègue : consultation seule'}
             onChange={(e) => setValeurs((v) => ({ ...v, [j.cle]: e.target.value }))}
             placeholder="—" className="field field--dense w-full"
           />
@@ -120,11 +126,12 @@ function LigneCahier({ entete, ligne, onSaved, onRemoved }) {
       <td className="whitespace-nowrap px-2 py-2 text-right">
         <div className="flex items-center justify-end gap-1.5">
           {erreur && <span className="text-xs text-red-600">{erreur}</span>}
-          <Button variant="outline" className="!px-2 !py-1 text-xs" disabled={!dirty || enregistrer.isPending}
+          {!modifiable && <span className="text-xs text-muted">Collègue</span>}
+          {modifiable && <Button variant="outline" className="!px-2 !py-1 text-xs" disabled={!dirty || enregistrer.isPending}
                   onClick={() => enregistrer.mutate()}>
             {enregistrer.isPending ? '…' : 'Enregistrer'}
-          </Button>
-          {ligne.id && (
+          </Button>}
+          {modifiable && ligne.id && (
             <button type="button" title="Retirer cette matière" onClick={() => retirer.mutate()}
                     className="text-muted hover:text-red-500">
               <Trash2 size={15} />
@@ -207,6 +214,7 @@ function OngletCahier({ classe }) {
                   key={ligne.matiere ?? `x-${ligne.id}`}
                   entete={entete} ligne={ligne}
                   onSaved={rafraichir} onRemoved={rafraichir}
+                  modifiable={!Array.isArray(ref?.matieres_modifiables) || ref.matieres_modifiables.includes(ligne.matiere)}
                 />
               ))}
             </tbody>

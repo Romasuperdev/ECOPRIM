@@ -176,25 +176,37 @@ class InscriptionController extends Controller
         $this->assertCoherence($data);
 
         $entrant = in_array($data['mouvement'], self::MOUVEMENTS_ENTRANTS, true);
+
+        // La classe visée doit être du périmètre. Un élève qui sort (transfert sortant) peut
+        // ne plus en avoir ; tout autre mouvement le fait entrer dans une classe.
+        if ($data['mouvement'] !== 'transfert_sortant' || filled($data['classe_code'] ?? null)) {
+            $this->exigerClasseCible($data['classe_code'] ?? null);
+        }
+
         $existant = $this->ecrivain->parMatricule($data['matricule']);
 
         if ($entrant) {
             if ($existant) {
                 throw ValidationException::withMessages([
-                    'matricule' => [
-                        "Le matricule « {$data['matricule']} » est déjà celui de "
-                        ."{$existant->Nom} {$existant->Prenom}. Pour un élève déjà connu, "
-                        .'choisissez « Réinscription ».',
+                    'matricule' => [$this->eleveDuPerimetre($existant)
+                        ? "Le matricule « {$data['matricule']} » est déjà celui de "
+                          ."{$existant->Nom} {$existant->Prenom}. Pour un élève déjà connu, "
+                          .'choisissez « Réinscription ».'
+                        // Élève d'un autre établissement : on dit que le matricule est pris,
+                        // pas à qui il appartient.
+                        : "Le matricule « {$data['matricule']} » est déjà attribué.",
                     ],
                 ]);
             }
 
             if ($doublon = $this->ecrivain->memeIdentite($data)) {
                 throw ValidationException::withMessages([
-                    'nom' => [
-                        "Un élève nommé {$doublon->Nom} {$doublon->Prenom}, né le "
-                        .substr((string) $doublon->DateNaiss, 0, 10)
-                        .", est déjà inscrit (matricule {$doublon->Matricule}).",
+                    'nom' => [$this->eleveDuPerimetre($doublon)
+                        ? "Un élève nommé {$doublon->Nom} {$doublon->Prenom}, né le "
+                          .substr((string) $doublon->DateNaiss, 0, 10)
+                          .", est déjà inscrit (matricule {$doublon->Matricule})."
+                        : 'Un élève de même nom, prénom et date de naissance est déjà enregistré. '
+                          ."Vérifiez la saisie, ou adressez-vous à l'administrateur.",
                     ],
                 ]);
             }
@@ -204,11 +216,13 @@ class InscriptionController extends Controller
             return $this->reponse(Eleve::findOrFail($code), $data, 201);
         }
 
-        // Réinscription / transfert sortant : l'élève doit exister.
-        if (! $existant) {
+        // Réinscription / transfert sortant : l'élève doit exister — ET être des nôtres. Un
+        // élève d'un autre établissement reçoit la même réponse qu'un matricule inconnu :
+        // on ne touche pas à son dossier, et on ne confirme même pas qu'il existe.
+        if (! $existant || ! $this->eleveDuPerimetre($existant)) {
             throw ValidationException::withMessages([
                 'matricule' => [
-                    "Aucun élève ne porte le matricule « {$data['matricule']} ». "
+                    "Aucun élève de vos établissements ne porte le matricule « {$data['matricule']} ». "
                     .'Pour un nouvel élève, choisissez « Inscription ».',
                 ],
             ]);
@@ -230,6 +244,36 @@ class InscriptionController extends Controller
         $this->ecrivain->modifier((int) $existant->Code, $data);
 
         return $this->reponse(Eleve::findOrFail($existant->Code), $data, 200);
+    }
+
+    /**
+     * Un élève existant relève-t-il du périmètre ? Par sa classe, quelle qu'en soit l'année :
+     * à la réinscription, il porte encore celle de l'an passé. Sans classe, il n'est
+     * rattaché à aucun établissement — seul le Super Admin en vue générale le voit.
+     */
+    private function eleveDuPerimetre(object $eleve): bool
+    {
+        return PerimetreEtablissement::classeDuPerimetre($eleve->CodeClasse ?? null);
+    }
+
+    /**
+     * Classe dans laquelle on fait entrer un élève : elle doit être du périmètre. Sans
+     * classe, l'élève ne serait rattaché à aucun établissement et disparaîtrait aussitôt
+     * des écrans de qui l'a saisi : on la demande, sauf en vue générale.
+     */
+    private function exigerClasseCible(?string $classe): void
+    {
+        if (PerimetreEtablissement::codesClasses() === null) {
+            return;
+        }
+
+        if (trim((string) $classe) === '') {
+            throw ValidationException::withMessages([
+                'classe_code' => ["Choisissez la classe de l'élève : sans classe, il n'est rattaché à aucun de vos établissements."],
+            ]);
+        }
+
+        PerimetreEtablissement::exigerClasse($classe);
     }
 
     /** Contrôles de cohérence communs à la création et à la modification. */
@@ -256,6 +300,11 @@ class InscriptionController extends Controller
         AnneeScolaireGuard::assertModifiable($eleve->annee, 'La modification de ce dossier');
         AnneeScolaireGuard::assertModifiable($data['annee'] ?? null, 'Le rattachement à cette année');
         $this->assertCoherence($data);
+
+        // Changer de classe, oui — mais pas vers un autre établissement.
+        if (array_key_exists('classe_code', $data)) {
+            $this->exigerClasseCible($data['classe_code']);
+        }
 
         if (! empty($data['matricule']) && $this->ecrivain->matriculeExiste($data['matricule'], $inscription)) {
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);

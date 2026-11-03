@@ -1,7 +1,6 @@
 import {
   BarChart3,
   BookOpen,
-  Building2,
   ClipboardList,
   Megaphone,
   ShieldCheck,
@@ -102,16 +101,6 @@ export const GROUPS = [
       { to: '/communication/historique', label: 'Historique des envois' },
     ],
   },
-  {
-    label: 'Administration',
-    Icone: Building2,
-    module: 'parametre',
-    superAdminOnly: true,
-    items: [
-      { to: '/admin/societes', label: 'Sociétés' },
-      { to: '/admin/etablissements', label: 'Établissements' },
-    ],
-  },
   // Le quotidien d'un Directeur / Admin Établissement : gérer les comptes de son
   // établissement, leurs rôles et ce que chaque rôle a le droit de faire. Ouvert dès que
   // peutConsole est vrai (Super Admin, Admin Société ou Admin Établissement) — pas
@@ -120,11 +109,14 @@ export const GROUPS = [
     label: 'Configuration administrative',
     Icone: ShieldCheck,
     module: 'parametre',
-    peutConsoleOnly: true,
+    // Les administrateurs (Super Admin, Admin Société, Admin Établissement) — sans la
+    // console, réservée au Super Admin. Le groupe « Administration » (Sociétés &
+    // Établissements) a été retiré : il renvoyait dans la console.
+    administrateurOnly: true,
     items: [
       { to: '/configuration/utilisateurs', label: 'Utilisateurs' },
-      { to: '/admin/roles', label: 'Rôles' },
-      { to: '/admin/permissions', label: 'Permissions' },
+      { to: '/configuration/roles', label: 'Rôles' },
+      { to: '/configuration/permissions', label: 'Permissions' },
     ],
   },
 ]

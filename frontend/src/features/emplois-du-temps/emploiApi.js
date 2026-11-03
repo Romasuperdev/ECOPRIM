@@ -33,3 +33,10 @@ export async function fetchClassesEtMatieres() {
   const liste = (r) => r.data?.data ?? r.data ?? []
   return { classes: liste(classes), matieres: liste(matieres) }
 }
+
+// Trame horaire (jours + plages) : la liste complète part d'un bloc ; le serveur ajoute,
+// modifie et retire ce qui diffère, et renvoie les référentiels à jour.
+export async function enregistrerTrame(payload) {
+  const { data } = await apiClient.put('/emplois-du-temps/trame', payload)
+  return data
+}

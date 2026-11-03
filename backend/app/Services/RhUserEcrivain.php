@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Throwable;
 
 /**
  * Écriture contrôlée dans dbmasterbacou.RH_USER.
@@ -16,6 +15,9 @@ use Throwable;
  *
  * Le mot de passe est haché avec Hash::make (bcrypt), exactement ce que vérifie
  * AuthController via Hash::check.
+ *
+ * Lectures de contrôle (login déjà pris, prochain Id) : une erreur REMONTE. « Login
+ * libre » ou « Id 1 » par défaut créait des doublons de Login ou d'Id.
  */
 class RhUserEcrivain
 {
@@ -26,15 +28,12 @@ class RhUserEcrivain
         'profil' => 50, 'code_app' => 50,
     ];
 
+    /** Une erreur de lecture remonte : on ne déclare pas libre un login qu'on n'a pas pu chercher. */
     public function loginExiste(string $login, ?int $sauf = null): bool
     {
-        try {
-            return $this->table()->where('Login', $login)
-                ->when($sauf, fn ($q) => $q->where('Id', '!=', $sauf))
-                ->exists();
-        } catch (Throwable $e) {
-            return false;
-        }
+        return $this->table()->where('Login', $login)
+            ->when($sauf, fn ($q) => $q->where('Id', '!=', $sauf))
+            ->exists();
     }
 
     public function creer(array $d): int
@@ -49,10 +48,14 @@ class RhUserEcrivain
             return (int) $this->table()->insertGetId($ligne, 'Id');
         }
 
-        $id = $this->prochainId();
-        $this->table()->insert($ligne + ['Id' => $id]);
+        // MAX + 1 et INSERT dans une même transaction, MAX lu sous verrou : deux créations
+        // simultanées ne prennent plus le même Id.
+        return DB::connection('master')->transaction(function () use ($ligne) {
+            $id = $this->prochainId();
+            $this->table()->insert($ligne + ['Id' => $id]);
 
-        return $id;
+            return $id;
+        });
     }
 
     public function modifier(int $id, array $d): void
@@ -93,26 +96,31 @@ class RhUserEcrivain
         return $ligne;
     }
 
+    /** Mémorisé pour la durée du processus : la nature de la colonne ne change pas. */
+    private static ?bool $identite = null;
+
     private function idEstIdentity(): bool
     {
-        try {
-            $v = DB::connection('master')->selectOne(
-                "SELECT COLUMNPROPERTY(OBJECT_ID('dbo.RH_USER'),'Id','IsIdentity') AS est_identity"
-            );
-
-            return (bool) ($v->est_identity ?? false);
-        } catch (Throwable $e) {
-            return false; // SQLite des tests : compteur manuel
+        // Hors SQL Server (SQLite des tests), COLUMNPROPERTY n'existe pas : compteur manuel.
+        if (DB::connection('master')->getDriverName() !== 'sqlsrv') {
+            return false;
         }
+
+        if (self::$identite !== null) {
+            return self::$identite;
+        }
+
+        $v = DB::connection('master')->selectOne(
+            "SELECT COLUMNPROPERTY(OBJECT_ID('dbo.RH_USER'),'Id','IsIdentity') AS est_identity"
+        );
+
+        return self::$identite = (bool) ($v->est_identity ?? false);
     }
 
+    /** MAX + 1, lu sous verrou : à appeler DANS la transaction de l'INSERT. */
     private function prochainId(): int
     {
-        try {
-            return ((int) $this->table()->max('Id')) + 1;
-        } catch (Throwable $e) {
-            return 1;
-        }
+        return ((int) $this->table()->lock(EconomatTable::VERROU_COMPTEUR)->max('Id')) + 1;
     }
 
     private function table()

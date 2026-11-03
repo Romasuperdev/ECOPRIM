@@ -8,6 +8,7 @@ use App\Services\AccesAutomatique;
 use App\Services\MatieresEnseignantEcrivain;
 use App\Services\ProfesseurEcrivain;
 use App\Support\AnneeScolaireGuard;
+use App\Support\ClassesEnseignant;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
@@ -25,16 +26,19 @@ class EnseignantController extends Controller
         private ProfesseurEcrivain $ecrivain,
         private AccesAutomatique $acces,
         private MatieresEnseignantEcrivain $matieres,
+        private ClassesEnseignant $classes,
     ) {}
 
     /**
      * Réponse d'un enregistrement : la fiche, plus l'accès créé (ou retrouvé) au passage.
      * Le mot de passe n'y figure qu'à la création du compte — l'écran l'affiche une fois.
      */
-    private function reponse(Enseignant $enseignant, array $data, int $statut = 200)
+    private function reponse(Enseignant $enseignant, array $data, int $statut = 200, array $avertissements = [])
     {
         return response()->json(array_merge($enseignant->toArray(), [
             'matieres' => $this->matieres->pour($enseignant->matricule, $enseignant->annee_code),
+            'classes' => $this->classes->classesDe((int) $enseignant->getKey()),
+            'avertissements' => $avertissements,
             'acces_enseignant' => $this->acces->pourEnseignant($data, (int) $enseignant->getKey()),
         ]), $statut);
     }
@@ -56,15 +60,7 @@ class EnseignantController extends Controller
                 $q->where(fn ($w) => $w->where('Matiere', $matiere)
                     ->when($matricules !== [], fn ($x) => $x->orWhereIn('MatriculeProfesseur', $matricules)));
             })
-            ->tap(fn ($q) => ContexteScolaire::appliquer($q, 'CodeAnnee'))
-            // T_PROFESSEUR ne porte pas d'établissement : un enseignant en relève par ses
-            // affectations de l'année dans les classes visibles (voir PerimetreEtablissement).
-            ->tap(function ($q) {
-                $codes = PerimetreEtablissement::codesEnseignants();
-                if ($codes !== null) {
-                    $q->whereIn('Code', $codes);
-                }
-            })
+            ->tap(fn ($q) => PerimetreEtablissement::appliquerAuxEnseignants($q))
             ->orderBy('NomProfesseur')
             ->paginate(min($request->integer('per_page', 15), 200));
     }
@@ -75,6 +71,7 @@ class EnseignantController extends Controller
 
         return array_merge($enseignant->toArray(), [
             'matieres' => $this->matieres->pour($enseignant->matricule, $enseignant->annee_code),
+            'classes' => $this->classes->classesDe((int) $enseignant->getKey()),
         ]);
     }
 
@@ -114,6 +111,9 @@ class EnseignantController extends Controller
             'formation' => ['nullable', 'string', 'max:'.$l['formation']],
             'matiere' => ['nullable', 'string', 'max:'.$l['matiere']],
             'matieres' => ['nullable', 'array'],
+            // Classes où il donne cours : une affectation par classe et par matière enseignée.
+            'classes' => ['nullable', 'array'],
+            'classes.*' => ['string', 'max:50'],
             'matieres.*' => ['string', 'max:50', Rule::exists('economat.T_MATIERE', 'CodeMatiere')],
             'volume_horaire' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'string', 'max:'.$l['date_embauche']],
@@ -160,6 +160,22 @@ class EnseignantController extends Controller
         }
     }
 
+    /** Classes cochées → affectations, pour les matières enseignées (voir ClassesEnseignant). */
+    private function enregistrerClasses(Enseignant $enseignant, array $data): array
+    {
+        if (! array_key_exists('classes', $data)) {
+            return [];
+        }
+        AnneeScolaireGuard::assertModifiable(ContexteScolaire::annee(), "L'affectation de cet enseignant à des classes");
+
+        $matieres = array_key_exists('matieres', $data)
+            ? array_values(array_filter($data['matieres'] ?? []))
+            : array_values(array_map(fn ($m) => is_array($m) ? ($m['code'] ?? '') : (string) $m,
+                $this->matieres->pour($enseignant->matricule, $enseignant->annee_code)));
+
+        return $this->classes->synchroniser((int) $enseignant->getKey(), $data['classes'] ?? [], array_filter($matieres));
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate($this->regles());
@@ -169,11 +185,17 @@ class EnseignantController extends Controller
             throw ValidationException::withMessages(['matricule' => ['Ce matricule est déjà attribué.']]);
         }
 
+        if (array_key_exists('classes', $data)) {
+            $this->classes->verifier($data['classes'] ?? [], $data['matieres'] ?? []);
+        }
+
         $code = $this->ecrivain->creer($data);
+        ClassesEnseignant::rattacher($code);
         $enseignant = Enseignant::findOrFail($code);
         $this->enregistrerMatieres($enseignant, $data);
+        $avertissements = $this->enregistrerClasses($enseignant, $data);
 
-        return $this->reponse($enseignant->refresh(), $data, 201);
+        return $this->reponse($enseignant->refresh(), $data, 201, $avertissements);
     }
 
     public function update(Request $request, Enseignant $enseignant)
@@ -189,10 +211,12 @@ class EnseignantController extends Controller
         }
 
         $this->ecrivain->modifier($code, $data);
+        ClassesEnseignant::rattacher($code);
         $enseignant = Enseignant::findOrFail($code);
         $this->enregistrerMatieres($enseignant, $data);
+        $avertissements = $this->enregistrerClasses($enseignant, $data);
 
         // Un numéro renseigné après coup ouvre l'accès à ce moment-là.
-        return $this->reponse($enseignant->refresh(), $data);
+        return $this->reponse($enseignant->refresh(), $data, 200, $avertissements);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -35,7 +36,10 @@ class MatieresEnseignantEcrivain
         $this->table = EconomatTable::pour('T_CORPROFMAT', 'Code');
     }
 
-    /** Codes des matières d'un professeur pour une année. Vide si illisible ou sans matricule. */
+    /**
+     * Codes des matières d'un professeur pour une année, pour l'AFFICHAGE : vide si
+     * illisible (et journalisé) ou sans matricule. L'écriture passe par lire(), stricte.
+     */
     public function pour(?string $matricule, ?string $annee): array
     {
         if (! $matricule) {
@@ -43,18 +47,26 @@ class MatieresEnseignantEcrivain
         }
 
         try {
-            return $this->table->requete()
-                ->where('MatriculeProfesseur', $matricule)
-                ->when($annee, fn ($q) => $q->where('ANNEE', $annee))
-                ->pluck('CodeMatiere')
-                ->map(fn ($c) => trim((string) $c))
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
+            return $this->lire($matricule, $annee);
         } catch (Throwable $e) {
+            Log::warning("Matières de l'enseignant illisibles.", ['matricule' => $matricule, 'exception' => $e]);
+
             return [];
         }
+    }
+
+    /** Lecture stricte : une erreur remonte. */
+    private function lire(string $matricule, ?string $annee): array
+    {
+        return $this->table->requete()
+            ->where('MatriculeProfesseur', $matricule)
+            ->when($annee, fn ($q) => $q->where('ANNEE', $annee))
+            ->pluck('CodeMatiere')
+            ->map(fn ($c) => trim((string) $c))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /** Matricules des enseignants ayant cette matière — sert au filtre de la liste. */
@@ -88,7 +100,8 @@ class MatieresEnseignantEcrivain
         }
 
         $voulues = collect($codes)->map(fn ($c) => trim((string) $c))->filter()->unique()->values();
-        $actuelles = collect($this->pour($matricule, $annee));
+        // Lecture STRICTE : vide par erreur, toute la liste aurait été réinsérée en double.
+        $actuelles = collect($this->lire($matricule, $annee));
 
         foreach ($voulues->diff($actuelles) as $code) {
             $this->table->inserer([

@@ -3,7 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\RhUser;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -20,6 +22,18 @@ class RhUserAuthTest extends TestCase
         parent::setUp();
         $this->setUpMasterDb();
         $this->setUpEconomatDb();
+
+        // Base console isolée : la connexion lit désormais les rôles console du compte
+        // (RhUser::typePortail) et refuse s'ils sont illisibles. Sans cela, ce test lisait
+        // la vraie base `ecoprim`, ou échouait là où elle n'est pas joignable.
+        config(['database.connections.ecoprim' => [
+            'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true,
+        ]]);
+        DB::purge('ecoprim');
+        Artisan::call('migrate', [
+            '--database' => 'ecoprim', '--path' => 'database/migrations/console',
+            '--realpath' => false, '--force' => true,
+        ]);
     }
 
     private function creerRh(array $a = []): array
@@ -29,6 +43,8 @@ class RhUserAuthTest extends TestCase
             'Email' => 'jean@ecole.ci', 'Matricule' => 'MAT1',
             'MotDePasse' => Hash::make('secret'),
             'SuperAdmin' => false, 'Supprimer' => false, 'user_id' => null,
+            // Un compte sans établissement ne se connecte pas.
+            'Etab' => 'E1',
         ], $a);
         DB::connection('master')->table('RH_USER')->insert($a);
 
@@ -229,17 +245,142 @@ class RhUserAuthTest extends TestCase
         $this->assertSame(['etablissement', 'societe'], array_keys($corps));
     }
 
-    public function test_un_super_admin_n_est_rattache_a_aucune_societe_en_particulier(): void
+    /**
+     * Un Super Admin n'est rattaché à aucune société en particulier — et l'endpoint,
+     * public, ne le dit pas : « Super Administrateur » désignait à quiconque tapait un
+     * identifiant le compte qui ouvre toute la suite. Même réponse qu'un compte sans
+     * rattachement.
+     */
+    public function test_le_super_admin_affiche_tous_les_etablissements(): void
     {
         $this->creerRh(['Login' => 'boss', 'SuperAdmin' => true, 'Etab' => '']);
 
-        $this->etablissementDe('boss')->assertOk()
-            ->assertJsonPath('etablissement', null)
-            ->assertJsonPath('societe', 'Toutes les sociétés (Super Administrateur)');
+        $corps = $this->etablissementDe('boss')->assertOk()
+            ->assertJsonPath('etablissement', '(Tous les établissements)')
+            ->assertJsonPath('societe', null)
+            ->json();
+
+        // Rien ne dit « Super Admin » en clair.
+        $this->assertStringNotContainsString('Super', json_encode($corps, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_un_compte_sans_etablissement_ne_peut_pas_se_connecter(): void
+    {
+        $this->creerRh(['Etab' => null]);
+
+        $r = $this->login('jdupont')->assertStatus(403);
+        $this->assertStringContainsString('aucun établissement', $r->json('message'));
+        $this->assertGuest();
+    }
+
+    public function test_une_affectation_console_suffit_pour_se_connecter(): void
+    {
+        $this->creerRh(['Etab' => null]);
+        $roleId = DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'secretaire', 'nom' => 'Secrétaire']);
+        DB::connection('ecoprim')->table('console_affectations')->insert([
+            'rh_user_id' => 1, 'societe_code' => 'ABN', 'etablissement_code' => 'E1', 'role_id' => $roleId, 'actif' => true,
+        ]);
+
+        $this->login('jdupont')->assertOk();
+    }
+
+    public function test_une_affectation_inactive_ne_suffit_pas(): void
+    {
+        $this->creerRh(['Etab' => null]);
+        $roleId = DB::connection('ecoprim')->table('console_roles')->insertGetId(['code' => 'secretaire', 'nom' => 'Secrétaire']);
+        DB::connection('ecoprim')->table('console_affectations')->insert([
+            'rh_user_id' => 1, 'societe_code' => 'ABN', 'etablissement_code' => 'E1', 'role_id' => $roleId, 'actif' => false,
+        ]);
+
+        $this->login('jdupont')->assertStatus(403);
+    }
+
+    public function test_le_super_admin_se_connecte_sans_etablissement(): void
+    {
+        $this->creerRh(['SuperAdmin' => true, 'Etab' => null]);
+
+        $this->login('jdupont')->assertOk();
+    }
+
+    public function test_un_compte_dont_on_retire_l_etablissement_perd_sa_session(): void
+    {
+        $this->creerRh();
+        $this->login('jdupont')->assertOk();
+
+        DB::connection('master')->table('RH_USER')->where('Id', 1)->update(['Etab' => null]);
+
+        $this->withHeaders($this->spa)->getJson('/api/v1/me')->assertStatus(401);
     }
 
     public function test_l_identifiant_est_obligatoire(): void
     {
         $this->etablissementDe('')->assertStatus(422)->assertJsonValidationErrors('identifiant');
+    }
+
+    // --- Limitation des tentatives ---
+
+    /**
+     * Un compte RH_USER ouvre toute la suite : /login ne doit pas se prêter à l'essai de
+     * mots de passe en rafale. Cinq essais par minute pour un même identifiant depuis une
+     * même adresse, puis 429 avec un message en français.
+     */
+    public function test_la_sixieme_tentative_de_connexion_est_refusee(): void
+    {
+        $this->creerRh(['Email' => 'cible@ecole.ci']);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->login('cible@ecole.ci', 'mauvais'.$i)->assertStatus(422);
+        }
+
+        $r = $this->login('cible@ecole.ci', 'secret')->assertStatus(429);
+        $this->assertMatchesRegularExpression('/^Trop de tentatives\. Réessayez dans \d+ secondes\.$/u', $r->json('message'));
+
+        // Le même identifiant, autrement écrit, partage le compteur…
+        $this->login('  CIBLE@ecole.ci ', 'secret')->assertStatus(429);
+
+        // … mais un autre compte n'est pas bloqué par les essais faits sur celui-ci.
+        $this->creerRh(['Id' => 2, 'Login' => 'autre', 'Email' => 'autre@ecole.ci', 'Matricule' => 'MAT2']);
+        $this->login('autre@ecole.ci')->assertOk();
+    }
+
+    public function test_la_page_de_connexion_est_limitee_elle_aussi(): void
+    {
+        for ($i = 1; $i <= 5; $i++) {
+            $this->etablissementDe('quelquun')->assertOk();
+        }
+
+        $this->etablissementDe('quelquun')->assertStatus(429)
+            ->assertJsonPath('message', fn ($m) => str_starts_with($m, 'Trop de tentatives.'));
+    }
+
+    // --- Rôles console illisibles ---
+
+    /**
+     * « Aucune affectation » donne l'application complète (comptes historiques). Si une
+     * lecture impossible valait « aucune affectation », un parent obtenait l'application
+     * complète dès que la base console ne répondait pas.
+     */
+    public function test_roles_illisibles_la_connexion_est_refusee(): void
+    {
+        $this->creerRh(['Email' => 'parent@ecole.ci']);
+        Schema::connection('ecoprim')->drop('console_affectations');
+
+        $this->login('parent@ecole.ci')->assertStatus(503);
+        $this->assertGuest('web');
+    }
+
+    public function test_roles_illisibles_aucune_route_n_est_ouverte(): void
+    {
+        $rh = RhUser::on('master')->forceCreate([
+            'Id' => 8, 'Login' => 'p', 'Nom' => 'Yao', 'Prenom' => 'Ama', 'Email' => 'p@ecole.ci',
+            'MotDePasse' => Hash::make('secret'), 'SuperAdmin' => false, 'Supprimer' => false,
+        ]);
+        $this->actingAs($rh, 'sanctum');
+        Schema::connection('ecoprim')->drop('console_affectations');
+
+        $this->assertSame(RhUser::PORTAIL_INDISPONIBLE, $rh->typePortail());
+
+        $this->withHeaders($this->spa)->getJson('/api/v1/eleves')->assertForbidden();
+        $this->withHeaders($this->spa)->getJson('/api/v1/mon-espace/parent/enfants')->assertForbidden();
     }
 }

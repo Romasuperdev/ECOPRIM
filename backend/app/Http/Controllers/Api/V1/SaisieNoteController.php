@@ -195,6 +195,12 @@ class SaisieNoteController extends Controller
             ], fn ($v) => $v !== null) + $criteres + ['annee' => $annee]);
             $bilan = $this->ecrivain->enregistrer($entete, $lignes);
         } catch (RuntimeException $e) {
+            // Une erreur SQL est AUSSI une RuntimeException : elle ne doit pas finir à
+            // l'écran avec sa requête. On la laisse au gestionnaire global (ErreursApi).
+            if ($e instanceof \PDOException) {
+                throw $e;
+            }
+
             return response()->json(['message' => $e->getMessage()], 409);
         }
 

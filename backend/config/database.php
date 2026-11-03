@@ -20,22 +20,30 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            // 'encrypt' => env('DB_ENCRYPT', 'yes'),
-            // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+            // ODBC 18 chiffre la connexion par défaut et refuse un certificat auto-signé
+            // (« La chaîne de certificats a été fournie par une autorité qui n'est pas
+            // approuvée »). DB_TRUST_SERVER_CERTIFICATE=true dans .env l'accepte.
+            // Laissés vides, le pilote garde son comportement par défaut.
+            'encrypt' => env('DB_ENCRYPT'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE'),
         ],
 
         // Base de contrôle partagée (comptes RH_USER) — lecture seule pour ECOPRIM,
         // utilisée uniquement pour vérifier les identifiants à la connexion.
         'master' => [
             'driver' => 'sqlsrv',
-            'host' => env('DB_HOST', 'localhost'),
-            'port' => env('DB_PORT', '1433'),
+            // Sur le serveur, dbmasterbacou peut vivre ailleurs qu'ATECH, avec ses propres
+            // identifiants et sans chiffrement : DB_MASTER_* prime, DB_* sert de repli.
+            'host' => env('DB_MASTER_HOST', env('DB_HOST', 'localhost')),
+            'port' => env('DB_MASTER_PORT', env('DB_PORT', '1433')),
             'database' => env('DB_MASTER_DATABASE', 'dbmasterbacou'),
-            'username' => env('DB_USERNAME', 'sa'),
-            'password' => env('DB_PASSWORD', ''),
+            'username' => env('DB_MASTER_USERNAME', env('DB_USERNAME', 'sa')),
+            'password' => env('DB_MASTER_PASSWORD', env('DB_PASSWORD', '')),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+            'encrypt' => env('DB_MASTER_ENCRYPT', env('DB_ENCRYPT')),
+            'trust_server_certificate' => env('DB_MASTER_TRUST_SERVER_CERTIFICATE', env('DB_TRUST_SERVER_CERTIFICATE')),
         ],
 
         // Base pédagogique ECONOMAT — LECTURE SEULE. L'application principale lit ses
@@ -51,6 +59,12 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+            // ODBC 18 chiffre la connexion par défaut et refuse un certificat auto-signé
+            // (« La chaîne de certificats a été fournie par une autorité qui n'est pas
+            // approuvée »). DB_TRUST_SERVER_CERTIFICATE=true dans .env l'accepte.
+            // Laissés vides, le pilote garde son comportement par défaut.
+            'encrypt' => env('DB_ENCRYPT'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE'),
         ],
 
         // Base propre ECOPRIM (écrivable) : gouvernance Console (sociétés, établissements,
@@ -66,6 +80,28 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+            // ODBC 18 chiffre la connexion par défaut et refuse un certificat auto-signé
+            // (« La chaîne de certificats a été fournie par une autorité qui n'est pas
+            // approuvée »). DB_TRUST_SERVER_CERTIFICATE=true dans .env l'accepte.
+            // Laissés vides, le pilote garde son comportement par défaut.
+            'encrypt' => env('DB_ENCRYPT'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE'),
+        ],
+
+        // Base métier du serveur (ATECH) : même cible que `ecoprim` en production. Gardée
+        // pour les migrations et scripts du serveur qui la nomment.
+        'metier' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => env('DB_METIER_DATABASE', env('DB_ECOPRIM_DATABASE', 'ecoprim')),
+            'username' => env('DB_USERNAME', 'sa'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => env('DB_ENCRYPT'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE'),
         ],
 
         // Connexion utilisée uniquement par la suite de tests automatisés
@@ -82,7 +118,8 @@ return [
     ],
 
     'migrations' => [
-        'table' => 'migrations',
+        // Sur le serveur : EP_Migrations, l'historique propre à ECOPRIM dans ATECH.
+        'table' => env('DB_MIGRATIONS_TABLE', 'migrations'),
         'update_date_on_publish' => true,
     ],
 ];

@@ -44,7 +44,7 @@ class EmploiDuTempsController extends Controller
                 'fin' => $l->HEUR_FIN,
                 'duree' => $l->DUREEE,
                 'libelle' => trim(($l->HEUR_DEBUT ?? '').' - '.($l->HEUR_FIN ?? '')),
-            ], 'COD_HORAIRE'),
+            ], 'HEUR_DEBUT'),
             'salles' => $this->lire('T_SALLESCLASSE', fn ($l) => [
                 'code' => $l->CODESALLE, 'libelle' => $l->LIBELLESALLE ?: $l->CODESALLE,
                 'places' => $l->NBREPLACE,

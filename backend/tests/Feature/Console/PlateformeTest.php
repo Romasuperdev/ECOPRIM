@@ -68,6 +68,8 @@ class PlateformeTest extends TestCase
         return RhUser::on('master')->forceCreate([
             'Id' => $id, 'Login' => $login, 'Nom' => 'N', 'Prenom' => 'P', 'Email' => $login.'@e.ci',
             'MotDePasse' => Hash::make('x'), 'SuperAdmin' => $superAdmin, 'Supprimer' => false,
+            // Un compte sans établissement ne se connecte pas : on le rattache.
+            'Etab' => $superAdmin ? null : 'E1',
             'CodeApp' => '001',
         ]);
     }

@@ -118,7 +118,9 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* VITE_BASENAME : préfixe d'URL quand l'application n'est pas servie à la racine
+          (en ligne : /ecole-primaire). Vide en local. */}
+      <BrowserRouter basename={import.meta.env.VITE_BASENAME || undefined}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -286,20 +288,23 @@ export default function App() {
                   contrairement à Sociétés/Établissements/Traçabilité, qui restent la console. */}
               <Route
                 path="/configuration/utilisateurs"
-                element={<ProtectedRoute exigeConsole><UtilisateurListPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeAdministrateur><UtilisateurListPage /></ProtectedRoute>}
               />
               <Route
                 path="/configuration/utilisateurs/:id"
-                element={<ProtectedRoute exigeConsole><UtilisateurDetailPage /></ProtectedRoute>}
+                element={<ProtectedRoute exigeAdministrateur><UtilisateurDetailPage /></ProtectedRoute>}
+              />
+              {/* Rôles et Permissions : l'administrateur consulte, le Super Admin gère. */}
+              <Route
+                path="/configuration/roles"
+                element={<ProtectedRoute exigeAdministrateur><RoleListPage /></ProtectedRoute>}
               />
               <Route
-                path="/admin/roles"
-                element={<ProtectedRoute exigeConsole><RoleListPage /></ProtectedRoute>}
+                path="/configuration/permissions"
+                element={<ProtectedRoute exigeAdministrateur><PermissionsPage /></ProtectedRoute>}
               />
-              <Route
-                path="/admin/permissions"
-                element={<ProtectedRoute exigeConsole><PermissionsPage /></ProtectedRoute>}
-              />
+              <Route path="/admin/roles" element={<Navigate to="/configuration/roles" replace />} />
+              <Route path="/admin/permissions" element={<Navigate to="/configuration/permissions" replace />} />
 
               <Route path="/parametres/documents-eleves" element={<DocumentsElevesParamPage />} />
               <Route path="/parametres/sms" element={<SmsConfigPage />} />

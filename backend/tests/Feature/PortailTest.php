@@ -340,6 +340,8 @@ class PortailTest extends TestCase
         $roleId = $this->roleId(RhUser::ROLE_PARENT);
         $this->compte(20, 'parent1');
         $this->actingAs($superAdmin, 'sanctum');
+        // Les enfants rattachés doivent être dans une classe de l'établissement E1.
+        DB::connection('economat')->table('T_CLASSE')->update(['CODEETABLISSEMENT' => 'E1']);
 
         $r = $this->postJson('/api/v1/affectations', [
             'rh_user_id' => 20, 'etablissement_code' => 'E1', 'role_id' => $roleId,
@@ -577,6 +579,10 @@ class PortailTest extends TestCase
     public function test_le_personnel_reste_borne_a_l_etablissement_choisi(): void
     {
         $this->staff();
+        // La secrétaire doit être affectée à E2 pour que le choisir ait un effet : un
+        // établissement en session qui n'est pas des siens est ignoré (périmètre fermé).
+        $secretaire = DB::connection('ecoprim')->table('console_roles')->where('code', 'secretaire')->value('id');
+        $this->affecter(30, $secretaire, ['societe_code' => 'S2', 'etablissement_code' => 'E2']);
         $this->etablissementsEnSession();
 
         // E2 n'a que CP1B : seul EL2 y est inscrit.
@@ -606,5 +612,40 @@ class PortailTest extends TestCase
 
         $eleves = $this->get200('/api/v1/eleves')->json('data');
         $this->assertSame(['EL1'], collect($eleves)->pluck('matricule')->all());
+    }
+
+    public function test_un_enseignant_non_titulaire_n_ecrit_que_ses_matieres_au_cahier(): void
+    {
+        $eco = fn (string $t) => DB::connection('economat')->table($t);
+        $eco('T_MATIERE')->insert(['Code' => 2, 'CodeMatiere' => 'ANG', 'LibelleMatiere' => 'Anglais']);
+        $eco('T_CORPROFCLASSE')->insert(['Code' => 2, 'CodeClasse' => 'CP1A', 'CodeMatiere' => 'ANG', 'CodeProfesseur' => 8, 'ANNEE' => self::ANNEE, 'Principale' => false]);
+        // Il n'est plus titulaire du CP1 A : il n'y assure que les mathématiques.
+        $eco('T_CORPROFCLASSE')->where('Code', 1)->update(['Principale' => false]);
+        $this->enseignant();
+
+        $entete = $this->postJson('/api/v1/mon-espace/enseignant/cahier-textes', [
+            'classe' => 'CP1A', 'mois' => 'Septembre', 'semaine' => '1',
+        ])->assertCreated()->json('id');
+
+        $this->assertSame(['MATH'], $this->getJson('/api/v1/mon-espace/enseignant/cahier-textes/referentiels?classe=CP1A')
+            ->assertOk()->json('matieres_modifiables'));
+
+        $this->putJson("/api/v1/mon-espace/enseignant/cahier-textes/{$entete}/lignes", ['matiere' => 'MATH', 'lundi' => 'Additions'])->assertOk();
+        $this->putJson("/api/v1/mon-espace/enseignant/cahier-textes/{$entete}/lignes", ['matiere' => 'ANG', 'lundi' => 'Colours'])->assertStatus(403);
+    }
+
+    public function test_le_titulaire_ecrit_toutes_les_matieres_au_cahier(): void
+    {
+        DB::connection('economat')->table('T_MATIERE')->insert(['Code' => 2, 'CodeMatiere' => 'ANG', 'LibelleMatiere' => 'Anglais']);
+        // L'anglais du CP1 A est assuré par un collègue ; le titulaire peut quand même l'écrire.
+        DB::connection('economat')->table('T_CORPROFCLASSE')->insert(['Code' => 2, 'CodeClasse' => 'CP1A', 'CodeMatiere' => 'ANG', 'CodeProfesseur' => 8, 'ANNEE' => self::ANNEE, 'Principale' => false]);
+        $this->enseignant();
+
+        $entete = $this->postJson('/api/v1/mon-espace/enseignant/cahier-textes', [
+            'classe' => 'CP1A', 'mois' => 'Septembre', 'semaine' => '1',
+        ])->assertCreated()->json('id');
+
+        $this->assertNull($this->getJson('/api/v1/mon-espace/enseignant/cahier-textes/referentiels?classe=CP1A')->json('matieres_modifiables'));
+        $this->putJson("/api/v1/mon-espace/enseignant/cahier-textes/{$entete}/lignes", ['matiere' => 'ANG', 'lundi' => 'Colours'])->assertOk();
     }
 }

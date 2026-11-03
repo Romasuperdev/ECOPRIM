@@ -116,6 +116,15 @@ export default function EnseignantAccueilPage() {
   const eleves = [...new Map(classes.map((c) => [c.classe, c.effectif ?? 0])).values()]
     .reduce((somme, n) => somme + n, 0)
 
+  // Une carte par CLASSE, qui liste ses matières : une carte par matière répétait cinq
+  // fois « CP2 A » pour un maître qui y enseigne tout.
+  const parClasse = [...classes.reduce((m, c) => {
+    const g = m.get(c.classe) ?? { ...c, matieres: [] }
+    g.matieres.push(c.matiere_libelle ?? c.matiere)
+    g.principale = g.principale || c.principale
+    return m.set(c.classe, g)
+  }, new Map()).values()]
+
   return (
     <div className="space-y-5">
       <BandeauPortail
@@ -142,9 +151,9 @@ export default function EnseignantAccueilPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {classes.map((c) => (
+        {parClasse.map((c) => (
           <Link
-            key={`${c.classe}-${c.matiere}`}
+            key={c.classe}
             to={`/mon-espace/classes/${encodeURIComponent(c.classe)}`}
             className="card flex items-center gap-3.5 rounded-2xl p-4 transition hover:shadow-md"
           >
@@ -158,8 +167,8 @@ export default function EnseignantAccueilPage() {
                   <Star size={15} className="shrink-0 text-amber-500" fill="currentColor" title="Classe principale" />
                 )}
               </div>
-              <div className="truncate text-sm font-semibold text-muted">
-                {c.matiere_libelle ?? c.matiere}
+              <div className="text-sm font-semibold text-muted">
+                {c.matieres.join(' · ')}
               </div>
               {c.effectif != null && (
                 <div className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-heading">

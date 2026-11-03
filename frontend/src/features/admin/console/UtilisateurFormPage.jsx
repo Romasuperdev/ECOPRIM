@@ -88,8 +88,11 @@ function Formulaire({ id, initial }) {
   const saisie = (k, label, props = {}) => (
     <Input label={label} value={form[k] ?? ''} onChange={(e) => champ(k, e.target.value)} error={erreurs[k]?.[0]} {...props} />
   )
+  // Tout compte doit être affecté à un établissement pour pouvoir se connecter ; seul un
+  // compte créé Super Admin en est dispensé.
+  const affectationFacultative = superAdmin && !!form.super_admin
   const incomplet = !form.login || !form.nom || (!edition && !form.mot_de_passe)
-    || (!edition && !superAdmin && (!form.etablissement_code || !form.role_id))
+    || (!edition && !affectationFacultative && !form.etablissement_code)
 
   return (
     <PageFormulaire
@@ -146,11 +149,11 @@ function Formulaire({ id, initial }) {
           <p className="-mt-2 text-xs text-muted">
             Un compte affecté du SEUL rôle Enseignant ou Parent est dirigé vers son portail
             restreint au lieu de l’application complète.
-            {!superAdmin && ' Obligatoire pour retrouver ensuite le compte dans votre liste.'}
+            {!affectationFacultative && ' Obligatoire : un compte sans établissement ne peut pas se connecter.'}
           </p>
           <GrilleChamps>
             <Select
-              label={superAdmin ? 'Établissement' : 'Établissement *'} value={form.etablissement_code}
+              label={affectationFacultative ? 'Établissement' : 'Établissement *'} value={form.etablissement_code}
               onChange={(e) => champ('etablissement_code', e.target.value)} error={erreurs.etablissement_code?.[0]}
             >
               <option value="">— Choisir —</option>
@@ -159,10 +162,10 @@ function Formulaire({ id, initial }) {
               ))}
             </Select>
             <Select
-              label={superAdmin ? 'Rôle' : 'Rôle *'} value={form.role_id}
+              label="Rôle" value={form.role_id}
               onChange={(e) => champ('role_id', e.target.value)} error={erreurs.role_id?.[0]}
             >
-              <option value="">— Choisir —</option>
+              <option value="">— Aucun rôle (traitements seulement) —</option>
               {roles?.map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}
             </Select>
           </GrilleChamps>

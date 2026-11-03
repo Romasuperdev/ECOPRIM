@@ -17,6 +17,7 @@ export default function MessageErreur({ erreur, permission }) {
   const statut = erreur?.response?.status
   const refus = statut === 403
   const message = erreur?.response?.data?.message
+  const detail = erreur?.response?.data?.detail
 
   return (
     <div className="card rounded-2xl px-5 py-8 text-center">
@@ -43,8 +44,11 @@ export default function MessageErreur({ erreur, permission }) {
         )}
       </p>
 
-      {!refus && statut && (
-        <p className="mt-2 text-xs font-semibold text-muted">Code {statut}</p>
+      {/* Le détail technique n'apparaît qu'en développement (npm run dev), jamais en ligne. */}
+      {!refus && import.meta.env.DEV && detail && (
+        <pre className="mx-auto mt-3 max-w-xl whitespace-pre-wrap break-words rounded-lg bg-black/5 p-3 text-left text-xs text-muted">
+          {detail}
+        </pre>
       )}
     </div>
   )

@@ -17,6 +17,9 @@ use Throwable;
  * matière, salle, année) et le professeur est DÉDUIT de T_CORPROFCLASSE, qui dit qui
  * enseigne telle matière dans telle classe pour une année. La détection du conflit
  * enseignant passe donc par cette affectation.
+ *
+ * Les trois contraintes sont bloquantes, donc leur lecture est indispensable : si elle
+ * échoue, le créneau est REFUSÉ (LectureControle) au lieu d'être posé sans contrôle.
  */
 class ConflitsEmploiDuTemps
 {
@@ -44,7 +47,7 @@ class ConflitsEmploiDuTemps
         try {
             $occupe = self::creneaux($d, $sauf)->where('CODECLASSE', $d['classe'])->first();
         } catch (Throwable $e) {
-            return;
+            self::controleImpossible($e);
         }
 
         if ($occupe) {
@@ -70,7 +73,7 @@ class ConflitsEmploiDuTemps
                 ->where('CODECLASSE', '!=', $d['classe'])
                 ->first();
         } catch (Throwable $e) {
-            return;
+            self::controleImpossible($e);
         }
 
         if ($occupe) {
@@ -95,7 +98,7 @@ class ConflitsEmploiDuTemps
                 ->where('CODECLASSE', '!=', $d['classe'])
                 ->get(['CODECLASSE', 'CODEMATIERE']);
         } catch (Throwable $e) {
-            return;
+            self::controleImpossible($e);
         }
 
         foreach ($autres as $creneau) {
@@ -132,8 +135,17 @@ class ConflitsEmploiDuTemps
                 ->values()
                 ->all();
         } catch (Throwable $e) {
-            return [];
+            // Vide, ce serait « aucun professeur » : le conflit enseignant ne serait jamais vu.
+            self::controleImpossible($e);
         }
+    }
+
+    private static function controleImpossible(Throwable $e): never
+    {
+        LectureControle::refuser(
+            "Les conflits de l'emploi du temps n'ont pas pu être vérifiés : créneau refusé par prudence. Réessayez dans un instant.",
+            $e,
+        );
     }
 
     private static function nomProfesseur($code): string

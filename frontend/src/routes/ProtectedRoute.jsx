@@ -11,9 +11,9 @@ import { useAuthStore } from '../store/authStore'
 // vers leur propre accueil plutôt que de les laisser sur une page qui répondra 403 —
 // l'autorisation réelle reste décidée par le serveur, ceci n'évite qu'un aller-retour inutile.
 export default function ProtectedRoute({
-  children, allowedRoles, exigeConsole, exigeSuperAdmin, exigeNiveauSociete, portailAutorise,
+  children, allowedRoles, exigeConsole, exigeAdministrateur, exigeSuperAdmin, exigeNiveauSociete, portailAutorise,
 }) {
-  const { isAuthenticated, roles, peutConsole, superAdmin, niveauSociete, typePortail } = useAuthStore()
+  const { isAuthenticated, roles, peutConsole, administrateur, superAdmin, niveauSociete, typePortail } = useAuthStore()
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (portailAutorise && !portailAutorise.includes(typePortail)) {
@@ -22,6 +22,8 @@ export default function ProtectedRoute({
   if (exigeSuperAdmin && !superAdmin) return <Navigate to="/admin" replace />
   if (exigeNiveauSociete && !niveauSociete) return <Navigate to="/admin" replace />
   if (exigeConsole && !peutConsole) return <Navigate to="/" replace />
+  // Configuration administrative de l'application : les administrateurs, pas la console.
+  if (exigeAdministrateur && !administrateur) return <Navigate to="/" replace />
   if (allowedRoles && !allowedRoles.some((r) => roles.includes(r))) {
     return <Navigate to="/" replace />
   }

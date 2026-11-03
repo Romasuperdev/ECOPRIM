@@ -138,6 +138,8 @@ class DevoirController extends Controller
     public function store(Request $request)
     {
         $d = $request->validate($this->regles());
+        // La classe CIBLE doit être du périmètre : sinon on écrirait chez un autre établissement.
+        PerimetreEtablissement::exigerClasse($d['classe']);
         $annee = ContexteScolaire::annee();
         AnneeScolaireGuard::assertModifiable($annee, "La création d'un devoir");
 
@@ -154,6 +156,8 @@ class DevoirController extends Controller
     {
         PerimetreEtablissement::exigerClasse($devoir->classe_code, 'Devoir introuvable.');
         $d = $request->validate($this->regles());
+        // Ni le devoir ni sa nouvelle classe ne doivent sortir du périmètre.
+        PerimetreEtablissement::exigerClasse($d['classe']);
         AnneeScolaireGuard::assertModifiable($devoir->annee, 'La modification de ce devoir');
 
         $devoir->update([

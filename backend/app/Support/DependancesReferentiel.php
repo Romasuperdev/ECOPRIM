@@ -72,9 +72,18 @@ class DependancesReferentiel
             return (int) DB::connection('economat')->table($table)
                 ->whereIn($colonne, $valeurs)->count();
         } catch (Throwable $e) {
-            // Table ou vue absente sur cette base : on ne bloque pas sur une dépendance
-            // qu'on ne peut pas constater, et on ne l'invente pas non plus.
-            return 0;
+            // Table, vue ou colonne VRAIMENT absente de cette installation (constaté par le
+            // schéma) : rien ne peut en dépendre. Toute autre erreur : on ne sait pas,
+            // donc on ne supprime pas — zéro par défaut laissait des orphelins.
+            if (LectureControle::colonneAbsente('economat', $table, $colonne)) {
+                return 0;
+            }
+
+            LectureControle::refuser(
+                'Les données rattachées n’ont pas pu être vérifiées : suppression refusée par prudence. Réessayez dans un instant.',
+                $e,
+                ['table' => $table, 'colonne' => $colonne],
+            );
         }
     }
 }

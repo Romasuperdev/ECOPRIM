@@ -7,7 +7,10 @@ const VIDE = {
   user: null,
   roles: [],
   isAuthenticated: false,
+  // Console : Super Admin seul. `administrateur` : Super Admin, Admin Société ou Admin
+  // Établissement — maître de l'application (Configuration administrative comprise).
   peutConsole: false,
+  administrateur: false,
   // Codes de App\Support\Permissions accordés à ce compte : sert à masquer ce que
   // l'utilisateur ne peut pas faire. Le serveur reste seul juge à chaque appel.
   permissions: [],
@@ -32,6 +35,7 @@ export const useAuthStore = create((set) => ({
       roles: user?.roles ?? [],
       isAuthenticated: !!user,
       peutConsole: Boolean(user?.peut_console),
+      administrateur: Boolean(user?.administrateur ?? user?.peut_console),
       permissions: user?.permissions ?? [],
       superAdmin: Boolean(user?.super_admin),
       adminSociete: Boolean(user?.admin_societe),

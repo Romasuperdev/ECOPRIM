@@ -132,6 +132,18 @@ class EvenementController extends Controller
         }
     }
 
+    /**
+     * Classe visée par une écriture : du périmètre, si elle est renseignée. Sans classe,
+     * l'événement concerne tout l'établissement — encore faut-il en voir un.
+     */
+    private function exigerClasseCible(?string $classe): void
+    {
+        abort_if(PerimetreEtablissement::rienAMontrer(), 404, 'Classe introuvable.');
+        if ($classe !== null && trim($classe) !== '') {
+            PerimetreEtablissement::exigerClasse($classe);
+        }
+    }
+
     private function regles(): array
     {
         return [
@@ -148,6 +160,7 @@ class EvenementController extends Controller
     public function store(Request $request)
     {
         $d = $request->validate($this->regles());
+        $this->exigerClasseCible($d['classe'] ?? null);
         $annee = ContexteScolaire::annee();
         AnneeScolaireGuard::assertModifiable($annee, "La création d'un événement");
 
@@ -164,6 +177,7 @@ class EvenementController extends Controller
     {
         $this->exigerVisible($evenement);
         $d = $request->validate($this->regles());
+        $this->exigerClasseCible($d['classe'] ?? null);
         AnneeScolaireGuard::assertModifiable($evenement->annee, 'La modification de cet événement');
 
         $evenement->update([

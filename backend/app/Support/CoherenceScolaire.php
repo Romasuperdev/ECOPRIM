@@ -3,15 +3,18 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
  * Contrôles de cohérence du rattachement scolaire, au-delà des simples formats.
  *
- * Principe : on ne bloque que sur une incohérence CONSTATÉE. Si le référentiel est
- * injoignable ou la valeur absente, on laisse passer — on ne refuse pas une saisie
- * sur une incertitude technique.
+ * Principe : on bloque sur une incohérence CONSTATÉE. Une valeur absente passe.
+ *
+ * Référentiel illisible : la classe est un contrôle INDISPENSABLE (un élève rattaché à
+ * une classe inexistante disparaît de tous les écrans) — la saisie est refusée. La
+ * période d'inscription ne l'est pas : on laisse passer, mais on le journalise.
  */
 class CoherenceScolaire
 {
@@ -24,10 +27,15 @@ class CoherenceScolaire
         }
 
         try {
+            // Toutes les colonnes : CodN ou ANNEE peuvent manquer selon l'installation, et
+            // les nommer ferait échouer la lecture entière. Elles se lisent avec `?? ''`.
             $ligne = DB::connection('economat')->table('T_CLASSE')
-                ->where('CodeClasse', $classe)->first(['CodeClasse', 'LibelleClasse', 'CodN', 'ANNEE']);
+                ->where('CodeClasse', $classe)->first();
         } catch (Throwable $e) {
-            return;
+            LectureControle::refuser(
+                "La classe « {$classe} » n'a pas pu être vérifiée : enregistrement refusé par prudence. Réessayez dans un instant.",
+                $e,
+            );
         }
 
         if (! $ligne) {
@@ -68,6 +76,9 @@ class CoherenceScolaire
                 ->where(fn ($q) => $q->where('LibelleAnnee', $annee)->orWhere('CodeAnnee', $annee))
                 ->first(['DEBUT', 'FIN', 'LibelleAnnee']);
         } catch (Throwable $e) {
+            // Contrôle de confort : on ne bloque pas l'inscription, mais on le dit au journal.
+            Log::warning("Période de l'année illisible : date d'inscription non contrôlée.", ['annee' => $annee, 'exception' => $e]);
+
             return;
         }
 

@@ -26,7 +26,7 @@ export function messageErreurConnexion(error) {
   if (statut === 401 || statut === 422) return 'Identifiant ou mot de passe incorrect.'
   if (statut === 419) return 'Votre session a expiré. Réessayez : la page vient de la renouveler.'
   if (statut === 429) return 'Trop de tentatives. Patientez une minute avant de réessayer.'
-  if (statut === 403) return "Ce compte n'est pas autorisé à se connecter ici."
+  if (statut === 403) return duServeur || "Ce compte n'est pas autorisé à se connecter ici."
 
   // La requête a bien atteint un serveur web, mais PAS l'application : c'est Apache
   // lui-même qui répond. Sans mod_rewrite ni « AllowOverride All », /api/v1/... ne

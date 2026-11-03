@@ -159,6 +159,8 @@ class EvaluationController extends Controller
     public function store(Request $request)
     {
         $d = $request->validate($this->reglesCreation());
+        // La classe CIBLE doit être du périmètre : sinon on écrirait chez un autre établissement.
+        PerimetreEtablissement::exigerClasse($d['classe']);
         $annee = ContexteScolaire::annee();
         AnneeScolaireGuard::assertModifiable($annee, "La planification d'une évaluation");
 
@@ -190,6 +192,8 @@ class EvaluationController extends Controller
     {
         PerimetreEtablissement::exigerClasse($evaluation->classe_code, 'Évaluation introuvable.');
         $d = $request->validate($this->regles());
+        // Ni l'évaluation ni sa nouvelle classe ne doivent sortir du périmètre.
+        PerimetreEtablissement::exigerClasse($d['classe']);
         AnneeScolaireGuard::assertModifiable($evaluation->annee, 'La modification de cette évaluation');
 
         $evaluation->update([

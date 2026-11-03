@@ -146,6 +146,34 @@ class ContexteScolaire
         self::$cache = null;
     }
 
+    /**
+     * Travaille, le temps de la requête, sur une année DONNÉE plutôt que sur celle de
+     * l'en-tête — l'écran Import / Export choisit l'année qu'il importe ou exporte, sans
+     * changer l'année de travail du reste de l'application. Refuse une année inconnue.
+     */
+    public static function forcer(string $annee): void
+    {
+        $annee = trim($annee);
+        $trouvee = AnneeScolaire::all()->first(fn ($a) => $a->libelle === $annee || $a->code_annee === $annee);
+        if ($trouvee === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'annee' => "L'année scolaire « {$annee} » est inconnue.",
+            ]);
+        }
+
+        self::$cache = ['libelle' => $trouvee->libelle, 'code' => $trouvee->code_annee, 'joignable' => true];
+    }
+
+    /**
+     * Comme forcer(), pour une année qui N'EXISTE PAS ENCORE : l'analyse d'un import qui
+     * la créera. Les filtres la cherchent sous ce libellé et ce code, et n'y trouvent
+     * rien — c'est exact, elle est vide. Rien n'est écrit ici (voir AnneeImport).
+     */
+    public static function forcerNouvelle(string $libelle, string $code): void
+    {
+        self::$cache = ['libelle' => $libelle, 'code' => $code, 'joignable' => true];
+    }
+
     private static function resoudre(): array
     {
         if (self::$cache !== null) {

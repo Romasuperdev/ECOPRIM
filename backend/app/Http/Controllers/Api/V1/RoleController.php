@@ -9,6 +9,7 @@ use App\Support\Permissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Rôles — catalogue CRUD (console_roles).
@@ -24,7 +25,7 @@ class RoleController extends Controller
     public function index()
     {
         $courant = PerimetreConsole::codeCourant();
-        $query = Role::orderBy('nom');
+        $query = Role::orderBy('nom')->where('code', '<>', Role::CODE_SANS_ROLE);
 
         // Vue générale (Super Admin sans société choisie) : tout le catalogue. Sinon, le
         // catalogue général plus les rôles propres à la société courante.
@@ -49,6 +50,17 @@ class RoleController extends Controller
             'code' => ['required', 'string', 'max:60', Rule::unique('ecoprim.console_roles', 'code')],
             'nom' => ['required', 'string', 'max:100'],
         ]);
+
+        // Les rôles d'administration (Super Admin, Admin Société, Admin Établissement) ne
+        // se créent pas ici, même par le Super Admin : ils sont semés par
+        // `console:importer` et reconnus par leur seul code. Un homonyme — « ADMIN
+        // SOCIÉTÉ » créé par un Admin Établissement dans sa société — passait jusqu'ici
+        // pour le vrai partout où l'on comparait les noms.
+        if (Role::ressembleARoleAdministration($data['code'], $data['nom'])) {
+            throw ValidationException::withMessages([
+                'nom' => ["Ce nom ou ce code est réservé aux rôles d'administration de la console ; choisissez-en un autre."],
+            ]);
+        }
 
         $data['societe_code'] = $societeCode;
 

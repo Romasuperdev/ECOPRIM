@@ -169,6 +169,20 @@ class ReferentielsCrudTest extends TestCase
         $this->assertDatabaseMissing('T_CLASSE', ['CodeClasse' => 'CP1A'], 'economat');
     }
 
+    /** Le code est la clé primaire de T_CLASSE sur le serveur : il ne se réutilise pas d'une année à l'autre. */
+    public function test_un_code_de_classe_deja_pris_une_autre_annee_est_refuse(): void
+    {
+        $this->withSession(['etablissement_code' => 'E1']);
+        DB::connection('economat')->table('T_CLASSE')->insert([
+            'num' => 99, 'CodeClasse' => 'CP1A', 'LibelleClasse' => 'CP1 A', 'CodN' => 'CP1',
+            'ANNEE' => '2019-2020', 'CODEETABLISSEMENT' => 'E1',
+        ]);
+
+        $r = $this->postJson('/api/v1/classes', ['code' => 'CP1A', 'nom' => 'CP1 A', 'niveau_code' => 'CP1'])
+            ->assertStatus(422)->assertJsonValidationErrors('code');
+        $this->assertStringContainsString('en 2019-2020', $r->json('errors.code.0'));
+    }
+
     public function test_une_classe_qui_compte_des_eleves_ne_se_supprime_pas(): void
     {
         $this->withSession(['etablissement_code' => 'E1']);
