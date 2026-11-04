@@ -4558,3 +4558,22 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
   6 classes primaires et PS/MS/GS sont reprises ; P24-0046 et P24-0068 en double sont
   renumérotés.
 - Tests : `EchangeTest` 68.
+
+## Poste local branché sur le serveur 10.8.0.1, compte ATECH_APPS (4 nov. 2026)
+
+- **Constat** : en local (`http://localhost:5174/login`), page blanche et connexion impossible.
+  Chaque appel tombait en `BASE_INJOIGNABLE` : « Échec de l'ouverture de session de
+  l'utilisateur 'ATECH_APPS' ».
+- **Cause** : le login `ATECH_APPS` et son mot de passe sont bons (il ouvre `master`), mais il
+  n'avait **aucun utilisateur** dans ATECH ni dans dbmasterbacou (`HAS_DBACCESS` = 0).
+- **Droits donnés** (par un compte sysadmin) :
+  - ATECH : `db_owner` (tables NEXORA, migrations) ;
+  - dbmasterbacou : `db_datareader` + `db_datawriter` (comptes, sociétés).
+- **`.env` local** : `DB_ECONOMAT_DATABASE=ATECH` et `DB_ECOPRIM_DATABASE=ATECH`. Les bases
+  `ECONOMAT` et `ecoprim` n'existent pas sur ce serveur. ATECH contient déjà les tables
+  scolaires et les 15 tables NEXORA. Les comptes restent lus dans dbmasterbacou
+  (`RH_User` / `US_SOCIETE` d'ATECH sont vides). Aucune migration ni aucun modèle à ajouter.
+- **Piège noté** : un `#` dans un mot de passe `.env` non entouré de guillemets coupe la valeur
+  (le reste est lu comme un commentaire). Mettre le mot de passe entre guillemets.
+- Vérifié : `nexora:verifier-deploiement` → 3 connexions OK, tables 9/9, 5/5, 15/15 ;
+  connexion via le proxy Vite : le serveur répond et contrôle les identifiants.
