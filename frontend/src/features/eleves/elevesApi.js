@@ -18,8 +18,11 @@ export async function fetchBulletinDonnees(id) {
 
 // Même patron que features/impressions/impressionApi.js : le PDF est servi par l'API
 // authentifiée, un window.open direct perdrait le cookie de session.
-export async function imprimerBulletin(id, matricule) {
-  const { data } = await apiClient.get(`/eleves/${id}/bulletin`, { responseType: 'blob' })
+export async function imprimerBulletin(id, matricule, session) {
+  const { data } = await apiClient.get(`/eleves/${id}/bulletin`, {
+    responseType: 'blob',
+    params: session ? { session } : {},
+  })
   const blob = new Blob([data], { type: 'application/pdf' })
   const lien = URL.createObjectURL(blob)
   const onglet = window.open(lien, '_blank')

@@ -1,8 +1,8 @@
 import apiClient from '../../api/client'
 
-export async function fetchMoyennesClasse(classeId, periodeId) {
+export async function fetchMoyennesClasse(classeId, session) {
   const { data } = await apiClient.get(`/classes/${classeId}/moyennes`, {
-    params: periodeId ? { periode_id: periodeId } : {},
+    params: session ? { session } : {},
   })
   return data
 }

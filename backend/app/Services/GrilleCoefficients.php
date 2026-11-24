@@ -11,11 +11,11 @@ use Throwable;
 /**
  * La grille des barèmes et coefficients, résolue pour un niveau ou une classe.
  *
- * CE QU'ELLE NE FAIT PAS : calculer une moyenne. ECONOMAT s'en charge — c'est la règle du
- * projet depuis le pivot (voir RapportController) et le bulletin imprime SA moyenne et SON
- * rang. Une moyenne calculée ici en contredirait une autre sur la même page. La grille sert
- * donc à la SAISIE : elle fournit le barème et le coefficient qu'on inscrit dans
- * T_NOTEENTETE, et c'est ECONOMAT qui en tire la moyenne.
+ * CE QU'ELLE NE FAIT PAS : calculer une moyenne. ECONOMAT s'en charge (voir
+ * RapportController). La grille sert à la SAISIE : elle fournit le barème et le
+ * coefficient qu'on inscrit dans T_NOTEENTETE. Elle sert aussi de barème à
+ * App\Services\MoyennesClasse, le calcul de secours utilisé tant qu'ECONOMAT n'a pas
+ * produit ses moyennes.
  *
  * LA PLUS PRÉCISE GAGNE. Une matière peut être décrite plusieurs fois : grille commune,
  * grille de l'établissement, grille d'une année, grille d'une classe. On ne fusionne pas,

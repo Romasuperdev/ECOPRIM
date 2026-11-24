@@ -4577,3 +4577,39 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
   (le reste est lu comme un commentaire). Mettre le mot de passe entre guillemets.
 - Vérifié : `nexora:verifier-deploiement` → 3 connexions OK, tables 9/9, 5/5, 15/15 ;
   connexion via le proxy Vite : le serveur répond et contrôle les identifiants.
+
+## Résultats & bulletins : moyennes calculées depuis les notes saisies (24 nov. 2026)
+
+- **Constat** : `/notes/consultation` montrait les notes de CM1 et CM2 (session S1), mais
+  `/moyennes` restait vide. La page lisait seulement `V_MOYENNE_ELEVE_CLASSE`, qu'ECONOMAT ne
+  remplit que lorsqu'on y lance son calcul. Sur ATECH, cette vue était vide.
+- **Nouveau** : `App\Services\MoyennesClasse`. Quand ECONOMAT n'a rien produit pour la classe,
+  NEXORA calcule à partir de `V_NOTECLASSE` :
+  - moyenne = points obtenus / points possibles × 20 (règle du primaire). Plusieurs notes
+    dans une même matière sont d'abord moyennées entre elles ;
+  - barème : la grille NEXORA d'abord ; sinon le coefficient de l'entête. Un coefficient
+    inférieur à 10 est un multiplicateur de 20 (convention ECONOMAT : 2,5 = sur 50). À partir
+    de 10, c'est déjà un total de points (convention de la saisie NEXORA) ;
+  - une matière sans note ne compte pas (ce n'est pas un zéro). La page signale
+    « 3/4 mat. » ;
+  - rang avec ex æquo (1, 2, 2, 4) ;
+  - tous les élèves de la classe sont listés. Ceux qui n'ont pas de note n'ont ni moyenne ni
+    rang ;
+  - sans session demandée, c'est la plus récente qui est prise (S1 et S2 ne sont jamais
+    mélangées).
+- **Doublons** : `V_NOTECLASSE` joint `T_ETUDIANT` par matricule. Un élève inscrit sur deux
+  années y apparaît donc deux fois. Le calcul dédoublonne sur entête + matricule.
+  (La page Consultation des notes affiche encore ces doublons.)
+- **Priorité** : dès qu'ECONOMAT a produit ses moyennes, ce sont les siennes qui s'affichent
+  (`source: economat`). Le bulletin et le portail parent passent par la même méthode, ils
+  ne contredisent donc jamais la page.
+- **Page `/moyennes`** :
+  - sélecteur de session ;
+  - une colonne par matière (avec son barème), puis Total, Moyenne /20 et Rang ;
+  - indicateurs : moyenne de classe, élèves notés, moyennes ≥ 10 ;
+  - le bulletin s'imprime pour la session affichée.
+- Vérifié sur ATECH : CM1 (16 élèves) et CM2 (15 élèves) sont classés ; CE1, sans note,
+  affiche sa liste d'élèves.
+- Tests : `NotesResultatsReadTest` (calcul, doublon, ex æquo, session, élève sans note).
+  Suite complète : 729 tests OK. Les 2 échecs de `SocieteUtilisateurTest` (401 au lieu de
+  403) étaient déjà là et ne sont pas liés à ce changement.

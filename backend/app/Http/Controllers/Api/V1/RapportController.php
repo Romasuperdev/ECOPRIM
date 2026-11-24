@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Classe;
+use App\Services\MoyennesClasse;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
@@ -12,8 +13,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Rapports pédagogiques, lus dans ECONOMAT.
  *
- * ECONOMAT calcule déjà moyennes, rangs et coefficients : NEXORA les restitue, il ne
- * les recalcule pas. Tout est restreint à l'année de travail choisie dans l'en-tête.
+ * ECONOMAT calcule moyennes, rangs et coefficients : NEXORA les restitue. Mais tant
+ * qu'ECONOMAT n'a pas lancé son calcul, sa vue de moyennes est vide ; NEXORA calcule
+ * alors lui-même à partir des notes saisies (App\Services\MoyennesClasse).
+ * Tout est restreint à l'année de travail choisie dans l'en-tête.
  *
  * (Version précédente : ces trois endpoints s'appuyaient sur des tables locales
  * `notes`/`retards` et sur des relations `Classe::eleves` / `Eleve::absences`
@@ -21,30 +24,67 @@ use Illuminate\Support\Facades\DB;
  */
 class RapportController extends Controller
 {
-    /** Moyennes et classement des élèves d'une classe (V_MOYENNE_ELEVE_CLASSE). */
+    public function __construct(private MoyennesClasse $calcul) {}
+
+    /**
+     * Moyennes et classement des élèves d'une classe.
+     *
+     * Celles d'ECONOMAT (V_MOYENNE_ELEVE_CLASSE) quand il les a produites ; sinon, celles
+     * calculées ici à partir des notes saisies (App\Services\MoyennesClasse). `source`
+     * dit laquelle des deux on regarde.
+     */
     public function moyennesClasse(Request $request, Classe $classe)
     {
         PerimetreEtablissement::exigerClasse($classe->code);
-        $lignes = $this->moyennes($classe->code, $request->input('session'));
+        $resultat = $this->resultats($classe->code, $request->input('session'));
+        $lignes = $resultat['lignes'];
+        $notees = $lignes->whereNotNull('moyenne');
 
         return [
             'classe' => $classe->nom,
             'annee' => ContexteScolaire::annee(),
-            'session' => $request->input('session'),
+            'source' => $resultat['source'],
+            'session' => $resultat['session'],
+            'sessions' => $resultat['sessions'],
+            'matieres' => $resultat['matieres'],
+            'effectif' => $lignes->count(),
             'classement' => $lignes,
-            'moyenne_classe' => $lignes->isNotEmpty()
-                ? round($lignes->avg('moyenne'), 2)
+            'moyenne_classe' => $notees->isNotEmpty()
+                ? round($notees->avg('moyenne'), 2)
                 : null,
         ];
     }
 
-    /** Utilisé aussi par le bulletin : moyennes d'une classe, année de travail comprise. */
+    /**
+     * Utilisé aussi par le bulletin et le portail parent : moyennes d'une classe, année
+     * de travail comprise — même source que la page Résultats, pour qu'un bulletin ne
+     * contredise jamais l'écran.
+     */
     public function moyennes(?string $codeClasse, ?string $session = null)
     {
-        if (! $codeClasse) {
-            return collect();
+        return $codeClasse ? $this->resultats($codeClasse, $session)['lignes'] : collect();
+    }
+
+    /** ECONOMAT d'abord ; le calcul NEXORA seulement s'il n'a rien produit. */
+    private function resultats(string $codeClasse, ?string $session): array
+    {
+        $economat = $this->moyennesEconomat($codeClasse, $session);
+
+        if ($economat->isNotEmpty()) {
+            return [
+                'source' => 'economat',
+                'session' => $session,
+                'sessions' => $this->calcul->sessionsDe($codeClasse),
+                'matieres' => [],
+                'lignes' => $economat,
+            ];
         }
 
+        return ['source' => 'calcul'] + $this->calcul->calculer($codeClasse, $session);
+    }
+
+    private function moyennesEconomat(string $codeClasse, ?string $session)
+    {
         $requete = DB::connection('economat')->table('V_MOYENNE_ELEVE_CLASSE')
             ->where('CodeClasse', $codeClasse)
             ->when($session, fn ($q) => $q->where('CodeSession', $session));
