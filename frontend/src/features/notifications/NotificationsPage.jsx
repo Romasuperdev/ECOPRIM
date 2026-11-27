@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  BellOff, BellRing, BookOpen, CalendarX, CheckCheck, ClipboardList, Megaphone, MessageCircle, UserPlus,
+  BellOff, BellRing, BookOpen, CalendarX, CheckCheck, ClipboardList, Clock, FileCheck, Megaphone, MessageCircle, UserPlus,
 } from 'lucide-react'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import { fetchNotifications, marquerNotificationLue, toutMarquerLu } from './notificationsApi'
@@ -10,6 +10,8 @@ import { activerPush, desactiverPush, etatPush } from '../../lib/pwa'
 
 const ICONES = {
   absence: CalendarX,
+  retard: Clock,
+  justificatif: FileCheck,
   note: ClipboardList,
   devoir: BookOpen,
   annonce: Megaphone,

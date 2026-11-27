@@ -152,6 +152,10 @@ Route::prefix('v1')->group(function () {
         Route::post('absences', [AbsenceController::class, 'store'])->middleware('permission:saisir_absences');
         Route::put('absences/{absence}', [AbsenceController::class, 'update'])->middleware('permission:saisir_absences');
         Route::delete('absences/{absence}', [AbsenceController::class, 'destroy'])->middleware('permission:saisir_absences');
+        // Justificatifs d'absence envoyés par les parents : décision de l'administration.
+        Route::get('justificatifs', [\App\Http\Controllers\Api\V1\JustificatifController::class, 'index']);
+        Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\JustificatifController::class, 'fichier'])->whereNumber('justificatif');
+        Route::post('justificatifs/{justificatif}/decision', [\App\Http\Controllers\Api\V1\JustificatifController::class, 'decider'])->whereNumber('justificatif')->middleware('permission:saisir_absences');
         Route::get('niveaux', [NiveauController::class, 'index']);
         Route::get('niveaux/{niveau}', [NiveauController::class, 'show']);
         Route::post('niveaux', [NiveauController::class, 'store'])->middleware('console:etablissement');
@@ -309,6 +313,13 @@ Route::prefix('v1')->group(function () {
             Route::get('devoirs', [PortailEnseignantController::class, 'devoirs']);
             Route::get('evaluations-planifiees', [PortailEnseignantController::class, 'evaluationsPlanifiees']);
             Route::get('evenements', [PortailEnseignantController::class, 'evenements']);
+
+            // L'appel (absents, retards ; parents prévenus) et les justificatifs reçus.
+            Route::get('appel', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'feuille']);
+            Route::post('appel', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'enregistrer']);
+            Route::get('justificatifs', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'justificatifs']);
+            Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'fichier'])->whereNumber('justificatif');
+            Route::post('justificatifs/{justificatif}/decision', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'decider'])->whereNumber('justificatif');
         });
 
         // Portail Parent — un compte affecté du seul rôle Parent : uniquement les enfants
@@ -327,6 +338,11 @@ Route::prefix('v1')->group(function () {
             Route::get('enfants/{matricule}/devoirs', [PortailParentController::class, 'devoirs']);
             Route::get('enfants/{matricule}/evaluations-planifiees', [PortailParentController::class, 'evaluationsPlanifiees']);
             Route::get('enfants/{matricule}/evenements', [PortailParentController::class, 'evenements']);
+
+            // Assiduité (absences, retards) et justificatifs envoyés par le parent.
+            Route::get('enfants/{matricule}/assiduite', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'assiduite']);
+            Route::post('enfants/{matricule}/absences/{absence}/justificatif', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'justifier'])->whereNumber('absence');
+            Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'fichier'])->whereNumber('justificatif');
         });
 
         // Notifications des deux portails : la cloche et l'abonnement push du téléphone.

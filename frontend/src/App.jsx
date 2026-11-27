@@ -72,6 +72,9 @@ const EnseignantClassePage = lazy(() => import('./features/portail-enseignant/En
 const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAccueilPage'))
 const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfantPage'))
 const NotificationsPage = lazy(() => import('./features/notifications/NotificationsPage'))
+const AppelPage = lazy(() => import('./features/portail-enseignant/AppelPage'))
+const JustificatifsEnseignantPage = lazy(() => import('./features/portail-enseignant/JustificatifsEnseignantPage'))
+const JustificatifsPage = lazy(() => import('./features/justificatifs/JustificatifsPage'))
 // Aide et Nouveautés : lecture dans l'application, gestion dans la console (Super Admin).
 const AidePage = lazy(() => import('./features/aide/AidePage'))
 const AideArticlePage = lazy(() => import('./features/aide/AideArticlePage'))
@@ -263,6 +266,9 @@ export default function App() {
               <Route path="/mon-espace/classes/:classe" element={<EnseignantClassePage />} />
               <Route path="/mon-espace/enfants/:matricule" element={<ParentEnfantPage />} />
               <Route path="/mon-espace/notifications" element={<NotificationsPage />} />
+              <Route path="/mon-espace/appel" element={<AppelPage />} />
+              <Route path="/mon-espace/appel/:classe" element={<AppelPage />} />
+              <Route path="/mon-espace/justificatifs" element={<JustificatifsEnseignantPage />} />
             </Route>
 
             <Route
@@ -343,6 +349,7 @@ export default function App() {
               <Route path="/notes/consultation" element={<NoteListPage />} />
 
               <Route path="/absences" element={<AbsenceListPage />} />
+              <Route path="/justificatifs" element={<JustificatifsPage />} />
 
 
 

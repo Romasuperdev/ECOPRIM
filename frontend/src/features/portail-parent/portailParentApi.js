@@ -93,3 +93,24 @@ export async function fetchEvenementsEnfant(matricule) {
   const { data } = await apiClient.get(`${BASE}/enfants/${m(matricule)}/evenements`)
   return data
 }
+
+// --- Assiduité et justificatifs ------------------------------------------------------
+
+export async function fetchAssiduiteEnfant(matricule) {
+  const { data } = await apiClient.get(`${BASE}/enfants/${m(matricule)}/assiduite`)
+  return data
+}
+
+/** Envoi multipart : un mot, une photo (ou un PDF), ou les deux. */
+export async function envoyerJustificatif(matricule, absence, { message, fichier }) {
+  const corps = new FormData()
+  if (message) corps.append('message', message)
+  if (fichier) corps.append('fichier', fichier)
+  const { data } = await apiClient.post(`${BASE}/enfants/${m(matricule)}/absences/${absence}/justificatif`, corps)
+  return data
+}
+
+export async function fetchFichierJustificatif(id) {
+  const { data } = await apiClient.get(`${BASE}/justificatifs/${id}/fichier`, { responseType: 'blob' })
+  return data
+}

@@ -4668,3 +4668,57 @@ reste, est livrée.
 - **Pas encore vérifié sur un vrai téléphone** : cela demande HTTPS, donc bacou.info.
 - Aucune notification n'est encore envoyée par l'application : les déclencheurs (appel,
   publication des notes, devoirs) arrivent aux étapes 2 à 4.
+
+## Espaces mobiles — étape 2 : l'appel en 30 secondes et les justificatifs (27 nov. 2026)
+
+Décisions prises par défaut, l'utilisateur n'ayant pas tranché (faciles à changer) :
+justificatifs validables par l'enseignant de la classe ET par l'administration ; pas de
+SMS de secours, notification dans l'application et push seulement.
+
+- **Appel** (`/mon-espace/appel`, bouton « Faire l'appel » en haut de l'accueil) :
+  - tous présents au départ ; un toucher passe l'élève en absent, deux en retard, trois le
+    remettent présent ;
+  - classe, date (jamais à venir) et créneau Matin / Après-midi ;
+  - barre « Valider l'appel » au-dessus de la navigation du téléphone ;
+  - un appel déjà fait se rouvre et se corrige.
+- **Où vont les données** :
+  - absents → ECONOMAT `T_ABSENCEELEVE` (Heure = « Matin » / « Après-midi »), par
+    `AbsenceEcrivain`. Une absence déjà saisie par le secrétariat est reprise, pas
+    doublée, et apparaît cochée à l'ouverture ;
+  - retards → NEXORA seulement (`appel_lignes`) : ECONOMAT n'a pas de table pour eux, et
+    les compter comme absences fausserait ses relevés ;
+  - nouvelles tables `appels`, `appel_lignes`, `absence_justificatifs`, installées d'elles-
+    mêmes.
+- **Corrections** : un élève redevenu présent perd l'absence que CET appel avait créée
+  (son justificatif en attente passe « annulé »). Une absence saisie ailleurs n'est jamais
+  supprimée.
+- **Hors connexion** (`lib/fileAttenteAppels.js`) : sans réseau, l'appel est gardé sur le
+  téléphone et réexpédié au retour de la connexion (événement `online`, ouverture de
+  l'application, toutes les minutes). La liste de la classe est aussi gardée, pour faire
+  l'appel sans réseau. Chaque envoi porte un identifiant : un renvoi n'est traité qu'une
+  fois. Un refus du serveur est signalé et retiré de la file.
+- **Parents prévenus** à la validation, pour les NOUVEAUX absents et retards seulement :
+  « Absence de Awa — … n'est pas en classe ce matin. Vous pouvez envoyer un
+  justificatif » ; le lien ouvre l'onglet Absences de l'enfant.
+- **Justificatifs** :
+  - Parent : l'onglet Absences montre l'état de chaque absence (justifiée, en attente, non
+    justifiée, avec la réponse de l'école) et les retards. « Justifier cette absence » :
+    un mot et/ou une photo (appareil du téléphone ou galerie) ou un PDF, 8 Mo au plus ;
+  - fichiers rangés hors du dossier public (`storage/app/justificatifs`), servis par
+    l'API après contrôle du droit de les voir ;
+  - enseignants de la classe prévenus ; alerte sur leur accueil et page
+    `/mon-espace/justificatifs` avec aperçu de la photo et décision Justifiée / Non
+    justifiée, commentaire facultatif ;
+  - administration : même liste dans Traitement → « Justificatifs d'absence »
+    (périmètre de l'établissement, droit `saisir_absences` pour décider) ;
+  - la décision est reportée dans `T_ABSENCEELEVE.Justifier`, et le parent est prévenu.
+- `App\Support\PorteeEnseignant` : compte → classes enseignées, et classe → comptes des
+  enseignants (filtré en SQL : dbmasterbacou est partagée).
+- Tests : `PortailAppelTest` (10 : feuille, écriture ECONOMAT et notification, renvoi hors
+  connexion, correction sans nouvelle notification, absence du secrétariat préservée,
+  retard, périmètre, circuit complet du justificatif, parent borné à ses enfants,
+  décision de l'administration).
+- **À savoir pour l'essai en local** : le poste est branché sur ATECH (10.8.0.1). Faire
+  l'appel y écrit de vraies absences et prévient les parents rattachés. En
+  http://10.8.0.5, l'appel, les justificatifs et la file hors connexion fonctionnent ;
+  l'installation et le push demandent HTTPS.

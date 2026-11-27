@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
+import AssiduiteEnfant from './AssiduiteEnfant'
 import { useQuery } from '@tanstack/react-query'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
@@ -7,7 +8,6 @@ import { ArrowLeft, Download, FileText } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import MessageRefus from '../../components/ui/MessageRefus'
 import {
-  fetchAbsencesEnfant,
   fetchCahierTextesEnfant,
   fetchDevoirsEnfant,
   fetchEmploiDuTempsEnfant,
@@ -113,35 +113,9 @@ function OngletFiche({ eleve }) {
   )
 }
 
+// Absences et retards, avec l'envoi d'un justificatif (voir AssiduiteEnfant).
 function OngletAbsences({ matricule }) {
-  const { data: absences, isLoading } = useQuery({ queryKey: ['portail-absences-enfant', matricule], queryFn: () => fetchAbsencesEnfant(matricule) })
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
-          <tr className="text-muted">
-            <th className="px-4 py-3 font-medium">Date</th>
-            <th className="px-4 py-3 font-medium">Motif</th>
-            <th className="px-4 py-3 font-medium">Justifiée</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-          {isLoading && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-          {!isLoading && (absences?.length ?? 0) === 0 && (
-            <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucune absence.</td></tr>
-          )}
-          {absences?.map((a) => (
-            <tr key={a.id}>
-              <td className="px-4 py-3 text-heading">{a.date ?? '—'}</td>
-              <td className="px-4 py-3 text-muted">{a.motif ?? '—'}</td>
-              <td className="px-4 py-3 text-muted">{a.justifiee ? 'Oui' : 'Non'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  return <AssiduiteEnfant matricule={matricule} />
 }
 
 function OngletCahier({ matricule }) {

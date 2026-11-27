@@ -8,6 +8,7 @@ import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
 import { marquerNotificationLue } from '../../features/notifications/notificationsApi'
+import { demarrerFileAttente } from '../../lib/fileAttenteAppels'
 import ErrorBoundary from '../ErrorBoundary'
 import { ID_HOTE_FORMULAIRE } from '../ui/ModaleFormulaire'
 import BanniereInstallation from './BanniereInstallation'
@@ -32,6 +33,11 @@ export default function PortailLayout() {
     await logoutApi()
     logout()
   }
+
+  // Enseignant : les appels faits sans réseau repartent dès que la connexion revient.
+  useEffect(() => {
+    if (typePortail === 'enseignant') demarrerFileAttente()
+  }, [typePortail])
 
   // Ouverte depuis une notification du téléphone (sw.js ajoute « ?lue=ID ») : on la marque
   // lue, puis on retire le paramètre de l'adresse.

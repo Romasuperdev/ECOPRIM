@@ -113,3 +113,26 @@ export const apiNotesEnseignant = {
   enregistrer: async ({ criteres, notes }) =>
     (await apiClient.post(`${BASE}/notes/feuille`, { ...criteres, notes })).data,
 }
+
+// --- Appel et justificatifs ---------------------------------------------------------
+
+export async function fetchFeuilleAppel({ classe, date, creneau }) {
+  const { data } = await apiClient.get(`${BASE}/appel`, { params: { classe, date, creneau } })
+  return data
+}
+
+/** { classe, date, creneau, absents: [], retards: [], envoi } */
+export async function envoyerAppel(appel) {
+  const { classe, date, creneau, absents, retards, envoi } = appel
+  const { data } = await apiClient.post(`${BASE}/appel`, { classe, date, creneau, absents, retards, envoi })
+  return data
+}
+
+export const apiJustificatifsEnseignant = {
+  lister: async (statut = 'en_attente') =>
+    (await apiClient.get(`${BASE}/justificatifs`, { params: { statut } })).data,
+  decider: async (id, decision, commentaire) =>
+    (await apiClient.post(`${BASE}/justificatifs/${id}/decision`, { decision, commentaire })).data,
+  fichier: async (id) =>
+    (await apiClient.get(`${BASE}/justificatifs/${id}/fichier`, { responseType: 'blob' })).data,
+}

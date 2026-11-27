@@ -44,6 +44,7 @@ final class TablesPropres
         '2026_10_22_000001_create_aide_tables' => ['aide_categories', 'aide_articles'],
         '2026_10_22_000002_create_nouveautes_tables' => ['nouveautes_versions', 'nouveautes_elements', 'nouveautes_lues'],
         '2026_11_27_000001_create_portail_notifications_tables' => ['portail_notifications', 'portail_abonnements_push'],
+        '2026_11_27_000002_create_appel_tables' => ['appels', 'appel_lignes', 'absence_justificatifs'],
     ];
 
     /**

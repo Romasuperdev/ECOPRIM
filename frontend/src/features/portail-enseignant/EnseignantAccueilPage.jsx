@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { BookOpen, CalendarDays, ChevronRight, ClipboardList, Star, Users } from 'lucide-react'
+import { BookOpen, CalendarDays, ChevronRight, ClipboardCheck, ClipboardList, FileWarning, Star, Users } from 'lucide-react'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import PastilleRelief from '../../components/ui/PastilleRelief'
 import { libelleAnnee } from '../../lib/annee'
 import {
+  apiJustificatifsEnseignant,
   fetchMesClasses,
   fetchMesDevoirs,
   fetchMesEvenements,
@@ -106,6 +107,43 @@ function SectionEvenements() {
   )
 }
 
+/**
+ * En haut de l'accueil, à portée de pouce : faire l'appel, et les justificatifs reçus des
+ * parents qui attendent une décision.
+ */
+function ActionsDuJour() {
+  const { data } = useQuery({
+    queryKey: ['justificatifs-enseignant', 'en_attente'],
+    queryFn: () => apiJustificatifsEnseignant.lister('en_attente'),
+  })
+  const enAttente = data?.justificatifs?.length ?? 0
+
+  return (
+    <div className="space-y-3">
+      <Link
+        to="/mon-espace/appel"
+        className="flex items-center justify-center gap-2.5 rounded-2xl px-4 py-4 text-lg font-extrabold shadow-lg transition active:scale-[.99]"
+        style={{ background: 'var(--brand-accent)', color: 'var(--brand-accent-ink)' }}
+      >
+        <ClipboardCheck size={22} /> Faire l’appel
+      </Link>
+      {enAttente > 0 && (
+        <Link
+          to="/mon-espace/justificatifs"
+          className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold"
+          style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)', color: 'var(--warning-text)' }}
+        >
+          <FileWarning size={19} className="shrink-0" />
+          <span className="flex-1">
+            {enAttente} justificatif{enAttente > 1 ? 's' : ''} d’absence à examiner
+          </span>
+          <ChevronRight size={18} />
+        </Link>
+      )}
+    </div>
+  )
+}
+
 /** Accueil du portail Enseignant : mes classes, mon emploi du temps, mes devoirs, le calendrier. */
 export default function EnseignantAccueilPage() {
   const { data, isLoading } = useQuery({ queryKey: ['mes-classes'], queryFn: fetchMesClasses })
@@ -127,6 +165,8 @@ export default function EnseignantAccueilPage() {
 
   return (
     <div className="space-y-5">
+      {classes.length > 0 && <ActionsDuJour />}
+
       <BandeauPortail
         titre="Mes classes"
         sousTitre={`${libelleAnnee(data?.annee)} — cahier journal, notes, absences et emploi du temps.`}
