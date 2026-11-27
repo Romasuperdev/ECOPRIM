@@ -4722,3 +4722,48 @@ SMS de secours, notification dans l'application et push seulement.
   l'appel y écrit de vraies absences et prévient les parents rattachés. En
   http://10.8.0.5, l'appel, les justificatifs et la file hors connexion fonctionnent ;
   l'installation et le push demandent HTTPS.
+
+## Espaces mobiles — étape 3 : les notes, brouillon puis publication (27 nov. 2026)
+
+- **Constat sur ATECH** : `T_NOTEENTETE` n'a ni intitulé, ni barème, ni statut de
+  publication, et `T_NOTEDETAILS` n'a pas de case « absent ». ECONOMAT reconnaît une
+  évaluation à sa classe, sa matière, sa session, son type et sa DATE.
+- **Table `notes_evaluations`** (installée d'elle-même), rattachée à l'entête par son code :
+  intitulé (« Dictée n°3 »), barème, élèves absents, statut `brouillon` / `publiee`. Les
+  NOTES restent écrites dans ECONOMAT par `NoteEcrivain`, comme depuis la saisie du
+  personnel.
+- **Enseignant, onglet Notes de la classe** (où mène la barre du bas) :
+  - liste des évaluations de ses matières : statut, nombre de notes, moyenne de la classe
+    sur 20 ;
+  - « + Nouvelle évaluation » : titre, matière, type, session, date, barème (celui de la
+    grille par défaut). Deux évaluations du même type, même matière, même jour sont
+    refusées : ECONOMAT les confondrait ;
+  - les évaluations saisies avant figurent aussi dans la liste. À l'ouverture, elles
+    reçoivent leur fiche, publiée, puisqu'elles étaient déjà visibles des parents.
+- **Saisie au pavé numérique** (`/mon-espace/notes/:entete`) :
+  - toucher un élève, taper la note, « OK » passe au suivant ; « Abs » = absent à
+    l'évaluation ;
+  - clavier physique accepté (chiffres, virgule, Retour arrière, Entrée) ;
+  - note au-dessus du barème refusée dès la frappe, puis par le serveur ;
+  - saisie gardée sur le téléphone à chaque toucher, proposée à la reprise si elle n'a
+    pas été enregistrée (coupure de réseau, onglet fermé).
+- **Absent** : la note éventuellement saisie avant est effacée dans ECONOMAT (l'écrivain
+  ignore les valeurs vides : effacement explicite).
+- **Brouillon / publication** :
+  - « Brouillon » : rien n'est visible des parents. Dans leur espace, la moyenne, le rang,
+    les notes par matière et le bulletin téléchargé excluent les brouillons
+    (`EvaluationsNotes::brouillons()`, utilisé par `MoyennesClasse`, `RapportController`,
+    `BulletinController` sur demande de `PortailParentController`) ;
+  - « Publier aux parents » (avec confirmation si des copies manquent) : la notification
+    « Nouvelle note : Calcul mental n°3 — Awa : 15/20 en Mathématiques » part, ou
+    « … était absent(e) » ;
+  - corriger une note publiée ne renvoie pas de notification ;
+  - le personnel voit tout, brouillons compris ; le classement calculé par ECONOMAT lui-même
+    reste le sien.
+- **Parent, onglet Résultats** : « Dernières notes », évaluation par évaluation (intitulé,
+  matière, date, note sur le barème, en vert ou rouge selon la moyenne ; « Absent »).
+- `PorteeEnseignant::enseigne()` et `matieres()` : contrôle « enseigne cette matière dans
+  cette classe ».
+- Tests : `PortailNotesTest` (5 : création et doublon refusé, brouillon invisible puis
+  publication et notification, absent qui efface la note, barème / matière / classe,
+  évaluations antérieures dans la liste).

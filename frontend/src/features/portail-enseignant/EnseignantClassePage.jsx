@@ -9,10 +9,8 @@ import Select from '../../components/ui/Select'
 import Input from '../../components/ui/Input'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
-import SaisieNotesPage from '../notes/SaisieNotesPage'
+import NotesClasse from './NotesClasse'
 import {
-  apiNotesEnseignant,
-  fetchMesMatieres,
   creerAbsence,
   creerCahier,
   enregistrerLigneCahier,
@@ -77,15 +75,9 @@ export default function EnseignantClassePage() {
       {onglet === 'cahier' && <OngletCahier classe={classe} />}
       {/* La saisie appartient à l'enseignant : c'est ici qu'elle se fait, la classe étant
           déjà celle de la page et les matières bornées à celles qu'il y enseigne. */}
-      {onglet === 'notes' && (
-        <SaisieNotesPage
-          api={apiNotesEnseignant}
-          classeFixe={classe}
-          matieresQuery={() => fetchMesMatieres(classe)}
-          entete={false}
-          portee="enseignant"
-        />
-      )}
+      {/* Évaluations notées : création, saisie au pavé numérique, brouillon puis
+          publication aux parents (NotesClasse, SaisieEvaluationPage). */}
+      {onglet === 'notes' && <NotesClasse classe={classe} />}
       {onglet === 'devoirs' && <OngletDevoirs classe={classe} />}
       {onglet === 'evaluations' && <OngletEvaluations classe={classe} />}
       {onglet === 'absences' && <OngletAbsences classe={classe} />}

@@ -51,14 +51,16 @@ class BulletinController extends Controller
         PerimetreEtablissement::exigerClasse($eleve->classe_code, 'Élève introuvable.');
 
         $session = $request->input('session');
+        // Depuis l'espace Parent : les évaluations en brouillon n'apparaissent pas.
+        $publiees = (bool) $request->attributes->get('notes_publiees_seulement', false);
 
-        $classement = $this->rapports->moyennes($eleve->classe_code, $session);
+        $classement = $this->rapports->moyennes($eleve->classe_code, $session, $publiees);
         $ligne = $classement->firstWhere('matricule', $eleve->matricule);
 
         return [
             'annee' => ContexteScolaire::annee(),
             'session' => $session,
-            'moyennesParMatiere' => $this->rapports->notesParMatiere($eleve->matricule, $session),
+            'moyennesParMatiere' => $this->rapports->notesParMatiere($eleve->matricule, $session, $publiees),
             'moyenneGenerale' => $ligne['moyenne'] ?? null,
             'rang' => $ligne['rang'] ?? null,
             'effectif' => $classement->count(),

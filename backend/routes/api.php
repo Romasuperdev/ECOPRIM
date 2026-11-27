@@ -320,6 +320,12 @@ Route::prefix('v1')->group(function () {
             Route::get('justificatifs', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'justificatifs']);
             Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'fichier'])->whereNumber('justificatif');
             Route::post('justificatifs/{justificatif}/decision', [\App\Http\Controllers\Api\V1\PortailAppelController::class, 'decider'])->whereNumber('justificatif');
+
+            // Évaluations notées : création, saisie au pavé numérique, brouillon, publication.
+            Route::get('evaluations-notees', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'index']);
+            Route::post('evaluations-notees', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'store']);
+            Route::get('evaluations-notees/{entete}', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'show'])->whereNumber('entete');
+            Route::put('evaluations-notees/{entete}/notes', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'enregistrer'])->whereNumber('entete');
         });
 
         // Portail Parent — un compte affecté du seul rôle Parent : uniquement les enfants
@@ -341,6 +347,7 @@ Route::prefix('v1')->group(function () {
 
             // Assiduité (absences, retards) et justificatifs envoyés par le parent.
             Route::get('enfants/{matricule}/assiduite', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'assiduite']);
+            Route::get('enfants/{matricule}/notes', [PortailParentController::class, 'notes']);
             Route::post('enfants/{matricule}/absences/{absence}/justificatif', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'justifier'])->whereNumber('absence');
             Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'fichier'])->whereNumber('justificatif');
         });

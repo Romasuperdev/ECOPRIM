@@ -136,3 +136,14 @@ export const apiJustificatifsEnseignant = {
   fichier: async (id) =>
     (await apiClient.get(`${BASE}/justificatifs/${id}/fichier`, { responseType: 'blob' })).data,
 }
+
+// --- Évaluations notées (création, saisie, brouillon, publication) -------------------
+
+export const apiEvaluationsNotees = {
+  lister: async (classe) =>
+    (await apiClient.get(`${BASE}/evaluations-notees`, { params: { classe } })).data,
+  creer: async (payload) => (await apiClient.post(`${BASE}/evaluations-notees`, payload)).data,
+  feuille: async (entete) => (await apiClient.get(`${BASE}/evaluations-notees/${entete}`)).data,
+  enregistrer: async (entete, notes, publier = false) =>
+    (await apiClient.put(`${BASE}/evaluations-notees/${entete}/notes`, { notes, publier })).data,
+}

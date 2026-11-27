@@ -35,9 +35,12 @@ class MoyennesClasse
     /**
      * @return array{session: ?string, sessions: array<int, string>, matieres: array<int, array>, lignes: Collection}
      */
-    public function calculer(string $codeClasse, ?string $session = null): array
+    public function calculer(string $codeClasse, ?string $session = null, array $entetesExclues = []): array
     {
-        $toutes = $this->notesDeLaClasse($codeClasse);
+        // $entetesExclues : évaluations encore en brouillon, qu'un parent ne doit pas voir
+        // peser sur la moyenne ni sur le rang (voir Notes\EvaluationsNotes).
+        $toutes = $this->notesDeLaClasse($codeClasse)
+            ->reject(fn ($n) => in_array((int) $n->Code, $entetesExclues, true));
         $sessions = $this->sessions($toutes);
 
         // Sans session demandée, la plus récente : mélanger S1 et S2 dans une même

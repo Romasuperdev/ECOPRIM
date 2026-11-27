@@ -54,6 +54,47 @@ final class PorteeEnseignant
         }
     }
 
+    /** Ce compte enseigne-t-il cette matière dans cette classe (année de travail) ? */
+    public static function enseigne(RhUser $compte, ?string $classe, ?string $matiere): bool
+    {
+        $prof = self::professeur($compte);
+        if (! $prof || ! $classe || ! $matiere) {
+            return false;
+        }
+
+        try {
+            return ContexteScolaire::appliquer(
+                DB::connection('economat')->table('T_CORPROFCLASSE')
+                    ->where('CodeProfesseur', $prof->Code)
+                    ->where('CodeClasse', $classe)
+                    ->where('CodeMatiere', $matiere),
+                'ANNEE'
+            )->exists();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /** @return string[] matières enseignées par ce compte dans cette classe */
+    public static function matieres(RhUser $compte, string $classe): array
+    {
+        $prof = self::professeur($compte);
+        if (! $prof) {
+            return [];
+        }
+
+        try {
+            return ContexteScolaire::appliquer(
+                DB::connection('economat')->table('T_CORPROFCLASSE')
+                    ->where('CodeProfesseur', $prof->Code)
+                    ->where('CodeClasse', $classe),
+                'ANNEE'
+            )->pluck('CodeMatiere')->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all();
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
     /** @return int[] comptes RH_USER des enseignants de cette classe, année de travail */
     public static function comptesDeLaClasse(string $classe): array
     {

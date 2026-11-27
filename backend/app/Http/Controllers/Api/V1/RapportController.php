@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Classe;
 use App\Services\MoyennesClasse;
+use App\Services\Notes\EvaluationsNotes;
 use App\Support\ContexteScolaire;
 use App\Support\PerimetreEtablissement;
 use Illuminate\Http\Request;
@@ -60,13 +61,18 @@ class RapportController extends Controller
      * de travail comprise — même source que la page Résultats, pour qu'un bulletin ne
      * contredise jamais l'écran.
      */
-    public function moyennes(?string $codeClasse, ?string $session = null)
+    public function moyennes(?string $codeClasse, ?string $session = null, bool $publieesSeulement = false)
     {
-        return $codeClasse ? $this->resultats($codeClasse, $session)['lignes'] : collect();
+        return $codeClasse ? $this->resultats($codeClasse, $session, $publieesSeulement)['lignes'] : collect();
     }
 
-    /** ECONOMAT d'abord ; le calcul NEXORA seulement s'il n'a rien produit. */
-    private function resultats(string $codeClasse, ?string $session): array
+    /**
+     * ECONOMAT d'abord ; le calcul NEXORA seulement s'il n'a rien produit.
+     *
+     * $publieesSeulement (espace Parent) : les évaluations en brouillon ne comptent pas.
+     * Cela ne vaut que pour le calcul NEXORA — le classement d'ECONOMAT est le sien.
+     */
+    private function resultats(string $codeClasse, ?string $session, bool $publieesSeulement = false): array
     {
         $economat = $this->moyennesEconomat($codeClasse, $session);
 
@@ -80,7 +86,9 @@ class RapportController extends Controller
             ];
         }
 
-        return ['source' => 'calcul'] + $this->calcul->calculer($codeClasse, $session);
+        return ['source' => 'calcul'] + $this->calcul->calculer(
+            $codeClasse, $session, $publieesSeulement ? app(EvaluationsNotes::class)->brouillons() : [],
+        );
     }
 
     private function moyennesEconomat(string $codeClasse, ?string $session)
@@ -110,11 +118,12 @@ class RapportController extends Controller
     }
 
     /** Notes par matière d'un élève, pour le bulletin (V_NOTECLASSE). */
-    public function notesParMatiere(?string $matricule, ?string $session = null)
+    public function notesParMatiere(?string $matricule, ?string $session = null, bool $publieesSeulement = false)
     {
         if (! $matricule) {
             return collect();
         }
+        $exclues = $publieesSeulement ? app(EvaluationsNotes::class)->brouillons() : [];
 
         $requete = DB::connection('economat')->table('V_NOTECLASSE')
             ->where('Matricule', $matricule)
@@ -122,6 +131,7 @@ class RapportController extends Controller
         ContexteScolaire::appliquer($requete, 'CodeAnnee');
 
         return $requete->get()
+            ->reject(fn ($n) => in_array((int) $n->Code, $exclues, true))
             ->groupBy('CodeMatiere')
             ->map(fn ($notes, $code) => [
                 'matiere_code' => $code,

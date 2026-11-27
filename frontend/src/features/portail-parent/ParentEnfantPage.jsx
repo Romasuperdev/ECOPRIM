@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import AssiduiteEnfant from './AssiduiteEnfant'
+import DernieresNotes from './DernieresNotes'
 import { useQuery } from '@tanstack/react-query'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
@@ -341,6 +342,7 @@ function OngletResultats({ matricule }) {
   return (
     <div className="space-y-4">
       <MessageRefus message={refus} onFermer={effacer} />
+      <DernieresNotes matricule={matricule} />
       <div className="card grid grid-cols-3 gap-4 p-5 text-center">
         <div>
           <div className="text-2xl font-bold text-heading">{data?.moyenne_generale ?? '—'}</div>

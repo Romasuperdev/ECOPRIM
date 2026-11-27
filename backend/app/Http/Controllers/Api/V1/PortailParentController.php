@@ -191,7 +191,8 @@ class PortailParentController extends Controller
         $eleve = $this->trouverEnfant($matricule);
         $session = $request->input('session');
 
-        $classement = $this->rapports->moyennes($eleve->classe_code, $session);
+        // Les évaluations encore en brouillon chez l'enseignant ne comptent pas ici.
+        $classement = $this->rapports->moyennes($eleve->classe_code, $session, true);
         $ligne = $classement->firstWhere('matricule', $matricule);
 
         return [
@@ -200,14 +201,24 @@ class PortailParentController extends Controller
             'moyenne_generale' => $ligne['moyenne'] ?? null,
             'rang' => $ligne['rang'] ?? null,
             'effectif' => $classement->count(),
-            'par_matiere' => $this->rapports->notesParMatiere($matricule, $session),
+            'par_matiere' => $this->rapports->notesParMatiere($matricule, $session, true),
         ];
+    }
+
+    /** Les notes PUBLIÉES de l'enfant, évaluation par évaluation, les plus récentes d'abord. */
+    public function notes(string $matricule)
+    {
+        $this->assertEnfantAutorise($matricule);
+        $eleve = $this->trouverEnfant($matricule);
+
+        return ['notes' => app(\App\Services\Notes\EvaluationsNotes::class)->notesPubliees($matricule, $eleve->classe_code)];
     }
 
     public function bulletin(Request $request, string $matricule)
     {
         $this->assertEnfantAutorise($matricule);
         $eleve = $this->trouverEnfant($matricule);
+        $request->attributes->set('notes_publiees_seulement', true);
 
         return $this->bulletin->show($request, $eleve);
     }

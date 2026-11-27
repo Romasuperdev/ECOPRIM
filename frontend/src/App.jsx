@@ -73,6 +73,7 @@ const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAcc
 const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfantPage'))
 const NotificationsPage = lazy(() => import('./features/notifications/NotificationsPage'))
 const AppelPage = lazy(() => import('./features/portail-enseignant/AppelPage'))
+const SaisieEvaluationPage = lazy(() => import('./features/portail-enseignant/SaisieEvaluationPage'))
 const JustificatifsEnseignantPage = lazy(() => import('./features/portail-enseignant/JustificatifsEnseignantPage'))
 const JustificatifsPage = lazy(() => import('./features/justificatifs/JustificatifsPage'))
 // Aide et Nouveautés : lecture dans l'application, gestion dans la console (Super Admin).
@@ -269,6 +270,7 @@ export default function App() {
               <Route path="/mon-espace/appel" element={<AppelPage />} />
               <Route path="/mon-espace/appel/:classe" element={<AppelPage />} />
               <Route path="/mon-espace/justificatifs" element={<JustificatifsEnseignantPage />} />
+              <Route path="/mon-espace/notes/:entete" element={<SaisieEvaluationPage />} />
             </Route>
 
             <Route

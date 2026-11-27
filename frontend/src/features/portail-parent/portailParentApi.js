@@ -114,3 +114,8 @@ export async function fetchFichierJustificatif(id) {
   const { data } = await apiClient.get(`${BASE}/justificatifs/${id}/fichier`, { responseType: 'blob' })
   return data
 }
+
+export async function fetchNotesEnfant(matricule) {
+  const { data } = await apiClient.get(`${BASE}/enfants/${m(matricule)}/notes`)
+  return data
+}
