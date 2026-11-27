@@ -6,7 +6,6 @@ use App\Models\RhUser;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -23,6 +22,8 @@ class PortailAppelTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Fichiers joints dans un dossier jetable : jamais dans le storage du poste.
+        $this->app->useStoragePath(sys_get_temp_dir().'/nexora-tests-'.uniqid());
         $this->setUpMasterDb();
         $this->setUpEconomatDb();
 
@@ -233,7 +234,6 @@ class PortailAppelTest extends TestCase
 
     public function test_le_parent_justifie_l_enseignant_decide(): void
     {
-        File::deleteDirectory(storage_path('app/justificatifs'));
         $parent = $this->parent();
         $enseignant = $this->enseignant();
 

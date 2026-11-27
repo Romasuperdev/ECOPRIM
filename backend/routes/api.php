@@ -326,6 +326,17 @@ Route::prefix('v1')->group(function () {
             Route::post('evaluations-notees', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'store']);
             Route::get('evaluations-notees/{entete}', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'show'])->whereNumber('entete');
             Route::put('evaluations-notees/{entete}/notes', [\App\Http\Controllers\Api\V1\PortailNotesController::class, 'enregistrer'])->whereNumber('entete');
+
+            // Devoirs avec photo du tableau, et annonces aux parents d'une classe.
+            Route::get('devoirs-classe', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'devoirs']);
+            Route::post('devoirs-classe', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'creerDevoir']);
+            Route::put('devoirs-classe/{devoir}', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'modifierDevoir'])->whereNumber('devoir');
+            Route::delete('devoirs-classe/{devoir}', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'supprimerDevoir'])->whereNumber('devoir');
+            Route::get('devoirs-classe/{devoir}/pieces/{piece}', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'piece'])->whereNumber(['devoir', 'piece']);
+            Route::get('annonces', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'annonces']);
+            Route::post('annonces', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'creerAnnonce']);
+            Route::delete('annonces/{annonce}', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'supprimerAnnonce'])->whereNumber('annonce');
+            Route::get('annonces/{annonce}/photo', [\App\Http\Controllers\Api\V1\PortailVieClasseController::class, 'photoAnnonce'])->whereNumber('annonce');
         });
 
         // Portail Parent — un compte affecté du seul rôle Parent : uniquement les enfants
@@ -348,6 +359,9 @@ Route::prefix('v1')->group(function () {
             // Assiduité (absences, retards) et justificatifs envoyés par le parent.
             Route::get('enfants/{matricule}/assiduite', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'assiduite']);
             Route::get('enfants/{matricule}/notes', [PortailParentController::class, 'notes']);
+            Route::get('enfants/{matricule}/vie-de-classe', [\App\Http\Controllers\Api\V1\PortailVieClasseParentController::class, 'vieDeClasse']);
+            Route::get('devoirs/{devoir}/pieces/{piece}', [\App\Http\Controllers\Api\V1\PortailVieClasseParentController::class, 'piece'])->whereNumber(['devoir', 'piece']);
+            Route::get('annonces/{annonce}/photo', [\App\Http\Controllers\Api\V1\PortailVieClasseParentController::class, 'photoAnnonce'])->whereNumber('annonce');
             Route::post('enfants/{matricule}/absences/{absence}/justificatif', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'justifier'])->whereNumber('absence');
             Route::get('justificatifs/{justificatif}/fichier', [\App\Http\Controllers\Api\V1\PortailAssiduiteController::class, 'fichier'])->whereNumber('justificatif');
         });

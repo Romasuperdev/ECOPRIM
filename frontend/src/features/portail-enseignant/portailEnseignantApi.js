@@ -147,3 +147,20 @@ export const apiEvaluationsNotees = {
   enregistrer: async (entete, notes, publier = false) =>
     (await apiClient.put(`${BASE}/evaluations-notees/${entete}/notes`, { notes, publier })).data,
 }
+
+// --- Devoirs (avec photos) et annonces de classe -------------------------------------
+
+export const apiVieClasse = {
+  devoirs: async (classe) => (await apiClient.get(`${BASE}/devoirs-classe`, { params: { classe } })).data,
+  /** FormData : classe, matiere, titre, consigne, date_remise, pieces[] */
+  creerDevoir: async (formulaire) => (await apiClient.post(`${BASE}/devoirs-classe`, formulaire)).data,
+  modifierDevoir: async (id, donnees) => (await apiClient.put(`${BASE}/devoirs-classe/${id}`, donnees)).data,
+  supprimerDevoir: async (id) => { await apiClient.delete(`${BASE}/devoirs-classe/${id}`) },
+  piece: async (devoir, piece) =>
+    (await apiClient.get(`${BASE}/devoirs-classe/${devoir}/pieces/${piece}`, { responseType: 'blob' })).data,
+  annonces: async (classe) => (await apiClient.get(`${BASE}/annonces`, { params: { classe } })).data,
+  /** FormData : classe, titre, message, photo */
+  creerAnnonce: async (formulaire) => (await apiClient.post(`${BASE}/annonces`, formulaire)).data,
+  supprimerAnnonce: async (id) => { await apiClient.delete(`${BASE}/annonces/${id}`) },
+  photoAnnonce: async (id) => (await apiClient.get(`${BASE}/annonces/${id}/photo`, { responseType: 'blob' })).data,
+}

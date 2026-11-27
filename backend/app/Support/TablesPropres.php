@@ -46,6 +46,7 @@ final class TablesPropres
         '2026_11_27_000001_create_portail_notifications_tables' => ['portail_notifications', 'portail_abonnements_push'],
         '2026_11_27_000002_create_appel_tables' => ['appels', 'appel_lignes', 'absence_justificatifs'],
         '2026_11_27_000003_create_notes_evaluations_table' => ['notes_evaluations'],
+        '2026_11_27_000004_create_devoir_pieces_annonces_tables' => ['devoir_pieces', 'annonces'],
     ];
 
     /**

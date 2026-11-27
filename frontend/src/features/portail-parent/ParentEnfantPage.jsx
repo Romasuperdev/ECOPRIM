@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import AssiduiteEnfant from './AssiduiteEnfant'
 import DernieresNotes from './DernieresNotes'
+import VieDeClasseEnfant from './VieDeClasseEnfant'
 import { useQuery } from '@tanstack/react-query'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
@@ -10,7 +11,6 @@ import Button from '../../components/ui/Button'
 import MessageRefus from '../../components/ui/MessageRefus'
 import {
   fetchCahierTextesEnfant,
-  fetchDevoirsEnfant,
   fetchEmploiDuTempsEnfant,
   fetchEmploiReferentiels,
   fetchEnfant,
@@ -38,7 +38,7 @@ const JOURS_CAHIER = [
 const TABS = [
   { cle: 'fiche', libelle: 'Fiche' },
   { cle: 'emploi', libelle: 'Emploi du temps' },
-  { cle: 'devoirs', libelle: 'Devoirs' },
+  { cle: 'devoirs', libelle: 'Devoirs & annonces' },
   { cle: 'evaluations', libelle: 'Évaluations' },
   { cle: 'absences', libelle: 'Absences' },
   { cle: 'cahier', libelle: 'Cahier journal' },
@@ -205,35 +205,9 @@ function OngletEmploi({ matricule }) {
   )
 }
 
+// Annonces de la classe et devoirs, photos comprises : voir VieDeClasseEnfant.
 function OngletDevoirs({ matricule }) {
-  const { data: devoirs, isLoading } = useQuery({ queryKey: ['portail-devoirs-enfant', matricule], queryFn: () => fetchDevoirsEnfant(matricule) })
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
-          <tr className="text-muted">
-            <th className="px-4 py-3 font-medium">Titre</th>
-            <th className="px-4 py-3 font-medium">Matière</th>
-            <th className="px-4 py-3 font-medium">À rendre le</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-          {isLoading && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-          {!isLoading && (devoirs?.length ?? 0) === 0 && (
-            <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucun devoir en cours.</td></tr>
-          )}
-          {devoirs?.map((d) => (
-            <tr key={d.id}>
-              <td className="px-4 py-3 font-medium text-heading">{d.titre}</td>
-              <td className="px-4 py-3 text-muted">{d.matiere_libelle}</td>
-              <td className="px-4 py-3 text-muted">{d.date_remise}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  return <VieDeClasseEnfant matricule={matricule} />
 }
 
 function OngletEvaluations({ matricule }) {

@@ -119,3 +119,16 @@ export async function fetchNotesEnfant(matricule) {
   const { data } = await apiClient.get(`${BASE}/enfants/${m(matricule)}/notes`)
   return data
 }
+
+// --- Devoirs et annonces de la classe ---------------------------------------------------
+
+export async function fetchVieDeClasse(matricule) {
+  const { data } = await apiClient.get(`${BASE}/enfants/${m(matricule)}/vie-de-classe`)
+  return data
+}
+
+export const apiVieClasseParent = {
+  piece: async (devoir, piece) =>
+    (await apiClient.get(`${BASE}/devoirs/${devoir}/pieces/${piece}`, { responseType: 'blob' })).data,
+  photoAnnonce: async (id) => (await apiClient.get(`${BASE}/annonces/${id}/photo`, { responseType: 'blob' })).data,
+}

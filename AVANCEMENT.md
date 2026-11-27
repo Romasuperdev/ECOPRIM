@@ -4767,3 +4767,30 @@ SMS de secours, notification dans l'application et push seulement.
 - Tests : `PortailNotesTest` (5 : création et doublon refusé, brouillon invisible puis
   publication et notification, absent qui efface la note, barème / matière / classe,
   évaluations antérieures dans la liste).
+
+## Espaces mobiles — étape 4 : devoirs avec photo, annonces de classe (27 nov. 2026)
+
+- **Enseignant, onglet « Devoirs & annonces » de la classe** (où mène la barre du bas) :
+  - **Devoirs** : matière (les siennes), texte, consigne, date de remise (jamais passée),
+    et jusqu'à 4 photos ou PDF de 8 Mo. Boutons « Photo » (appareil arrière du téléphone)
+    et « Galerie », avec aperçu avant envoi ;
+  - un enseignant ne modifie ou ne retire que les devoirs qu'il a donnés ; les fichiers
+    partent avec le devoir retiré ;
+  - **Annonces** aux parents d'UNE de ses classes (« Sortie scolaire demain : prévoir une
+    casquette et une gourde »), photo facultative, nombre de parents prévenus affiché ;
+    retrait par son auteur.
+- **Parents prévenus** à chaque publication, chacun avec un lien vers l'onglet Devoirs de
+  SON enfant dans la classe (`Notifieur::envoyerAuxParentsDeLaClasse`, qui s'appuie sur
+  `parentsParEleve`). Les parents d'une autre classe ne reçoivent rien.
+- **Parent, onglet « Devoirs & annonces »** : annonces récentes de la classe, devoirs à
+  faire (le plus proche d'abord) avec leurs photos, devoirs passés repliés.
+- **Fichiers** (`App\Support\PiecesJointes`) : rangés hors du dossier public
+  (`storage/app/devoirs`, `storage/app/annonces`), nom tiré au hasard, servis par l'API
+  après contrôle (classe de l'enseignant, ou classe d'un enfant du parent).
+- Tables `devoir_pieces` et `annonces` (installées d'elles-mêmes). Les devoirs restent dans
+  la table `devoirs` existante : ceux saisis par le personnel s'affichent aussi.
+- **Tests** : `PortailVieClasseTest` (4 : devoir avec photos et liens par enfant, garde-fous
+  — matière, classe, date passée, 5 photos, fichier .exe —, modification et retrait de ses
+  seuls devoirs, annonce et sa photo). Les tests d'appel et de devoirs écrivent désormais
+  leurs fichiers dans un dossier temporaire : avant, `PortailAppelTest` vidait
+  `storage/app/justificatifs` du poste.

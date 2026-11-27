@@ -86,6 +86,77 @@ class Notifieur
             ->all();
     }
 
+    /**
+     * Les comptes parents des élèves d'une classe, pour l'année de travail.
+     *
+     * @return int[]
+     */
+    public function parentsDeLaClasse(string $classe): array
+    {
+        return array_keys($this->parentsParEleve($this->matriculesDeLaClasse($classe)));
+    }
+
+    /**
+     * Prévient les parents d'une classe, chacun avec un lien vers SON enfant dans cette
+     * classe (« /mon-espace/enfants/{matricule}?onglet=… »).
+     *
+     * @return int nombre de comptes parents prévenus
+     */
+    public function envoyerAuxParentsDeLaClasse(string $classe, string $type, string $titre, ?string $corps,
+        string $onglet, array $donnees = []): int
+    {
+        $parEnfant = [];
+        foreach ($this->parentsParEleve($this->matriculesDeLaClasse($classe)) as $parent => $matricule) {
+            $parEnfant[$matricule][] = $parent;
+        }
+
+        foreach ($parEnfant as $matricule => $parents) {
+            $this->envoyer($parents, $type, $titre, $corps,
+                '/mon-espace/enfants/'.rawurlencode($matricule).'?onglet='.$onglet,
+                $donnees + ['matricule' => $matricule]);
+        }
+
+        return array_sum(array_map('count', $parEnfant));
+    }
+
+    /** @return string[] */
+    private function matriculesDeLaClasse(string $classe): array
+    {
+        return \App\Support\ContexteScolaire::appliquer(
+            DB::connection('economat')->table('T_ETUDIANT')->where('CodeClasse', $classe),
+            'AnneeAcad'
+        )->pluck('Matricule')->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all();
+    }
+
+    /**
+     * Compte parent => le premier de ses enfants parmi ces élèves.
+     *
+     * @param  string[]  $matricules
+     * @return array<int, string>
+     */
+    public function parentsParEleve(array $matricules): array
+    {
+        $resultat = [];
+        foreach (array_chunk(array_values($matricules), 500) as $lot) {
+            DB::connection('ecoprim')
+                ->table('console_affectations as a')
+                ->join('console_roles as r', 'r.id', '=', 'a.role_id')
+                ->join('console_affectation_eleves as e', 'e.affectation_id', '=', 'a.id')
+                ->whereIn('e.eleve_matricule', $lot)
+                ->where('a.actif', true)
+                ->where(fn ($q) => $q->whereNull('a.date_fin')
+                    ->orWhere('a.date_fin', '>=', now()->toDateString()))
+                ->where('r.code', RhUser::ROLE_PARENT)
+                ->orderBy('e.eleve_matricule')
+                ->get(['a.rh_user_id', 'e.eleve_matricule'])
+                ->each(function ($l) use (&$resultat) {
+                    $resultat[(int) $l->rh_user_id] ??= trim((string) $l->eleve_matricule);
+                });
+        }
+
+        return $resultat;
+    }
+
     /** Réveille chaque appareil abonné de ces comptes ; supprime les abonnements expirés. */
     public function reveiller(array $rhUserIds): void
     {

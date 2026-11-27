@@ -10,6 +10,7 @@ import Input from '../../components/ui/Input'
 import ModaleFormulaire from '../../components/ui/ModaleFormulaire'
 import MessageRefus from '../../components/ui/MessageRefus'
 import NotesClasse from './NotesClasse'
+import DevoirsAnnoncesClasse from './DevoirsAnnoncesClasse'
 import {
   creerAbsence,
   creerCahier,
@@ -18,7 +19,6 @@ import {
   fetchCahiers,
   fetchMesClasses,
   fetchMesAbsences,
-  fetchMesDevoirs,
   fetchMesEleves,
   fetchMesEvaluationsPlanifiees,
   fetchMonEmploi,
@@ -39,7 +39,7 @@ const JOURS_CAHIER = [
 const TABS = [
   { cle: 'cahier', libelle: 'Cahier journal' },
   { cle: 'notes', libelle: 'Notes' },
-  { cle: 'devoirs', libelle: 'Devoirs' },
+  { cle: 'devoirs', libelle: 'Devoirs & annonces' },
   { cle: 'evaluations', libelle: 'Évaluations' },
   { cle: 'absences', libelle: 'Absences' },
   { cle: 'eleves', libelle: 'Élèves' },
@@ -248,35 +248,9 @@ function OngletCahier({ classe }) {
 
 // --- Devoirs (lecture seule — la création se fait depuis l'application, avec la permission requise) ---
 
+// Devoirs (avec photo du tableau) et annonces aux parents : voir DevoirsAnnoncesClasse.
 function OngletDevoirs({ classe }) {
-  const { data: devoirs, isLoading } = useQuery({ queryKey: ['portail-devoirs', classe], queryFn: () => fetchMesDevoirs(classe) })
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b" style={{ borderColor: 'var(--border)' }}>
-          <tr className="text-muted">
-            <th className="px-4 py-3 font-medium">Titre</th>
-            <th className="px-4 py-3 font-medium">Matière</th>
-            <th className="px-4 py-3 font-medium">À rendre le</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-          {isLoading && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Chargement…</td></tr>}
-          {!isLoading && (devoirs?.length ?? 0) === 0 && (
-            <tr><td colSpan={3} className="px-4 py-6 text-center text-muted">Aucun devoir donné à cette classe.</td></tr>
-          )}
-          {devoirs?.map((d) => (
-            <tr key={d.id}>
-              <td className="px-4 py-3 font-medium text-heading">{d.titre}</td>
-              <td className="px-4 py-3 text-muted">{d.matiere_libelle}</td>
-              <td className="px-4 py-3 text-muted">{d.date_remise}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  return <DevoirsAnnoncesClasse classe={classe} />
 }
 
 // --- Évaluations planifiées (lecture seule) ---
