@@ -297,6 +297,27 @@ php artisan nexora:verifier-deploiement
 
 ---
 
+## Application mobile (espaces Enseignant et Parent)
+
+Les espaces Enseignant et Parent s'installent sur le téléphone comme une application
+(Android : bouton « Installer » ; iPhone : Partager → « Sur l'écran d'accueil ») et
+reçoivent des notifications. Trois conditions :
+
+- **HTTPS obligatoire.** En `http://`, le navigateur refuse l'installation et les
+  notifications : l'application reste une simple page web.
+- **Le service worker est servi à la racine des pages** : `sw.js` à côté de `index.html`
+  sur bacou.info (`/ecole-primaire/sw.js`), ou par la route Laravel `/sw.js` en mode
+  « une seule adresse ». Ne pas le placer derrière un cache longue durée.
+- **Ne pas supprimer `backend\storage\app\push-vapid.json`.** Il contient les clés des
+  notifications, créées au premier besoin. De nouvelles clés obligeraient chaque téléphone
+  à se réabonner. `php artisan nexora:cles-push` les affiche (et `--nouvelles` en génère
+  d'autres, à recopier dans `.env`).
+
+Le serveur doit pouvoir joindre en HTTPS sortant les services de notification
+(`fcm.googleapis.com`, `web.push.apple.com`, `updates.push.services.mozilla.com`).
+
+---
+
 ## En cas de problème
 
 | Ce que vous voyez | Cause la plus probable |

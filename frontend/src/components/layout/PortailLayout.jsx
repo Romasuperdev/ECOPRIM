@@ -1,11 +1,18 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { LogOut } from 'lucide-react'
 import Button from '../ui/Button'
 import BasculeTheme from '../ui/BasculeTheme'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 import { logout as logoutApi } from '../../features/auth/authApi'
+import { marquerNotificationLue } from '../../features/notifications/notificationsApi'
 import ErrorBoundary from '../ErrorBoundary'
 import { ID_HOTE_FORMULAIRE } from '../ui/ModaleFormulaire'
+import BanniereInstallation from './BanniereInstallation'
+import BarreNavigationPortail from './BarreNavigationPortail'
+import ClocheNotifications from './ClocheNotifications'
 
 const TITRES = {
   enseignant: 'Espace Enseignant',
@@ -13,16 +20,34 @@ const TITRES = {
 }
 
 // Portails restreints (Enseignant, Parent) : pas de grande sidebar comme l'application
-// complète — un en-tête simple et le contenu de la page, cohérent avec le peu d'écrans
-// que chaque portail propose.
+// complète — un en-tête simple et le contenu de la page. Sur téléphone, une barre de
+// navigation en bas d'écran (utilisable d'une main) et la cloche des notifications.
 export default function PortailLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
   const { user, typePortail, logout } = useAuthStore()
 
   const handleLogout = async () => {
     await logoutApi()
     logout()
   }
+
+  // Ouverte depuis une notification du téléphone (sw.js ajoute « ?lue=ID ») : on la marque
+  // lue, puis on retire le paramètre de l'adresse.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const id = params.get('lue')
+    if (!id) return
+    params.delete('lue')
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true })
+    marquerNotificationLue(id)
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['notifications'] })
+        qc.invalidateQueries({ queryKey: ['notifications-compteur'] })
+      })
+      .catch(() => { /* déjà lue, ou plus la sienne : rien à faire */ })
+  }, [location.search, location.pathname, navigate, qc])
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -32,6 +57,7 @@ export default function PortailLayout() {
           background: 'color-mix(in srgb, var(--bg) 80%, transparent)',
           backdropFilter: 'blur(8px)',
           borderBottom: '1px solid var(--border)',
+          paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
         }}
       >
         <div className="flex min-w-0 items-center gap-3">
@@ -44,12 +70,18 @@ export default function PortailLayout() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <ClocheNotifications />
           <BasculeTheme />
-          <Button variant="outline" onClick={handleLogout}>Se déconnecter</Button>
+          <Button variant="outline" onClick={handleLogout} aria-label="Se déconnecter" className="!px-3 sm:!px-5">
+            <LogOut size={16} className="sm:hidden" />
+            <span className="hidden sm:inline">Se déconnecter</span>
+          </Button>
         </div>
       </header>
-      <div className="p-4 sm:p-6 lg:p-8">
+      {/* En bas, la place de la barre de navigation du téléphone (et de l'encoche). */}
+      <div className="p-4 pb-[calc(76px+env(safe-area-inset-bottom))] sm:p-6 md:pb-6 lg:p-8">
         <div className="mx-auto w-full max-w-5xl">
+          <BanniereInstallation />
           {/* Formulaires « Nouveau / Modifier » : ils s'affichent ici, en page, à la place
               du contenu (voir ModaleFormulaire). */}
           <div id={ID_HOTE_FORMULAIRE} className="hote-formulaire" />
@@ -63,6 +95,7 @@ export default function PortailLayout() {
           </div>
         </div>
       </div>
+      <BarreNavigationPortail />
     </div>
   )
 }

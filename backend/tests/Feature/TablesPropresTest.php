@@ -27,7 +27,7 @@ class TablesPropresTest extends TestCase
 
     public function test_les_tables_manquantes_sont_creees_au_premier_appel(): void
     {
-        $this->assertCount(15, TablesPropres::manquantes());
+        $this->assertCount(count(TablesPropres::liste()), TablesPropres::manquantes());
 
         $this->getJson('/api/v1/me'); // n'importe quelle route de l'API
 
@@ -86,6 +86,6 @@ class TablesPropresTest extends TestCase
 
         $this->getJson('/api/v1/me');
 
-        $this->assertCount(15, TablesPropres::manquantes());
+        $this->assertCount(count(TablesPropres::liste()), TablesPropres::manquantes());
     }
 }

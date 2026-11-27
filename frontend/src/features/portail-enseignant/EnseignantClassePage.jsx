@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -50,7 +50,11 @@ const TABS = [
 
 export default function EnseignantClassePage() {
   const { classe } = useParams()
-  const [onglet, setOnglet] = useState('cahier')
+  // L'onglet suit l'adresse (?onglet=notes) : la barre de navigation du téléphone y mène
+  // directement, et « retour » ramène à l'onglet précédent.
+  const [recherche, setRecherche] = useSearchParams()
+  const onglet = TABS.some((t) => t.cle === recherche.get('onglet')) ? recherche.get('onglet') : 'cahier'
+  const setOnglet = (cle) => setRecherche({ onglet: cle }, { replace: true })
   // Le nom de la classe (« CM1 A ») plutôt que son code (« CM1A ») dans le bandeau.
   const { data: mes } = useQuery({ queryKey: ['mes-classes'], queryFn: fetchMesClasses })
   const nomClasse = mes?.classes?.find((c) => c.classe === classe)?.classe_libelle ?? classe

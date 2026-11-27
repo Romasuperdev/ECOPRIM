@@ -4613,3 +4613,58 @@ Demande : des formulaires identiques à ceux de parcauto (`vehicules/create.blad
 - Tests : `NotesResultatsReadTest` (calcul, doublon, ex æquo, session, élève sans note).
   Suite complète : 729 tests OK. Les 2 échecs de `SocieteUtilisateurTest` (401 au lieu de
   403) étaient déjà là et ne sont pas liés à ce changement.
+
+## Espaces Enseignant et Parent mobiles — étape 1 : le socle (27 nov. 2026)
+
+Proposition validée par l'utilisateur : refaire l'espace Enseignant (miroir de l'espace
+Parent) pour le téléphone, APK Android et Web sur iPhone. L'étape 1, préalable à tout le
+reste, est livrée.
+
+- **Application installable (PWA)** :
+  - manifeste écrit au build (`vite.config.js`, `manifestePwa`), avec la bonne racine dans
+    les deux modes : `/ecole-primaire/` (bacou.info) et `/` avec fichiers sous `/spa/`
+    (« une seule adresse ») ;
+  - icônes 192/512, masquable et Apple, dessinées depuis le logo ;
+  - `public/sw.js` : interface disponible hors connexion (les données viennent toujours de
+    l'API, jamais du cache), réception des notifications ;
+  - route Laravel `/sw.js` : sous `/spa/sw.js`, le service worker ne couvrirait pas les
+    pages servies à la racine.
+- **Bannière d'installation** : bouton « Installer » sur Android ; sur iPhone, explication
+  du geste Partager → « Sur l'écran d'accueil » (indispensable pour les notifications sur
+  iOS). Fermée, elle revient au bout de 14 jours.
+- **Navigation mobile** : barre du bas à 4 entrées. Enseignant : Accueil, Ma classe,
+  Notes, Devoirs. Parent : Accueil, Notes, Absences, Devoirs. Elle mène aux onglets
+  existants, qui suivent désormais l'adresse (`?onglet=notes`). Bouton de déconnexion
+  compact sur téléphone ; marges pour l'encoche (`safe-area`).
+- **Notifications** :
+  - tables `portail_notifications` et `portail_abonnements_push`, installées d'elles-mêmes ;
+  - `App\Services\Notifications\Notifieur` : point unique pour prévenir un compte.
+    `parentsDesEleves()` retrouve les parents d'un élève (chemin inverse de
+    `enfantsMatricules`). Le push part après la réponse HTTP ;
+  - cloche avec compteur dans l'en-tête, pastille sur l'icône de l'application, page
+    `/mon-espace/notifications` (lecture, « tout marquer lu », activer / couper les alertes
+    de ce téléphone) ;
+  - API `mon-espace/notifications…` et `mon-espace/push/…`, bornée au compte connecté.
+- **Web Push sans bibliothèque** (`WebPush`) :
+  - réveil vide signé VAPID (JWT ES256) ; le service worker va chercher la notification
+    lui-même, avec la session : rien de personnel ne passe par Google ou Apple ;
+  - clés créées au premier besoin dans `storage/app/push-vapid.json`, ou fixées dans
+    `.env` (`php artisan nexora:cles-push`) ;
+  - sous Windows, OpenSSL a besoin de son `openssl.cnf` : il est cherché dans le dossier de
+    PHP (`extras/ssl`) ;
+  - abonnements expirés (404/410) supprimés au passage.
+- **Correctif `TablesPropres`** : le constat « tables installées » était mémorisé pour
+  toujours. Une table ajoutée par une mise à jour (comme `import_historique`) n'était donc
+  jamais créée sur un serveur déjà installé. La clé de cache porte maintenant l'empreinte
+  de la liste des migrations.
+- **Poste local** : `bootstrap/cache` contenait un cache de routes et de configuration. Les
+  nouvelles routes restaient invisibles et les tests prenaient `APP_ENV=local` (erreurs
+  419). Caches vidés : sur le poste de développement, on n'en garde pas.
+- `DEPLOIEMENT.md` : section « Application mobile » (HTTPS obligatoire, fichier de clés à
+  garder, accès sortant aux services de notification).
+- Tests : `PortailNotificationsTest` (7 : isolation entre comptes, lecture, parents d'un
+  élève, abonnement, réveil et expiration, signature ES256 vérifiée). `TablesPropresTest`
+  compte désormais la liste réelle.
+- **Pas encore vérifié sur un vrai téléphone** : cela demande HTTPS, donc bacou.info.
+- Aucune notification n'est encore envoyée par l'application : les déclencheurs (appel,
+  publication des notes, devoirs) arrivent aux étapes 2 à 4.

@@ -43,10 +43,21 @@ final class TablesPropres
         '2026_10_07_000001_create_coefficients_matiere_table' => ['coefficients_matiere'],
         '2026_10_22_000001_create_aide_tables' => ['aide_categories', 'aide_articles'],
         '2026_10_22_000002_create_nouveautes_tables' => ['nouveautes_versions', 'nouveautes_elements', 'nouveautes_lues'],
+        '2026_11_27_000001_create_portail_notifications_tables' => ['portail_notifications', 'portail_abonnements_push'],
     ];
 
-    private const CLE_OK = 'nexora.tables_propres.ok';
+    /**
+     * Le constat « tout est installé » est mémorisé pour la liste de migrations CI-DESSUS.
+     * Sans cette empreinte, un serveur déjà installé ne voyait jamais une table ajoutée
+     * par une mise à jour : le cache disait « ok » pour toujours.
+     */
+    private const CLE_OK_PREFIXE = 'nexora.tables_propres.ok';
     private const CLE_ECHEC = 'nexora.tables_propres.echec';
+
+    private static function cleOk(): string
+    {
+        return self::CLE_OK_PREFIXE.'.'.md5(implode('|', array_keys(self::MIGRATIONS)));
+    }
 
     /** Toutes les tables propres à NEXORA. */
     public static function liste(): array
@@ -58,14 +69,14 @@ final class TablesPropres
     public static function assurer(): void
     {
         if (! config('nexora.installation_auto', true)
-            || Cache::get(self::CLE_OK) === true
+            || Cache::get(self::cleOk()) === true
             || Cache::get(self::CLE_ECHEC) === true) {
             return;
         }
 
         try {
             if (self::manquantes() === []) {
-                Cache::forever(self::CLE_OK, true);
+                Cache::forever(self::cleOk(), true);
 
                 return;
             }
@@ -77,7 +88,7 @@ final class TablesPropres
             });
 
             if (self::manquantes() === []) {
-                Cache::forever(self::CLE_OK, true);
+                Cache::forever(self::cleOk(), true);
             } else {
                 Cache::put(self::CLE_ECHEC, true, now()->addMinutes(10));
             }
@@ -198,7 +209,7 @@ final class TablesPropres
     /** Pour les tests, ou après une correction du .env : oublier le résultat mémorisé. */
     public static function oublier(): void
     {
-        Cache::forget(self::CLE_OK);
+        Cache::forget(self::cleOk());
         Cache::forget(self::CLE_ECHEC);
     }
 }

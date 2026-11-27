@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import BandeauPortail from '../../components/ui/BandeauPortail'
 import Onglets from '../../components/ui/Onglets'
@@ -48,7 +48,11 @@ const TABS = [
 
 export default function ParentEnfantPage() {
   const { matricule } = useParams()
-  const [onglet, setOnglet] = useState('fiche')
+  // L'onglet suit l'adresse (?onglet=notes) : la barre de navigation du téléphone y mène
+  // directement, et « retour » ramène à l'onglet précédent.
+  const [recherche, setRecherche] = useSearchParams()
+  const onglet = TABS.some((t) => t.cle === recherche.get('onglet')) ? recherche.get('onglet') : 'fiche'
+  const setOnglet = (cle) => setRecherche({ onglet: cle }, { replace: true })
   const { data: eleve } = useQuery({ queryKey: ['portail-enfant', matricule], queryFn: () => fetchEnfant(matricule) })
 
   return (

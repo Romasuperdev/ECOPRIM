@@ -329,6 +329,19 @@ Route::prefix('v1')->group(function () {
             Route::get('enfants/{matricule}/evenements', [PortailParentController::class, 'evenements']);
         });
 
+        // Notifications des deux portails : la cloche et l'abonnement push du téléphone.
+        // Chaque compte ne voit que les siennes (PortailNotificationController).
+        Route::middleware('portail:enseignant|parent')->prefix('mon-espace')->group(function () {
+            Route::get('notifications', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'index']);
+            Route::get('notifications/compteur', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'compteur']);
+            Route::get('notifications/derniere', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'derniere']);
+            Route::post('notifications/tout-lu', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'toutMarquerLu']);
+            Route::post('notifications/{notification}/lue', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'marquerLue'])->whereNumber('notification');
+            Route::get('push/cle', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'clePush']);
+            Route::post('push/abonnement', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'abonner']);
+            Route::delete('push/abonnement', [\App\Http\Controllers\Api\V1\PortailNotificationController::class, 'desabonner']);
+        });
+
         // Console générale — Super Admin seul : le catalogue des sociétés.
         Route::middleware('console:generale')->group(function () {
             // Rôles et permissions : création, suppression, permissions — Super Admin seul.

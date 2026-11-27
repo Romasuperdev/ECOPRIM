@@ -4,9 +4,12 @@ import { ThemeProvider } from 'next-themes'
 import '@fontsource-variable/nunito-sans'
 import './index.css'
 import { demarrerMouvements } from './lib/mouvement'
+import { enregistrerServiceWorker } from './lib/pwa'
 import App from './App.jsx'
 
 demarrerMouvements()
+// Application installable et notifications push (en HTTPS, construction de production).
+enregistrerServiceWorker()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

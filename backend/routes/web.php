@@ -39,6 +39,22 @@ Route::get('/', function () use ($interface) {
     ]);
 });
 
+/*
+ | Service worker de l'application installable (frontend/public/sw.js). Il doit être servi à
+ | la RACINE des pages pour pouvoir les couvrir : sous /spa/sw.js, le navigateur le
+ | cantonnerait à /spa/. Jamais mis en cache par le navigateur, pour qu'une mise à jour soit
+ | vue tout de suite.
+ */
+Route::get('/sw.js', function () {
+    $fichier = public_path('spa/sw.js');
+    abort_unless(File::exists($fichier), 404);
+
+    return response()->file($fichier, [
+        'Content-Type' => 'application/javascript; charset=utf-8',
+        'Cache-Control' => 'no-cache',
+    ]);
+});
+
 if (File::exists($interface)) {
     /*
      | Tout le reste appartient au routeur React.

@@ -71,6 +71,7 @@ const EnseignantAccueilPage = lazy(() => import('./features/portail-enseignant/E
 const EnseignantClassePage = lazy(() => import('./features/portail-enseignant/EnseignantClassePage'))
 const ParentAccueilPage = lazy(() => import('./features/portail-parent/ParentAccueilPage'))
 const ParentEnfantPage = lazy(() => import('./features/portail-parent/ParentEnfantPage'))
+const NotificationsPage = lazy(() => import('./features/notifications/NotificationsPage'))
 // Aide et Nouveautés : lecture dans l'application, gestion dans la console (Super Admin).
 const AidePage = lazy(() => import('./features/aide/AidePage'))
 const AideArticlePage = lazy(() => import('./features/aide/AideArticlePage'))
@@ -261,6 +262,7 @@ export default function App() {
               <Route path="/mon-espace" element={<MonEspaceIndex />} />
               <Route path="/mon-espace/classes/:classe" element={<EnseignantClassePage />} />
               <Route path="/mon-espace/enfants/:matricule" element={<ParentEnfantPage />} />
+              <Route path="/mon-espace/notifications" element={<NotificationsPage />} />
             </Route>
 
             <Route

@@ -41,4 +41,16 @@ return [
     */
     'installation_auto' => filter_var(env('NEXORA_INSTALLATION_AUTO', true), FILTER_VALIDATE_BOOL),
 
+    /*
+    | Notifications push des espaces Enseignant et Parent (App\Services\Notifications\WebPush).
+    | Rien à renseigner : sans ces variables, les clés sont générées une fois et gardées dans
+    | storage/app/push-vapid.json (ne pas supprimer ce fichier). Pour les fixer à la main :
+    | php artisan nexora:cles-push, puis recopier les deux lignes affichées dans .env.
+    */
+    'push' => [
+        'cle_publique' => env('NEXORA_PUSH_CLE_PUBLIQUE'),
+        'cle_privee' => env('NEXORA_PUSH_CLE_PRIVEE'),
+        'sujet' => env('NEXORA_PUSH_SUJET'),
+    ],
+
 ];
